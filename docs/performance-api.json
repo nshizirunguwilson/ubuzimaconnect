@@ -1,0 +1,77 @@
+{
+  "measuredAt": "2026-10-24T22:07:35.555Z",
+  "concurrency": 20,
+  "requestsPerAction": 200,
+  "results": [
+    {
+      "action": "Patient: open a request",
+      "n": 200,
+      "p50": 25,
+      "p95": 31,
+      "max": 33
+    },
+    {
+      "action": "Patient: home list of requests",
+      "n": 200,
+      "p50": 45,
+      "p95": 56,
+      "max": 63
+    },
+    {
+      "action": "Patient: send a chat message",
+      "n": 200,
+      "p50": 19,
+      "p95": 22,
+      "max": 23
+    },
+    {
+      "action": "Agent: queue and status",
+      "n": 200,
+      "p50": 19,
+      "p95": 21,
+      "max": 22
+    },
+    {
+      "action": "Agent: open the case",
+      "n": 200,
+      "p50": 60,
+      "p95": 74,
+      "max": 82
+    },
+    {
+      "action": "Agent: facilities to route to (50 facilities)",
+      "n": 200,
+      "p50": 49,
+      "p95": 58,
+      "max": 61
+    },
+    {
+      "action": "Clinician: patients on the way",
+      "n": 200,
+      "p50": 22,
+      "p95": 25,
+      "max": 27
+    },
+    {
+      "action": "Pharmacy: check a code",
+      "n": 200,
+      "p50": 12,
+      "p95": 14,
+      "max": 16
+    },
+    {
+      "action": "Administrator: on-duty dashboard",
+      "n": 200,
+      "p50": 11,
+      "p95": 14,
+      "max": 14
+    },
+    {
+      "action": "Administrator: month report (30,000 requests)",
+      "n": 1,
+      "p50": 145,
+      "p95": 145,
+      "max": 145
+    }
+  ]
+}

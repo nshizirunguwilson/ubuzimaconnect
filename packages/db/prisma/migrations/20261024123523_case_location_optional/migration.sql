@@ -1,0 +1,4 @@
+-- AlterTable
+ALTER TABLE "Case" ALTER COLUMN "latitude" DROP NOT NULL,
+ALTER COLUMN "longitude" DROP NOT NULL,
+ALTER COLUMN "locationSource" DROP NOT NULL;

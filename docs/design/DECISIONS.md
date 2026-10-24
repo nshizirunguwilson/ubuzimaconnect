@@ -1,0 +1,363 @@
+# UbuzimaConnect: Design Decisions
+
+Each entry says what was decided, why, and where the proof is. Newest last.
+
+---
+
+### D1. Tailwind's default palette and radii are removed
+- **Decision:** `globals.css` clears `--color-*`, `--radius-*`, `--shadow-*` and `--font-*` before defining ours.
+- **Why:** with the defaults gone, a class like `bg-purple-500` or `rounded-lg` does nothing, so off-palette colours and plain rounded corners cannot slip into a screen (DESIGN.md §2, §5).
+- **Exception:** `rounded-full`, for true circles only (radio, avatar, progress segments).
+
+### D2. Text colour tokens are named `fg`
+- **Decision:** the DESIGN.md roles `text`, `text-secondary` and `text-muted` are the tokens `fg`, `fg-secondary` and `fg-muted`.
+- **Why:** Tailwind prefixes colour classes with `text-`, so the role `text` would become `text-text`. The roles and values are unchanged.
+
+### D3. Native squircle radius = base radius × 1.77
+- **Decision:** with `corner-shape: squircle`, the border radius is the base radius multiplied by `--sq-k: 1.77`.
+- **Why:** a superellipse corner at the same radius looks smaller than the Figma-style smoothed corner used by the fallback. The multiplier was found by drawing both shapes on a canvas (400 × 400 px, radius 48 px, 4× supersampling) and counting the pixels that differ:
+
+| k | 1.60 | 1.70 | **1.75** | 1.80 | 1.85 | 2.00 |
+|---|---|---|---|---|---|---|
+| Differing area (px²) | 348 | 180 | **154** | 162 | 231 | 620 |
+
+  The best fit is between 1.75 and 1.80, so we use 1.77. That is less than half a pixel of average difference along each corner. The model of the native shape (|x|⁴ + |y|⁴ = 1) was checked against Chrome's rendering by overlaying the two.
+- **Fallback curve:** `figma-squircle` with `cornerSmoothing: 0.6` (Figma's "iOS" preset).
+
+### D4. How the fallback paints borders, focus rings and shadows
+- **Decision:** in browsers without `corner-shape` (Safari, Firefox), `<Squircle>` measures itself and draws an SVG behind its content: the fill and the 1 px border on one path, plus the focus ring (a 2 px gap and a 2 px ring) on paths 1 px and 3 px outside it. The shadow is a `drop-shadow` filter on that SVG.
+- **Why not `clip-path`?** Clipping cuts off the border at the corners and hides any focus ring or shadow drawn outside the element.
+- **Paint goes through variables** (`sq-bg-*`, `sq-border-*`), so hover, checked and error states change both the CSS paint and the SVG paint.
+- **Test it:** add `?sq=fallback` to any URL to force the fallback in Chrome. Checked on the component sheet at 375 px: 67 of 67 squircles drawn, no horizontal scroll.
+
+### D5. An `xs` radius (6 px) for controls under 24 px
+- **Decision:** the checkbox (20 px) uses a 6 px radius.
+- **Why:** the smallest step on the scale, `sm` (8 px), on a 20 px box almost makes it a circle, so it could be mistaken for a radio button.
+
+### D6. Native `<select>`
+- **Decision:** the select is the browser's own control inside our squircle shell.
+- **Why:** on phones this opens the system picker, which our users already know, and it works with screen readers and offline without extra code.
+
+### D7. Bottom sheet on phones, dialog from 640 px
+- **Decision:** below 640 px the dialog is anchored to the bottom with only the top corners rounded; from 640 px it is a centred dialog with all four corners rounded. On phones the actions stack with the primary on top; on desktop the primary is on the right.
+- **Why:** on a phone the actions are within thumb reach (DESIGN.md §4).
+
+### D8. Toasts use the dark surface
+- **Decision:** the toast is gray-900 with white text (contrast 14.6:1).
+- **Why:** toasts float over any screen, so they need to stand apart from the white and gray-50 surfaces without using the blue accent (DESIGN.md §2, the 10% rule).
+
+### D9. Contrast is a test, not a promise
+- **Decision:** `src/lib/tokens.ts` lists every text and UI pair we use. `src/lib/contrast.test.ts` checks each one against WCAG 2.2 (4.5:1 for text, 3:1 for UI parts), and the component sheet shows the same table.
+- **Result:** 23 of 23 pairs pass (`pnpm --filter @ubuzima/web test`).
+
+### D10. A Notice component for page-level messages
+- **Decision:** a tinted squircle with an icon, a short title and one sentence, for messages about the whole page: "Too many tries", "You were logged out", "We can't check IDs right now".
+- **Why:** these are not tied to one field, so they can't sit under an input, and a toast disappears too fast for a lock that lasts 15 minutes. It follows the status rule (icon + words + tint, DESIGN.md §2). Field errors stay under their field.
+
+### D11. `SquircleLink` for links in server pages
+- **Decision:** a small client component that renders `<Squircle as={Link}>`.
+- **Why:** React can't pass a component (`Link`) from a server page to a client component as a prop. For the same reason, navigation icons are passed as rendered elements (`<LuHouse />`).
+
+## Phase 0 (foundation and logins)
+
+### D12. Server-side sessions with a cookie, through a same-origin `/api`
+- **Decision:** after login the API sets an `httpOnly`, `SameSite=Lax` cookie with a random token. The database keeps only its SHA-256 hash, plus `expiresAt`, which moves 15 minutes ahead on each request. The web app sends all calls to `/api/*`, which Next.js rewrites to the NestJS API.
+- **Why not JWTs:** the SRS needs three things that are simple with server sessions and awkward with JWTs: sessions ending after 15 idle minutes (FR 1.7, 2.5), a staff login that exists but is not usable until the email code is entered (FR 2.2), and ending every session when a password changes (FR 2.7).
+- **Why the rewrite:** to the browser the cookie is first-party on the web domain, so no CORS setup and no cross-site cookie rules are needed.
+
+### D13. Staff locks: a temporary lock first, then email
+- **Decision:** 5 wrong passwords lock the account for 15 minutes (FR 2.3). If the next 5 tries after that lock also fail, the account becomes `LOCKED_EMAIL`, and only the emailed code (valid for 15 minutes) or a password reset opens it (FR 2.4). Failures are counted by a hash of the email, even for emails with no account. A wrong email and a wrong password get the same answer and take the same time (a dummy argon2 check), so the login can't be used to find out which emails have accounts.
+
+### D14. Patients: the national ID is never stored
+- **Decision:** the patient row keeps an HMAC-SHA256 of the national ID (with a server secret) for lookup, and the identity service's own reference (`nidaRef`). The ID is never a key, never in a URL and never logged. An automated test checks that the raw ID is not in the table.
+- **Same answer for every mismatch:** a wrong date of birth, a wrong name and an unknown ID all get the same answer (FR 1.4). The response doesn't say which part was wrong.
+
+### D15. The mock NIDA only answers the API
+- **Decision:** the mock identity service checks the caller's address against `NIDA_ALLOWED_IPS` (only this computer, by default) and also needs an API key. In Azure, the same addresses are also set as App Service access restrictions, so other traffic never reaches the app.
+- **Why:** a real identity registry would never be open to the internet. The mock behaves the same way so the demo is honest.
+
+### D16. NestJS 12 and Prisma 7 build choices
+- **NestJS 12 is ESM-only.** Nest's dependency injection needs decorator metadata, which esbuild doesn't produce, so `tsup` builds the API with SWC (turned on by `emitDecoratorMetadata`). Each app becomes a single `dist/main.js` for App Service, with a `createRequire` banner for bundled CommonJS packages (`pg`).
+- **Prisma 7** uses the `prisma-client` generator and the `pg` driver adapter. There is no native query engine, so no `binaryTargets` are needed for Azure's Linux.
+- **Tests:** the API tests start the real built API and mock NIDA against the `ubuzima_test` database. Setup refuses any database whose name doesn't end in `_test`.
+
+### D17. Development outbox instead of real email
+- **Decision:** without `RESEND_API_KEY`, every email (codes, invitations, reset links) is saved to the `EmailMessage` table and shown at `/dev/outbox`. That page is hidden in production.
+- **Why:** the whole staff flow can be tested on one computer without sending real email.
+
+### D18. The staff navigation is an inset squircle panel
+- **Decision:** the navigation is a white `xl` squircle panel with a 12 px margin from the screen edge and a 12 px gap to the content. It stays in place while the page scrolls. On phones the same panel holds the logo, log out and the navigation across the top.
+- **Source:** a reference image you shared on 24 Oct 2026 (a dashboard shot by Owais Anwer, "pikbites"). We take the floating sidebar with space on both sides and a tinted active item. We leave the green gradient cards, the striped chart bars and the "Download our app" promo.
+- **Why:** a panel with space around it reads as one object and keeps the squircle shape visible. A strip glued to the screen edge would lose its corners.
+
+### D19. No pharmacist accounts; roles follow the SRS
+- **Decision:** the staff roles are the four in FR 2.1: agent, clinician, facility manager and administrator. The pharmacist role I had added is removed (migration `20261024120000_staff_roles_per_srs`).
+- **Why:** in the SRS, pharmacists use the public prescription check page (use case 19, FR 11.7, FR 9.6), with no login.
+- **Who creates whom:** the administrator creates agents (with a licence number, because agents issue prescriptions, FR 11.2) and facility managers (FR 12.1). Facility managers create clinicians (FR 8.2).
+
+### D20. Phase 0 checked against the full SRS text
+After reading the full requirement text, I fixed these details:
+- **FR 1.5:** the exact message "Verification is temporarily unavailable", the Emergency button, and a log entry for the failure.
+- **FR 1.6:** the Emergency button on the lock message.
+- **FR 1.8:** the label is "This is not my device", and the device gets no notifications at all.
+- **FR 1.3:** a child of 16 or older logs in with their own ID and sees only their own record; the parent still sees them. A fictional 17-year-old was added to the mock NIDA to prove this.
+- **FR 2.4:** a password reset doesn't unlock an account locked a second time. Only the emailed unlock code does, and administrators can't unlock accounts.
+- **FR 2.6:** "Send again" for an unused invitation, which makes the old link stop working.
+- **FR 10.1:** logins are logged with the device type.
+
+## Phase 1, batch 1 (setup data for routing)
+
+### D21. Levels of care follow Rwanda's health system
+- **Decision:** a facility's level is one of health post, health centre, district hospital, provincial hospital or referral hospital.
+- **Why:** the SRS names "level of care" but gives no list. These are the levels of Rwanda's public health system, lowest to highest. Level-two teaching hospitals are stored as provincial hospitals.
+
+### D22. One shift table for both schedules
+- **Decision:** a `ShiftAssignment` row is one person on one Day or Night shift on one date, with an unavailable flag and reason. The clinician schedule (FR 8.4) and the agent schedule (FR 12.4) are the same table and the same grid; the role decides who appears. A night shift belongs to the date it starts on (19:00).
+- **Why:** this matches the SRS class diagram (WeeklySchedule made of ShiftAssignment records). The "on duty now" check that routing needs is then a single query.
+- **Gaps are worked out, not stored:** for a facility, a shift has a gap when no available clinician covers a service the facility offers. For agents, it has a gap when nobody is on it (NFR 12). Unavailable people don't count.
+
+### D23. Red-flag questions are removed softly
+- **Decision:** "Remove" hides a question from new cases but keeps the row.
+- **Why:** FR 12.6 says changes apply to new cases only. Older cases must still show the question they answered. N2 (babies under 8 days) is a rule in code (FR 4.2), not a question.
+- **Kinyarwanda:** the texts aren't in the SRS, so the 23 questions are seeded in English and the list shows how many still need a translation. Machine-translated medical questions would be unsafe, so they are left for a Kinyarwanda speaker to write.
+
+### D24. Seeded facilities are real names with approximate data
+- **Decision:** the six demo facilities use real Kigali facility names. Their services, bed counts, phone numbers and coordinates are approximate demo values.
+- **Why:** routing by distance needs believable locations. The README says these aren't real figures.
+
+### D25. Screenshots in the browser pane
+- When the pane runs in the background it pauses animation frames, so React's reveal of streamed content waits until the next screenshot. A page that looks empty in a first screenshot is not a bug; checks look at the DOM, then take a second screenshot.
+
+## Phase 1, batch 2 (the patient case flow)
+
+### D26. The safety rules are pure functions
+- **Decision:** red-flag groups, the newborn rule, the needed service (FR 5.1), the triage level (FR 4.4, 4.5) and facility matching (FR 5.3, 5.4, 5.8, 5.9) live in `packages/shared/src/triage.ts`. They have no database or network code, and each rule has a test written from the SRS wording (`triage.test.ts`).
+- **Why:** these rules decide whether someone is told to go to hospital. They must be easy to read next to the SRS and to test exhaustively.
+
+### D27. The patient never sees the words "Uncertain" or "Minor"
+- **Decision:** an Urgent case shows where to go now, with the distance, a call button and 912 (FR 5.5). Every other case shows "An agent will reply here". The level is for staff.
+- **Why:** calling someone's problem "Minor" can make them wait when they shouldn't, and "Uncertain" alarms without helping. The SRS's patient-facing messages say what to do, not the level.
+
+### D28. Yes and No look the same on a red-flag question
+- **Decision:** both answers are equal secondary buttons, and the hint says "Answer Yes if you're not sure".
+- **Why:** a red Yes or a blue No would push people towards one answer. Red is kept for the result (DESIGN.md §2). When unsure, the safe answer is Yes.
+
+### D29. How the AI is called and tested
+- **Model:** `GEMINI_MODEL` (default `gemini-2.5-flash`) returns JSON in a fixed schema at temperature 0.
+- **What it is sent:** only the description, how long, how bad, age, sex, pregnancy and the number of red flags asked. Never a name, ID or location (FR 4.6).
+- **Failures:** a timeout (10 s), an error, a missing key, the switch being off, or an open breaker all become an "AI unavailable" result. The triage rules then make the case Uncertain (FR 4.5, 4.7).
+- **Testing without the internet:** the API's Gemini address can be set (`GEMINI_BASE_URL`), and the tests run a small stand-in server (`apps/api/test/fake-gemini.ts`). There are no test-only branches in the product code.
+
+### D30. Sector centres come from NISR boundaries
+- **Decision:** the manual location picker uses Rwanda's 416 sectors. Each sector's centre is the area-weighted centroid of its official boundary (NISR via HDX, CC BY-IGO). Only names, codes and centres are stored (`packages/shared/src/data/sectors.json`, 48 KB).
+
+### D31. Urgent guidance is a suggestion until an agent confirms it
+- **Decision:** an Urgent case stores the suggested facility and shows it at once (FR 5.5). It doesn't yet create a routing, bed reservation or clinician assignment. Those come with the agent's routing in batch 3, together with the automatic routing for red-flag cases (FR 5.12).
+- **Why:** reserving beds needs the routing states (Suggested, Confirmed, Expired) from the SRS state machine, which belong with the rest of routing.
+
+### D32. The dev servers and stale code
+- The Next.js dev server sometimes keeps an old copy of a changed file or old Tailwind CSS. The fix is to stop it, delete `apps/web/.next` and start it again (also in the README).
+- The API's watch build now also watches `packages/shared` and `packages/db`, so a regenerated database client is picked up. This applies only with `--watch`; a plain `build` must exit, which tests and deployment rely on.
+
+### D33. Gemini model: 3.5 Flash Lite with minimal thinking
+- **Decision:** `GEMINI_MODEL=gemini-3.5-flash-lite` and `GEMINI_THINKING=MINIMAL`, both set in `apps/api/.env`.
+- **Why:** tried on 24 Oct 2026 with the project's free-tier key.
+  - `gemini-2.5-flash` is closed to new keys.
+  - `gemini-3.8-flash` didn't answer within 60 seconds, and `gemini-3.7-flash` returned "high demand".
+  - 3.5 Flash Lite answered 6 of 6 calls in about 1 second.
+  - Sorting one message into a fixed category doesn't need a larger model, and FR 4.3 allows 10 seconds.
+- **Result on three fictional cases:** a mild rash came back minor with high confidence → Minor. Severe belly pain with vomiting came back urgent → Urgent. "I just feel strange" came back minor with low confidence → Uncertain (FR 4.5 c).
+- **Temperature** is left at the model default, as Google advises for Gemini 3 models. The fixed JSON schema keeps answers in the allowed values.
+
+## Phase 1, batch 3 (agent queue, chat and routing)
+
+### D34. Live updates use Server-Sent Events, straight to the API
+- **Decision:** chat messages, offers and queue changes reach the browser over Server-Sent Events from the API (`/events/cases/:id`, `/events/agent`). The browser opens them directly on the API's address with the session cookie, and sends messages as ordinary requests.
+- **Why not through `/api`:** the Next.js docs warn that proxied long connections are closed on timeout. A direct stream avoids that. Locally the cookie reaches `localhost:4000` because cookies don't depend on the port. In production `COOKIE_DOMAIN=.ubuzima.wilsonn.tech` shares it with `api.ubuzima.wilsonn.tech`, and CORS allows only the web address, with credentials.
+- **Why not Socket.IO (the earlier plan):** chat here is one-way pushes plus ordinary sends. Server-Sent Events do that with the existing cookie check, reconnect on their own, and add no extra library or second login path.
+- **Proof:** an agent's message reaches the patient's stream in under 3 seconds, as NFR 4 requires (`agent.test.ts`).
+- **Limit:** the event bus is in memory, which is right for one API instance. With more instances it becomes Postgres LISTEN/NOTIFY (NFR 5, phase 3).
+
+### D35. "Connected" means the agent's stream is open
+- **Decision:** while an agent's stream is open, the API marks them as seen every 15 seconds. The stream is opened on every staff page, not only the queue. The dispatcher treats 60 seconds without it as a lost connection (FR 6.14).
+- **Found in testing:** at first only the Queue page opened the stream. An agent working a case looked lost after 60 seconds, and the case was given back. Fixed by `AgentPresence` in the staff layout.
+- **Background tabs:** Chrome may freeze a background tab after a few minutes, which closes the stream. Agent pages hold a Web Lock, one of the conditions under which Chrome doesn't freeze a tab. Agents should still keep the tab open while on shift; the SRS treats a silent agent as Offline.
+
+### D36. The dispatcher
+- **Decision:** a loop runs every 2 seconds (`DISPATCH_MS`) inside a Postgres advisory lock, so only one instance dispatches at a time. Each pass it:
+  1. marks lost agents Offline and returns their cases,
+  2. moves expired offers to the next agent,
+  3. offers waiting cases by level, then front-of-queue, then age, to the Available agent who has been free the longest.
+- **Front of the queue:** a paused, released or returned case keeps its level and is flagged to go first within that level (FR 6.12, 6.14, 6.16).
+- **Tests** shorten the offer time (`OFFER_MS`); production uses 30 seconds.
+
+### D37. Urgent cases are routed before an agent sees them
+- **Decision:** a red-flag or newborn case immediately gets a routing in the Suggested state (SRS state machine). It has the nearest suitable facility, a held bed and the automatically chosen clinician (FR 5.5, 5.7, 5.12). The agent then confirms it, which keeps the same bed, or changes it, which releases that bed and holds a new one. The `Case.suggestedFacilityId` column from batch 2 was removed.
+
+### D38. The patient app uses the width on computers
+- **Decision:** on phones nothing changes: one column (DESIGN.md §4). From 1024 px the frame widens to 1040 px. Forms and questions stay in one 480 px column. The home page and the case page use two columns: requests on the left and family on the right on the home page; guidance on the left and the chat on the right on the case page. A slim header with the logo and Log out runs across the top.
+- **Why:** the user saw a phone-shaped strip in the middle of a laptop screen. A long line of text is harder to read, so forms keep one narrow column (Baymard: about 50 to 75 characters per line). The chat is beside the guidance so a patient can read where to go while they answer the agent, without scrolling between them.
+- **Found in review:** raised by the user while reviewing batch 3 at 1280 px.
+
+## Phase 1, batch 4 (clinicians) and review fixes
+
+### D39. The routing is the visit
+- **Decision:** there is no separate Visit table. A routing marked Arrived is the active visit, and Discharged, Completed or Transferred end it.
+- **Why:** the SRS routing state machine already names it "Arrived (active visit)", with those three end states. A second table would repeat the same lifecycle and could drift from it.
+- **Records:** clinical entries are versioned rows. An edit adds a row with the same `rootId` and points to the version it replaces (`previousVersionId`, unique, so two edits of one version can't both win). Earlier versions are never changed (FR 7.7).
+- **Arrival before an agent:** an urgent patient can reach the facility before any agent took the case. Marking them arrived closes that case as Routed to facility, so agents don't spend time on someone already in care.
+
+### D40. Passwords: at least 8 characters
+- **Decision:** the minimum is 8 (was 12), still with no rules about symbols or digits, and a maximum of 128.
+- **Why:** NIST SP 800-63B-4 §3.1.1.2 sets 8 as the minimum for a password used with a second factor, and 15 without one. Staff always enter an emailed code as well (FR 2.2). Raised by the user in review.
+
+### D41. Login codes as six boxes over one field
+- **Decision:** the 6-digit code shows one box per digit. Underneath is one real input laid over the boxes.
+- **Why:** six separate inputs break pasting the whole code, the device's "code from email" autofill (`autocomplete="one-time-code"`), and screen readers, which announce six unlabeled fields. One input keeps all three working while the boxes show progress digit by digit. Raised by the user in review.
+
+### D42. Leaving a screen resets it; logging out reloads the page
+- **Found in review:** "Log out" showed a spinner nobody had pressed, and the staff login showed an old error with a spinning Continue button.
+- **Cause:** with `cacheComponents`, Next.js 16 keeps a page's React state when you navigate away (React Activity). A button left loading by a navigation was still loading when the page came back.
+- **Decision:** loading flags use `usePending`, which resets when the screen is hidden. Login and code forms also clear typed passwords, codes and errors then. Logging out (by the button or after 15 idle minutes) is a full page load, so nothing a patient or clinician saw stays in the browser's memory. That matters on shared devices (FR 1.8).
+- **Confirmation:** Log out now asks first, and so does every agent status change. They end a session or change whether cases arrive, and a stray tap shouldn't do either.
+
+### D43. Agent status colours
+- **Decision:** Available is green, Away amber, Offline grey, each with a dot and the word (DESIGN.md §2: never colour alone). Busy stays the blue "Busy with a case" badge.
+- **Why:** the user couldn't tell the chosen status from the others when all three looked alike.
+
+### D44. Demo identities follow the real ID layout
+- **Decision:** IDs are shown and typed in the card's six parts: `1 2006 8 0041223 1 72`. The parts are nationality (1 Rwandan, 2 refugee, 3 foreign resident), year of birth, sex (8 male, 7 female), birth-order number, times issued, and two check digits. The form groups the digits as they are typed. The API refuses 16 digits whose first or sixth digit can't be right.
+- **Demo people:** each ID's year and sex digit match the person's date of birth and sex. Names follow Rwandan custom: each person has their own Kinyarwanda name, so a child seldom shares a parent's surname. Given names fit the generation: Esperance (1960), Jean Claude (1985), Aline (1992), Ange (2009), Keza (2026). Claudine's birth year moved from 1978 to 1996, because a 48-year-old mother of a 5-week-old was unlikely. The check digits are invented: NIDA doesn't publish the method.
+- **Words:** patient screens say "device", not "phone": the same screens are used on laptops.
+
+## Phase 1, batch 5 (prescriptions, records, activity)
+
+### D45. Prescription codes and the QR code
+- **Code:** `RX-` and 8 characters from Crockford's base 32: digits and capital letters without I, L, O or U, so a code read over the phone or copied by hand isn't misread. Example: `RX-7K3M-9QPD`.
+- **Why that length:** 8 characters give 40 random bits, about a trillion codes. The public check page also pauses an address after 20 unknown codes in 10 minutes. Together these make guessing someone's prescription impractical (FR 11.7).
+- **QR code:** it holds the check page's address (`/check/<code>`). Any phone camera opens it with no app, so a pharmacy needs nothing installed. It is drawn in the browser with `qrcode` 1.5.4, black on white as scanners expect, and is shown only while the prescription is valid.
+- **Validity:** 7 days from the moment of issue, counted from one timestamp. A test found that two separate clock readings were 6 ms apart.
+- **The public answer** carries only what FR 11.7 lists: status, patient name, medicines, prescriber name and licence, and dates. No internal IDs, national ID or diagnosis.
+
+### D46. Activity is read from the audit log
+- **Decision:** the patient activity list (FR 10.2) and staff activity (FR 10.3) read the same append-only `AuditEvent` table that FR 10.1 writes. Each event now stores the patient it touched. `AuditService` works this out in one place: from the patient, the case or the routing in the event, or the patient acting for themselves. Older events were linked by the migration.
+- **Why:** one log, so what a patient sees is exactly what was recorded. There is nothing to keep in step.
+- **Views once per sitting:** an agent's screen refreshes after every chat message, and each refresh logged "Opened the record". The patient would have seen the same agent many times. Views by the same person of the same record within 10 minutes now count as one. Changes are always logged each time.
+
+### D47. A printable summary through the browser's own Print
+- **Decision:** `/records/[id]/print` is a plain page, and its button calls the browser's Print, which also offers "Save as PDF".
+- **Why:** it works on every phone and computer, the server keeps no files, and the patient decides where the copy goes. The page leaves out the national ID number on purpose.
+
+### D48. The on-duty dashboard refreshes every 15 seconds
+- **Decision:** the administrator's page asks for the latest every 15 seconds, rather than holding a live stream.
+- **Why:** agents' statuses change a few times an hour. A 15-second refresh matches the agent's own heartbeat (D35) and adds no new stream type for one screen.
+
+## Phase 2 (the full flow, and the gaps from phase 1)
+
+### D49. "No facility can take it" is decided when the case is sent
+- **Decision:** when a non-urgent case is sent, the needed service is checked against every active facility, with a clinician of that specialty on duty now (bed not required). If none matches, the case becomes Urgent, with the reason in words, and goes to the queue. The patient sees "Call 912 now" and "An agent will contact you." The event is logged (FR 5.9).
+- **Seen with live data:** at night the seeded schedule has no general-medicine clinician on duty anywhere. A minor urinary complaint, which the real Gemini rated minor with high confidence, went to the agents first. This is the gap the coverage view shows managers, and it is why the rule exists.
+
+### D50. Reassignment happens when it is caused; the shift-end case waits for the timers
+- **Decision:** FR 5.13 names three causes. Two are actions and act at once: a clinician marking the shift that is on now as unavailable, and an account being deactivated (by a manager or the administrator). Each patient still on the way then goes to the on-duty colleague of the same specialty with the fewest patients, who is notified. The change is logged with its reason.
+- **No colleague:** the agent handling the case gets an alert that stays on screen until dismissed. If no agent has the case any more, it goes back to the front of the queue so an agent can choose another facility, and the patient is told.
+- **The third cause,** a shift ending, has no action behind it, so it runs with the other timers in phase 3.
+
+### D51. The audit log is protected by the database, not only the code
+- **Decision:** a Postgres trigger refuses every UPDATE and DELETE on `AuditEvent` (NFR 9). Even a mistake in the code, or someone with the app's database login, can't rewrite history.
+- **Tests** don't delete log rows any more. The one test that leaves its address paused for 10 minutes runs last in its file.
+
+### D52. One story test for the whole flow
+- **Decision:** `flow.test.ts` follows one patient, Esperance (65), through the same endpoints the screens use:
+  1. login and her request for help,
+  2. the AI's triage,
+  3. the queue, offer and accept,
+  4. chat, the agent's triage review, and routing with a bed and a clinician,
+  5. the agent closing the case,
+  6. the facility's incoming list, arrival, a record entry, a prescription and discharge,
+  7. the pharmacy check,
+  8. her records, her rating, and her activity list in the right order.
+- **Why the agent decides she is Urgent, not the AI:** the AI breaker (FR 4.7) is shared by the whole test run. An earlier file trips it on purpose, so the AI's answer depends on file order. Having the agent judge the case makes the story the same every time and also covers the agent's routing path. The AI's own urgent path stays covered in `cases.test.ts`.
+- **Found by it:** "Nearest facility given" was logged before "Sent the request". The case is now logged as sent first.
+
+## Phase 3, batch A (timers, escalations, alerts)
+
+### D53. One timer loop, beside the dispatcher
+- **Decision:** `TimersService` runs every 15 seconds (`TIMER_MS`; 300 ms in tests) under its own Postgres advisory lock, so only one instance runs it. It expires routings (24 h), releases held beds (6 h), reassigns patients whose clinician's shift ended, escalates waiting cases, watches for no agent online, and counts AI failures.
+- **Why separate from the dispatcher:** the dispatcher must answer within seconds (offers last 30 s). These jobs work in minutes and hours. Keeping them apart means a slow pass of one never delays the other.
+- **Why every 15 seconds:** the tightest deadline here is 2 minutes (FR 6.10). 15 s keeps every alert within 15 s of its deadline and costs a few small queries.
+
+### D54. Escalation is measured from when the case started waiting again
+- **Decision:** a case returned to the queue (released, paused, lost connection, or a facility that can't take the patient) gets a fresh waiting time and escalation level 0.
+- **Why:** FR 6.10 is about a case nobody has accepted for 2 minutes. A case an agent had for 10 minutes and then released has not been ignored for 10 minutes.
+- **Repeats:** at level 2 the in-app alerts repeat every 2 minutes (FR 6.11). The email goes once per case, so the administrator's inbox isn't flooded by one stuck case.
+
+### D55. Alerts are saved, pushed live, and emailed when serious
+- **Decision:** every administrator alert is a row in `Alert`, shown at `/staff/alerts` and as a pop-up on any administrator page. Delay incidents, 5 minutes with no agent online, and AI failure surges are also emailed (FR 6.11 asks for email, and the administrator may not have the app open). Level 1 escalations and no-capacity events stay in the app.
+- **Agents** get level 1 and 2 escalations as a pop-up that stays until dismissed, on whatever staff page is open, Busy agents included (FR 6.10).
+
+### D56. Database times are UTC; tests compare in UTC
+- **Found in testing:** the timestamp columns hold UTC without a zone, but Postgres `now()` follows the session's time zone (Kigali, +2 h). A test setting "25 hours ago" with `now()` really set 23 hours ago. Tests use `now() at time zone 'utc'`, as the lock tests already did. The app itself only compares JavaScript dates, so it was never affected.
+
+## Phase 3, batch B (push notifications)
+
+### D57. Web Push with our own keys, not a notification company
+- **Decision:** standard Web Push (the browser's own push service: Google's for Chrome, Apple's for Safari, Mozilla's for Firefox), signed with VAPID keys kept in `apps/api/.env`. The `web-push` library (3.6.7) encrypts and signs; the API sends with `fetch`.
+- **Why:** no third-party account, nothing to pay, and the message is encrypted end to end (RFC 8291), so the push service can't read it. Sending with `fetch` instead of the library's own sender works with any push service, including the test one; the library's sender only speaks HTTPS.
+- **Limit:** on iPhone, Safari allows Web Push only for an app added to the Home Screen. That comes with the installable app in batch C.
+
+### D58. Push only when the app isn't open, and only "You have a new message"
+- **Who gets what:** the patient who opened the case gets a push for each message from the agent or the system, whenever they don't have the app open (FR 6.6). A clinician gets one when a patient is assigned or handed over to them (FR 5.12, 7.11).
+- **One place:** the push service listens to the live event bus, so every message reaches it without push code at each place a message is made. "App open" means an open live stream; those people already see the message.
+- **NFR 13:** the title is "UbuzimaConnect" and the text is always "You have a new message." Only the page it opens differs. A test decrypts what the API really sends, as a browser would, and checks it.
+- **FR 1.8:** a session started with "This is not my device" can't turn notifications on; the API refuses.
+- **Asked in context:** the switch sits where it helps (the patient's waiting screen and the clinician's Patients page), never at login. People usually refuse a permission prompt that comes with no reason. A browser that says the subscription is gone (404 or 410) is forgotten.
+
+## Phase 3, batch C (offline use and the installable app)
+
+### D59. The offline cache holds public pages only, and only in production builds
+- **What is kept:** the welcome page, the emergency page, the prescription check page and the login page, plus the app's code and icons. Any other page opened without a connection shows the emergency page. API answers and logged-in pages are never cached, so nothing about a patient is left on the device (FR 1.8).
+- **How:** the code (`/_next/static`) is cached first because its file names change whenever it changes. Pages always try the network first, so they're never out of date while online. The worker caches the public pages and the files they name when it installs, so the first offline visit already works.
+- **Production only:** the app registers `/sw.js?cache=1` only in a production build. In development a cache would serve old code after every change. Push notifications use the same worker address, so neither replaces the other.
+- **Checked for real:** with a production build, the web server was stopped completely. `/emergency` still opened with Call 912 and the 5 saved facilities. `/home` opened the emergency page and showed no patient details.
+
+### D60. A request continues offline on the device; the server stays the judge
+- **Decision:** with each red-flag question the server also sends the ones still to come. Without a connection, the patient keeps answering on the device, and each answer waits in an ordered queue (`lib/outbox.ts`). When the connection returns, the queue is sent in order, and the server's own view takes over.
+- **What the device decides alone:** only what FR 3.10 says. A Yes means "Call 912 and go to the nearest health facility". Anything else means "Not sent yet: waiting for connection", with the saved facilities marked "Availability not confirmed". Triage, routing and the AI stay on the server.
+- **Edge cases:** the pregnancy answer changes which questions follow, so after it the device waits instead of guessing. If the server refuses a queued step because the request moved on meanwhile, the rest are dropped and the patient sees the request as it really is. Only one sender runs at a time, so nothing is sent twice.
+- **Logout** clears every waiting queue on the device (FR 1.8).
+
+### D61. Installing is offered, not pushed
+- **Decision:** "Install the app" appears on the welcome page and the patient home when the browser supports installing (Chrome, Edge, Android). iPhone Safari has no install prompt, so it shows "To install: tap Share, then Add to Home Screen" instead. Nothing shows once installed, or on a shared device.
+- **Why it matters here:** installing is what lets an iPhone get notifications (D57), and an installed app opens the emergency page from the home screen without a connection.
+
+## Phase 3, batch D (Kinyarwanda)
+
+### D62. Kinyarwanda for patients and pharmacies, drafted here and reviewed by a speaker
+- **Scope (agreed with the user):** every screen a patient or a pharmacy sees is in Kinyarwanda or English. Staff screens stay in English, the language of their clinical documentation. A staff page that shares a component (the chat, a prescription card) shows the English, because it sits outside the patient language setting.
+- **Who writes it (agreed with the user):** the developer drafted all 392 texts, including the 23 danger-sign questions, and isn't a native speaker. `docs/translations/kinyarwanda-review.csv` puts each draft beside its English for a Kinyarwanda speaker to correct. The danger signs are marked to be checked with a clinician too. `pnpm translations` makes the sheet again.
+- **How the language is chosen:** a switch on every patient page (Kinyarwanda · English) sets a cookie. The server reads it to render the page, so there is no flash of the other language. A logged-in patient's choice is also saved on their record, so the red-flag questions and notifications come in it.
+- **One catalogue per language:** `i18n/en.ts` and `i18n/rw.ts` have the same shape, so TypeScript refuses a missing line. A test flattens both and fails if any Kinyarwanda line is empty or still the English.
+- **Sentences from the server** (system messages in the chat, form and API errors, activity labels) stay English in the database, which is what agents read. The patient app translates them through one table (`i18n/sentences.ts`), with patterns for those that carry a name or a code. An unknown sentence is shown as it is, never hidden.
+- **Dates:** date-fns has no Kinyarwanda, so the months (Mutarama to Ukuboza) are written out, still in Rwanda time.
+- **Screen readers:** the patient pages carry `lang="rw"` or `lang="en"`, so a screen reader pronounces Kinyarwanda as Kinyarwanda (WCAG 3.1.2).
+- **What patients type:** they may describe their problem in Kinyarwanda. Gemini reads both languages, and the agent sees their own words.
+
+## Phase 3, batch E (reports and performance)
+
+### D63. Reports are counted from what the app already records
+- **Decision:** no separate statistics tables. Each report is computed when asked, from the cases, routings, prescriptions and the audit log (D46), so a report can never disagree with what happened. Every role gets the same layout: headline numbers, then the tables behind them, with one screen and one CSV download for all.
+- **Periods:** one day, one week (Monday to Sunday) or one calendar month, in Rwanda time, with ‹ › to move between periods. The next period is disabled when it's still in the future.
+- **"Nothing to measure" is not zero:** a period with no rated cases shows a dash, not "0 / 5". An average of nothing would mislead.
+- **Speed:** a month at 1,000 requests a day (30,000) takes about 0.16 s to compute (D65), so nothing needs to be cached.
+- **Downloads are logged:** the agent performance table names staff.
+- **Layout follows the dataviz guidance:** headline numbers as stat tiles (sentence-case label, value in proportional figures, no colour for its own sake), and tables with aligned digits. There are no charts: no question here needs one, and a table is readable by everyone, including screen readers.
+
+### D64. Performance is measured at the SRS's scale, and the network is modelled openly
+- **Server:** `scale.test.ts` builds 50 facilities, 100 staff and 30,000 requests, then makes 200 requests of each common action with 20 people at once. It fails if a 95th percentile reaches 3 seconds.
+- **Network:** a 3G line can't be simulated faithfully on one computer. The time is therefore calculated from WebPageTest's published 3G profile and the measured sizes and server times, with the formula written in `docs/PERFORMANCE.md`. A check on a real phone over 3G is left to phase 4 and is stated as such.
+- **First visit:** at about 3 seconds on 3G, it's at the limit. Most of that is round trips, which only a server closer to Rwanda removes (a phase 4 deployment choice). The service worker makes repeat visits about 1.5 s.
+
+### D65. Bed counts for all facilities in one go
+- **Found by measuring:** the list of facilities an agent routes to counted beds with 2 queries per facility. At 50 facilities its 95th percentile was 208 ms.
+- **Decision:** two grouped queries for all facilities. It's now 55 ms, under the same rule as `setup/beds.ts` (free = total − occupied − reserved).

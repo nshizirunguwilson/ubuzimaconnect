@@ -1,0 +1,19 @@
+{
+  "name": "ubuzimaconnect",
+  "private": true,
+  "packageManager": "pnpm@12.15.0",
+  "engines": {
+    "node": ">=22 <23"
+  },
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "lint": "turbo run lint",
+    "test": "turbo run test",
+    "translations": "pnpm --filter @ubuzima/api exec tsx ../../scripts/translation-sheet.ts",
+    "postinstall": "pnpm --filter @ubuzima/db generate"
+  },
+  "devDependencies": {
+    "turbo": "^2.11.10"
+  }
+}

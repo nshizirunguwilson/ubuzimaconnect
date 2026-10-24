@@ -1,0 +1,63 @@
+{
+  "measuredAt": "2026-10-24T22:05:09.055Z",
+  "profiles": {
+    "3G": {
+      "kbps": 1600,
+      "rtt": 300
+    },
+    "3G Slow": {
+      "kbps": 400,
+      "rtt": 400
+    }
+  },
+  "results": [
+    {
+      "page": "/",
+      "files": 14,
+      "htmlKB": 6.1,
+      "totalKB": 241.5,
+      "3G (s)": 2.7,
+      "3G Slow (s)": 6.9
+    },
+    {
+      "page": "/emergency",
+      "files": 13,
+      "htmlKB": 5.6,
+      "totalKB": 236.3,
+      "3G (s)": 2.7,
+      "3G Slow (s)": 6.8
+    },
+    {
+      "page": "/login",
+      "files": 14,
+      "htmlKB": 5.6,
+      "totalKB": 272.7,
+      "3G (s)": 2.9,
+      "3G Slow (s)": 7.6
+    },
+    {
+      "page": "/check",
+      "files": 15,
+      "htmlKB": 5.4,
+      "totalKB": 275.8,
+      "3G (s)": 2.9,
+      "3G Slow (s)": 7.6
+    },
+    {
+      "page": "/home",
+      "files": 16,
+      "htmlKB": 7.8,
+      "totalKB": 291.5,
+      "3G (s)": 3,
+      "3G Slow (s)": 8
+    },
+    {
+      "page": "/cases/new",
+      "files": 16,
+      "htmlKB": 6.3,
+      "totalKB": 301.2,
+      "3G (s)": 3,
+      "3G Slow (s)": 8.2
+    }
+  ]
+}

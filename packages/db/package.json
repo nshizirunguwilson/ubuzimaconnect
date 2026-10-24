@@ -1,0 +1,27 @@
+{
+  "name": "@ubuzima/db",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "generate": "prisma generate",
+    "migrate": "prisma migrate dev && prisma generate",
+    "deploy": "prisma migrate deploy",
+    "seed": "prisma db seed",
+    "lint": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@prisma/adapter-pg": "7.10.1",
+    "@prisma/client": "7.10.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22",
+    "dotenv": "^17",
+    "prisma": "7.10.1",
+    "tsx": "^4",
+    "typescript": "^5"
+  }
+}
