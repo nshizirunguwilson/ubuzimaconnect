@@ -1,0 +1,277 @@
+@import "tailwindcss";
+
+/*
+ * Design tokens. Source of truth: docs/design/DESIGN.md (sections 2 to 6).
+ * Tailwind's default palette and radii are cleared, so only these values exist.
+ */
+@theme {
+  --color-*: initial;
+  --radius-*: initial;
+  --shadow-*: initial;
+  --font-*: initial;
+
+  /* Palette (DESIGN.md §2) */
+  --color-transparent: transparent;
+  --color-white: #ffffff;
+  --color-blue-50: #eaf4ff;
+  --color-blue-100: #d4e9ff;
+  --color-blue-200: #a8d3ff;
+  --color-blue-300: #6bb5fd;
+  --color-blue-500: #0082fb;
+  --color-blue-600: #006fd6;
+  --color-blue-700: #005fb8;
+  --color-blue-800: #004a8f;
+  --color-blue-900: #003366;
+  --color-gray-50: #f1f5f8;
+  --color-gray-100: #e3e9ee;
+  --color-gray-200: #cad4dc;
+  --color-gray-300: #a7b4bf;
+  --color-gray-400: #7e8e9b;
+  --color-gray-500: #5e6e7b;
+  --color-gray-600: #47555f;
+  --color-gray-700: #33414a;
+  --color-gray-900: #1c2b33;
+  --color-green-50: #e8f6ee;
+  --color-green-600: #1a7f4b;
+  --color-green-700: #146b3e;
+  --color-amber-50: #fff4dc;
+  --color-amber-400: #f2a900;
+  --color-amber-700: #8a5200;
+  --color-red-50: #fdecee;
+  --color-red-600: #c8202f;
+  --color-red-700: #a81a27;
+
+  /* Roles, 60-30-10. Components use these, never the palette directly. */
+  --color-bg: var(--color-gray-50);
+  --color-surface: var(--color-white);
+  --color-sunken: var(--color-gray-100);
+  --color-fg: var(--color-gray-900);
+  --color-fg-secondary: var(--color-gray-600);
+  --color-fg-muted: var(--color-gray-500);
+  --color-fg-disabled: var(--color-gray-400);
+  --color-border: var(--color-gray-200);
+  --color-border-strong: var(--color-gray-400);
+  --color-primary: var(--color-blue-600);
+  --color-primary-hover: var(--color-blue-700);
+  --color-primary-pressed: var(--color-blue-800);
+  --color-link: var(--color-blue-700);
+  --color-accent-soft: var(--color-blue-50);
+  --color-accent-line: var(--color-blue-100);
+  --color-brand: var(--color-blue-500);
+  --color-focus: var(--color-blue-500);
+  --color-overlay: rgb(28 43 51 / 0.5);
+
+  --color-urgent: var(--color-red-600);
+  --color-urgent-fg: var(--color-red-700);
+  --color-urgent-soft: var(--color-red-50);
+  --color-warning: var(--color-amber-400);
+  --color-warning-fg: var(--color-amber-700);
+  --color-warning-soft: var(--color-amber-50);
+  --color-success: var(--color-green-600);
+  --color-success-fg: var(--color-green-700);
+  --color-success-soft: var(--color-green-50);
+  --color-info-fg: var(--color-blue-700);
+  --color-info-soft: var(--color-blue-50);
+
+  /* Type (DESIGN.md §3). Sizes in rem so text zoom works. */
+  --font-heading: var(--font-outfit), ui-sans-serif, system-ui, sans-serif;
+  --font-sans: var(--font-google-sans-flex), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-google-sans-code), ui-monospace, monospace;
+
+  --text-display: 2rem;
+  --text-display--line-height: 2.5rem;
+  --text-h1: 1.5rem;
+  --text-h1--line-height: 2rem;
+  --text-h2: 1.25rem;
+  --text-h2--line-height: 1.75rem;
+  --text-h3: 1rem;
+  --text-h3--line-height: 1.5rem;
+  --text-body: 1rem;
+  --text-body--line-height: 1.5rem;
+  --text-small: 0.875rem;
+  --text-small--line-height: 1.25rem;
+  --text-caption: 0.75rem;
+  --text-caption--line-height: 1rem;
+
+  /* Elevation (DESIGN.md §6): one level, overlays only */
+  --shadow-overlay: 0 8px 24px rgb(28 43 51 / 0.12);
+
+  /* Only true circles may use rounded-full; everything else goes through .sq */
+  --radius-full: 9999px;
+
+  --ease-out: cubic-bezier(0.2, 0, 0, 1);
+}
+
+/* Squircle paint, set per element: sq-bg-surface, hover:sq-bg-sunken, sq-border-border-strong */
+@utility sq-bg-* {
+  --sq-bg: --value(--color-*);
+}
+@utility sq-border-* {
+  --sq-border: --value(--color-*);
+}
+
+@layer base {
+  html {
+    background-color: var(--color-bg);
+    color: var(--color-fg);
+    font-family: var(--font-sans);
+    font-optical-sizing: auto;
+    -webkit-text-size-adjust: 100%;
+    text-rendering: optimizeLegibility;
+  }
+
+  h1,
+  h2,
+  h3 {
+    font-family: var(--font-heading);
+    font-weight: 600;
+    text-wrap: balance;
+  }
+
+  p {
+    text-wrap: pretty;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-focus);
+    outline-offset: 2px;
+  }
+
+  ::selection {
+    background-color: var(--color-blue-100);
+  }
+}
+
+/*
+ * Squircle primitive (DESIGN.md §5, RESEARCH.md §2.4). Used only through <Squircle>.
+ * 1. Before the mode script runs: plain rounded corners at the base radius.
+ * 2. html[data-sq="native"]: CSS corner-shape. A superellipse corner reads smaller
+ *    than the Figma-style corner, so the radius is scaled by --sq-k (see DECISIONS.md D3).
+ * 3. html[data-sq="fallback"]: the element's own paint is hidden and an SVG path
+ *    drawn by <Squircle> paints fill, border, focus ring and shadow.
+ */
+@layer components {
+  .sq {
+    --sq-bg: transparent;
+    --sq-border: transparent;
+    --sq-k: 1.77;
+    position: relative;
+    isolation: isolate;
+    background-color: var(--sq-bg);
+    border: 1px solid var(--sq-border);
+    border-radius: var(--sq-r);
+    transition-property: background-color, border-color, box-shadow, color;
+    transition-duration: 150ms;
+    transition-timing-function: var(--ease-out);
+  }
+
+  .sq[data-sq-corners="top"] {
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+  }
+  @media (max-width: 639.98px) {
+    .sq[data-sq-corners="sheet"] {
+      border-bottom-left-radius: 0;
+      border-bottom-right-radius: 0;
+    }
+  }
+
+  @supports (corner-shape: squircle) {
+    html[data-sq="native"] .sq {
+      corner-shape: squircle;
+      border-radius: calc(var(--sq-r) * var(--sq-k));
+    }
+    html[data-sq="native"] .sq[data-sq-corners="top"] {
+      border-bottom-left-radius: 0;
+      border-bottom-right-radius: 0;
+    }
+    @media (max-width: 639.98px) {
+      html[data-sq="native"] .sq[data-sq-corners="sheet"] {
+        border-bottom-left-radius: 0;
+        border-bottom-right-radius: 0;
+      }
+    }
+  }
+
+  .sq[data-sq-elevated] {
+    box-shadow: var(--shadow-overlay);
+  }
+
+  /* :where() keeps this below the fallback rule, so the SVG ring is used there */
+  :where(
+    .sq[data-sq-focus="self"]:focus-visible,
+    .sq[data-sq-focus="within"]:has(:focus-visible),
+    .peer:focus-visible ~ .sq[data-sq-focus="peer"]
+  ) {
+    outline: none;
+    box-shadow:
+      0 0 0 2px var(--color-surface),
+      0 0 0 4px var(--color-focus);
+  }
+
+  /* Fallback mode: the SVG layer paints instead */
+  html[data-sq="fallback"] .sq[data-sq-ready] {
+    background-color: transparent;
+    border-color: transparent;
+    border-radius: 0;
+    box-shadow: none;
+  }
+
+  .sq-layer {
+    position: absolute;
+    left: -5px;
+    top: -5px;
+    z-index: -1;
+    overflow: visible;
+    pointer-events: none;
+  }
+  .sq-layer .sq-fill {
+    fill: var(--sq-bg);
+    stroke: var(--sq-border);
+    stroke-width: 1;
+    transition: fill 150ms var(--ease-out), stroke 150ms var(--ease-out);
+  }
+  .sq-layer .sq-gap {
+    fill: none;
+    stroke: var(--color-surface);
+    stroke-width: 2;
+  }
+  .sq-layer .sq-ring {
+    fill: none;
+    stroke: var(--color-focus);
+    stroke-width: 2;
+  }
+  .sq-layer .sq-focus {
+    opacity: 0;
+  }
+  .sq[data-sq-focus="self"]:focus-visible > .sq-layer .sq-focus,
+  .sq[data-sq-focus="within"]:has(:focus-visible) > .sq-layer .sq-focus,
+  .peer:focus-visible ~ .sq[data-sq-focus="peer"] > .sq-layer .sq-focus {
+    opacity: 1;
+  }
+  .sq[data-sq-elevated] > .sq-layer {
+    filter: drop-shadow(0 8px 12px rgb(28 43 51 / 0.12));
+  }
+}
+
+@keyframes fade {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes rise {
+  from {
+    opacity: 0;
+    translate: 0 16px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+}

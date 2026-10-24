@@ -1,0 +1,14 @@
+node_modules
+.next
+dist
+out
+.turbo
+coverage
+.env
+.env.*
+!.env.example
+.DS_Store
+*.log
+**/src/generated
+.deploy
+.claude
