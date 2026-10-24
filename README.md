@@ -10,7 +10,13 @@ A telehealth triage platform for Rwanda. A patient logs in with their national I
 | `packages/db` | Prisma schema, migrations and client | |
 | `packages/shared` | Validation rules, limits and types used by both web and API | |
 
-What the SRS asks for, and what is built so far: [`docs/TRACEABILITY.md`](docs/TRACEABILITY.md).
+## Links
+
+- **Live site:** https://ubuzima.wilsonn.tech (patients) and https://ubuzima.wilsonn.tech/staff/login (staff). Being deployed now, following [`docs/DEPLOY.md`](docs/DEPLOY.md).
+- **Code:** https://github.com/nshizirunguwilson/ubuzimaconnect
+- **Demo video:** link added once recorded. The plan is in [`docs/VIDEO.md`](docs/VIDEO.md).
+
+What the SRS asks for, and the status of every requirement: [`docs/TRACEABILITY.md`](docs/TRACEABILITY.md).
 
 Design rules and the reasons behind them: [`docs/design/DESIGN.md`](docs/design/DESIGN.md), [`RESEARCH.md`](docs/design/RESEARCH.md), [`DECISIONS.md`](docs/design/DECISIONS.md).
 
@@ -34,10 +40,10 @@ cp apps/api/.env.example apps/api/.env && cp apps/web/.env.example apps/web/.env
 
 In `packages/db/.env` and `apps/api/.env`, set `DATABASE_URL=postgresql://<your-user>@localhost:5432/ubuzima`. In `apps/api/.env`, set `APP_SECRET` to any long random string.
 
-Create the tables and the demo data:
+Create the database client, the tables and the demo data:
 
 ```bash
-pnpm --filter @ubuzima/db migrate && pnpm --filter @ubuzima/api seed
+pnpm --filter @ubuzima/db generate && pnpm --filter @ubuzima/db migrate && pnpm --filter @ubuzima/api seed
 ```
 
 Start all three apps:
@@ -104,20 +110,35 @@ pnpm test
 ```
 
 - **API:** starts the built API and mock NIDA against `ubuzima_test`: logins (FR 1, 2), cases and AI triage, the agent's work, routing and beds, clinicians, prescriptions, records and activity, role access, and the whole flow end to end.
-- **Web:** checks the contrast of every colour pair.
+- **Web:** checks the contrast of every colour pair, the offline queue, and that every Kinyarwanda text exists.
 - **Shared and mock NIDA:** check the validation and identity rules.
 
 ## Troubleshooting
 
 - **A style change doesn't show up in the browser:** stop the web dev server, delete `apps/web/.next`, and start it again. Turbopack sometimes keeps old Tailwind CSS.
 
+## Deployment
+
+Vercel (web), Azure App Service in Central India (API and mock NIDA), Supabase in Mumbai (database), Resend (email), and the domain `wilsonn.tech`. Step by step, with every setting: [`docs/DEPLOY.md`](docs/DEPLOY.md).
+
+## Known limitations
+
+- **Kinyarwanda is a draft.** Every text was written by the developer, who isn't a native speaker, and needs checking by a Kinyarwanda speaker. The 23 danger-sign questions also need a clinician's check ([`docs/translations`](docs/translations/README.md)).
+- **The national ID service is a mock.** It holds fictional people. Connecting to the real NIDA needs an agreement with NIDA and changes only `apps/api/src/auth/nida.client.ts`.
+- **The live site is a public demo.** The demo staff passwords are in this README, and their login codes appear at `/demo/inbox`, so anyone can log in as a demo agent, clinician or administrator. All data is fictional. For real use: set `DEMO_INBOX` off and give staff real accounts.
+- **One API instance.** Live updates (chat, offers, alerts) travel through memory. A second instance first needs them moved to Postgres LISTEN/NOTIFY (D34, [`docs/PERFORMANCE.md`](docs/PERFORMANCE.md)).
+- **Measured on one computer.** Page loads on 3G are calculated, not measured on a phone. A first visit is about 3 seconds on 3G, at the limit. Installing on a real iPhone and Android phone hasn't been tried yet.
+- **iPhone notifications** need the app added to the Home Screen first (an Apple rule).
+- **Data protection.** The database and API are in India, and the AI is Google's Gemini (it receives no name, ID or location). Rwanda's Law No. 058/2021 asks for authorisation to store personal data outside Rwanda, so real patient data needs that authorisation, or hosting in Rwanda.
+- **The code-guessing pause works per address.** Someone calling the API directly can hide their address. The codes are 40 random bits, so guessing stays impractical anyway.
+
 ## Status
 
-Phases 0, 1 and 2 are built, and one test (`apps/api/test/flow.test.ts`) follows a patient through the whole flow:
-- **Phase 1, batch 1:** facilities, beds, clinicians, schedules, the red-flag list and the AI switch.
-- **Batch 2:** the patient's request: who is sick, location, red flags, symptoms, AI triage, urgent guidance, prefer a call, cancel.
-- **Batch 3:** the agent queue and offers, live chat, calls, triage review, routing with beds and clinicians, closing and rating.
-- **Batch 4:** clinicians: patients on the way, arrival with a photo check, visits with versioned records, beds, transfer, discharge and handover.
-- **Batch 5:** prescriptions with a code, a QR code and a public check page at `/check`; patient records, a printable summary and activity; staff activity; the on-duty dashboard.
+Everything in the SRS is built, phase by phase, and each phase was reviewed in the browser at 375 and 1280 px:
+- **Phase 0:** both logins and the roles.
+- **Phase 1:** every screen, in five batches: setup data; the patient's request; the agent's queue, chat and routing; clinicians and visits; prescriptions, records and activity.
+- **Phase 2:** the whole flow, end to end (`apps/api/test/flow.test.ts`).
+- **Phase 3:** timers and escalations, alerts, push notifications, offline use, Kinyarwanda, reports, and the performance checks.
+- **Phase 4:** the public repository, the demo inbox, deployment packaging and docs. Going live is in progress.
 
-One phase 1 item is still open: the Kinyarwanda text of the 23 red-flag questions needs a Kinyarwanda speaker. Phase 3 brings the timers, escalations, push notifications, offline use, Kinyarwanda screens, alerts and reports. See [`docs/TRACEABILITY.md`](docs/TRACEABILITY.md) for every requirement's status.
+What's still open is listed under Known limitations above, and requirement by requirement in [`docs/TRACEABILITY.md`](docs/TRACEABILITY.md).

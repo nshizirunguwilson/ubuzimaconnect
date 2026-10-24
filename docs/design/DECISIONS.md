@@ -361,3 +361,18 @@ After reading the full requirement text, I fixed these details:
 ### D65. Bed counts for all facilities in one go
 - **Found by measuring:** the list of facilities an agent routes to counted beds with 2 queries per facility. At 50 facilities its 95th percentile was 208 ms.
 - **Decision:** two grouped queries for all facilities. It's now 55 ms, under the same rule as `setup/beds.ts` (free = total − occupied − reserved).
+
+## Phase 4 (deployment, GitHub, README and the video plan)
+
+### D66. A demo inbox for the made-up staff accounts
+- **Problem:** staff log in with a password and a 6-digit emailed code (FR 2). Graders can't read email sent to `agent@ubuzima.test`, so without help they could never log in as staff on the live site.
+- **Decision:** the page `/demo/inbox` shows the last 20 emails sent to `@ubuzima.test` addresses only. It's on in production only when `DEMO_INBOX=1`; otherwise it answers 404. Emails to `@ubuzima.test` are never handed to Resend, so nothing is sent to a domain nobody owns. Real staff addresses go through Resend and never appear on the page.
+- **On the code screen:** a demo account is told "This is a demo account" with a link to the inbox, so a grader isn't left waiting for an email.
+- **Trade-off:** anyone can log in as a demo staff member. That's the point of a demo; the accounts only see synthetic patients (README, Known limitations).
+
+### D67. How the code reaches Azure, and the two proxies in front of the API
+- **Plan:** as agreed before phase 4: Vercel for the web app, one Azure App Service B1 plan in Central India for the API and the mock NIDA, Supabase in Mumbai next to it, Resend for email, DNS at get.tech ([`docs/DEPLOY.md`](../DEPLOY.md)).
+- **Packaging:** `scripts/azure-package.sh` builds each app and uses `pnpm deploy --prod` to copy only its runtime packages into `.deploy/<app>`, then zips it. Azure runs `node dist/main.js` and builds nothing (`SCM_DO_BUILD_DURING_DEPLOYMENT=false`), so what was tested locally is what runs. Optional peers (the Prisma CLI and Studio) are left out: 43 MB instead of 399 MB.
+- **Two proxies:** a patient's request passes through Vercel and then Azure's front end. The guessing pauses and rate limits count per address, so the API must read the patient's address, not a proxy's. `TRUST_PROXY_HOPS` (1 by default, 2 in production) tells Express how many proxies to skip.
+- **The generated Prisma client** isn't committed; `pnpm install` generates it.
+

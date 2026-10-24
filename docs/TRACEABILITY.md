@@ -304,6 +304,15 @@ Source: the three use case tables in the SRS (Assignment 2 copy), read on 24 Oct
 | 12 | Staffing | At least 1 agent online 24/7 through the schedule | 1–3 | Done: the agent schedule shows every shift with nobody on it (`setup.test.ts`); the on-duty dashboard flags scheduled agents who are Offline (`records.test.ts`); the administrator is alerted and emailed after 5 minutes with no agent online (`timers.test.ts`). Filling the schedule is the service's job |
 | 13 | Notification privacy | Notifications never contain medical details | 3 | Done: every notification says only “You have a new message.”; proved by decrypting what the API sends, as a browser would (`push.test.ts`) |
 
+## Submission (phase 4)
+
+| Rubric line | Where | Status |
+|---|---|---|
+| Code availability: public GitHub, clear setup | https://github.com/nshizirunguwilson/ubuzimaconnect, README (setup, tests, deployment, known limitations) | Done |
+| Solution deployment: public URL | https://ubuzima.wilsonn.tech, following [`docs/DEPLOY.md`](DEPLOY.md) (D67) | — waiting on the sign-ins to Azure, Supabase, Vercel, Resend and get.tech |
+| Operation: login, sign-up, buttons, redirects | Staff can log in on the live site through the demo inbox (D66) | Partly: built and tested locally; to check on the live site |
+| Presentation video, and every user's functions visible | [`docs/VIDEO.md`](VIDEO.md): one patient's story across all six roles | Partly: plan written; recording after deployment |
+
 ## Browser checks
 
 | Date | Screens | Widths | Modes |
