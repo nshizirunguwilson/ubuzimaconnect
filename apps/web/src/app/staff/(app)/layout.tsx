@@ -77,7 +77,7 @@ async function Shell({ children }: { children: React.ReactNode }) {
         className="flex flex-col gap-4 px-4 py-3 sq-bg-surface sq-border-border md:sticky md:top-3 md:h-[calc(100dvh-1.5rem)] md:gap-8 md:px-4 md:py-6"
       >
         <div className="flex items-center justify-between md:px-3">
-          <Logo href="/staff" variant="compact" height={24} />
+          <Logo href="/staff" variant="compact" />
           <div className="md:hidden">
             <LogoutButton to="/staff/login" />
           </div>

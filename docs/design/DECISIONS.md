@@ -384,9 +384,9 @@ After reading the full requirement text, I fixed these details:
 
 ### D68. Logos as vectors, three placements
 - **Decision:** the logos come from the UbuzimaConnect Logo Pack's `.ai` files, converted to SVG with `pdftocairo -svg` and cropped to the artwork (the pack's PNGs carry a wide empty border, which made the old header logo about 13 px tall). They live in `apps/web/public/brand/`, and `components/app/logo.tsx` places them by height.
-- **Where each one goes:**
-  - **Stacked, with the tagline** ("Your Health, On Time"): the welcome page, the patient login and the staff login. These are the pages where the brand is seen first.
-  - **Horizontal, 28–30 px tall:** headers with room for it (patient pages on a computer, the staff sidebar from 640 px, the design system sheet).
-  - **Symbol only, under 640 px:** headers that share a phone-width row with Log out or the language switch (patient home, staff pages, the prescription check). The full name would push the button off a 375 px screen.
-  - **Black horizontal:** printed pages, including the printable summary (FR 7.2), so the logo prints sharply without colour.
+- **Where each one goes** (revised after Wilson's review: one line, centred, and no symbol repeated inside the app):
+  - **Horizontal with the tagline** ("Your Health, On Time"), centred: the welcome page, the patient login and the staff login, where the brand is seen first.
+  - **The name alone (wordmark), 22 px tall:** headers inside the app (patient pages on a computer, the staff sidebar, the prescription check). The symbol beside it would only repeat the brand.
+  - **The symbol alone, under 640 px:** headers that share a phone-width row with Log out or the language switch. The name would push the button off a 375 px screen.
+  - **Black wordmark:** printed pages, including the printable summary (FR 7.2).
 - **The icons** (favicon, Apple touch, PWA 192 and 512, maskable) were already the pack's own files, byte for byte.

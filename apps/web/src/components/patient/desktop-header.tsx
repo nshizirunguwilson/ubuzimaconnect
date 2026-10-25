@@ -6,7 +6,7 @@ import { LanguageSwitch } from "@/i18n/client";
 export function DesktopHeader() {
   return (
     <header className="mb-8 hidden items-center justify-between gap-4 border-b border-border pb-4 lg:flex">
-      <Logo href="/home" height={30} />
+      <Logo href="/home" />
       <div className="flex items-center gap-3">
         <LanguageSwitch />
         <LogoutButton to="/" />
