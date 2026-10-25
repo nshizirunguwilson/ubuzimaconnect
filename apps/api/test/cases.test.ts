@@ -123,6 +123,33 @@ describe("red flags (FR 3.6, 4.1, 4.2, Appendix C)", () => {
     expect(gemini.calls.length).toBe(0); // red flags never use the AI
   });
 
+  it("one-screen checklist: the sign tapped is a Yes, Urgent with that sign's service (FR 3.6, 4.1)", async () => {
+    const { b } = await patient(ALINE);
+    const kevin = (await b("/cases/mine")).body.people.find((p: { firstName: string }) => p.firstName === "Kevin");
+    const id = (await b("/cases", { subjectId: kevin.id, location: KIGALI })).body.id;
+    let view = (await b(`/cases/${id}`)).body;
+    const signs = [view.question, ...view.question.after];
+    expect(signs.map((q: { code: string }) => q.code[0])).toEqual(expect.arrayContaining(["A", "C"])); // a child of 7 gets groups A and C
+    view = (await b(`/cases/${id}/checklist`, { yes: signs.find((q: { code: string }) => q.code === "A4").id })).body;
+    expect(view).toMatchObject({ stage: "WAITING", urgent: true, redFlagsAnswered: 1 });
+    const row = (await db.query(`select "triageLevel", "neededService" from "Case" where id = $1`, [id])).rows[0];
+    expect(row).toEqual({ triageLevel: "URGENT", neededService: "SURGERY" });
+    expect((await b(`/cases/${id}/checklist`, { yes: null })).status).toBe(409); // answered once only
+    await b(`/cases/${id}/cancel`, {});
+  });
+
+  it('one-screen checklist: "None of these" saves a No for every sign shown and moves to the description (FR 3.6, 3.7)', async () => {
+    const { b } = await patient(ALINE);
+    const kevin = (await b("/cases/mine")).body.people.find((p: { firstName: string }) => p.firstName === "Kevin");
+    const id = (await b("/cases", { subjectId: kevin.id, location: KIGALI })).body.id;
+    const shown = (await b(`/cases/${id}`)).body.question.total;
+    const view = (await b(`/cases/${id}/checklist`, { yes: null })).body;
+    expect(view).toMatchObject({ stage: "SYMPTOMS", urgent: false, redFlagsAnswered: shown });
+    const no = (await db.query(`select count(*)::int as n from "RedFlagAnswer" where "caseId" = $1 and answer = false`, [id])).rows[0].n;
+    expect(no).toBe(shown);
+    await b(`/cases/${id}/cancel`, {});
+  });
+
   it("makes a baby under 8 days Urgent at once, with no questions (FR 4.2)", async () => {
     const { b } = await patient(ERIC);
     const baby = (await b("/cases/mine")).body.people.find((p: { firstName: string }) => p.firstName === "Keza");

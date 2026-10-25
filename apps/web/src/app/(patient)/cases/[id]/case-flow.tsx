@@ -3,7 +3,7 @@
 import { DURATIONS, symptoms, type Duration } from "@ubuzima/shared";
 import Link from "next/link";
 import { useEffect, useRef, useState, type FormEvent } from "react";
-import { LuCircleCheck, LuPhone, LuPhoneCall } from "react-icons/lu";
+import { LuChevronRight, LuCircleCheck, LuLoaderCircle, LuPhone, LuPhoneCall } from "react-icons/lu";
 import { Confirm } from "@/components/app/confirm";
 import { BottomBar } from "@/components/app/bottom-bar";
 import { NotifyToggle } from "@/components/app/notify-toggle";
@@ -17,7 +17,6 @@ import { Textarea } from "@/components/ui/field";
 import { Notice } from "@/components/ui/notice";
 import { Squircle } from "@/components/ui/squircle";
 import { StatusBadge } from "@/components/ui/status";
-import { StepProgress } from "@/components/ui/step-progress";
 import { Chat, type ChatMsg } from "@/components/app/chat";
 import { api, ApiFailure } from "@/lib/api";
 import { useLive } from "@/lib/live";
@@ -81,12 +80,7 @@ export function CaseFlow({ initial }: { initial: CaseView }) {
   /** Keeps a step on the device and moves on without the server, as far as that is safe. */
   function keep(path: string, body: unknown) {
     queueStep(view.id, { path, body });
-    if (path === "/answers") {
-      if ((body as { answer: boolean }).answer) return setLocal({ kind: "yes" });
-      const at = local?.kind === "question" ? local : view.question!;
-      const [next, ...after] = at.after;
-      return setLocal(next ? { kind: "question", id: next.id, text: next.text, index: at.index + 1, total: at.total, after } : { kind: "symptoms" });
-    }
+    if (path === "/checklist") return setLocal((body as { yes: string | null }).yes ? { kind: "yes" } : { kind: "symptoms" });
     // The pregnancy answer changes which questions follow, and symptoms need the AI: wait for the connection.
     setLocal({ kind: "waiting" });
   }
@@ -144,18 +138,6 @@ export function CaseFlow({ initial }: { initial: CaseView }) {
     () => void refresh(),
   );
 
-  if (local?.kind === "question") {
-    return (
-      <Question
-        progress={local}
-        title={local.text}
-        hint={t.case.redFlagHint}
-        offline
-        pending={null}
-        onAnswer={(yes) => keep("/answers", { questionId: local.id, answer: yes })}
-      />
-    );
-  }
   if (local?.kind === "symptoms") return <Symptoms view={view} onDone={setView} onOffline={(data) => keep("/symptoms", data)} offline />;
   if (local) return <NotSentYet urgent={local.kind === "yes"} />;
 
@@ -172,13 +154,12 @@ export function CaseFlow({ initial }: { initial: CaseView }) {
       );
     case "RED_FLAGS":
       return (
-        <Question
-          progress={view.question!}
-          title={view.question!.text}
-          hint={t.case.redFlagHint}
+        <Checklist
+          name={name}
+          signs={[view.question!, ...view.question!.after]}
           pending={pending}
           error={error}
-          onAnswer={(yes) => post("/answers", { questionId: view.question!.id, answer: yes }, yes ? "yes" : "no")}
+          onAnswer={(yes) => post("/checklist", { yes }, yes ?? "none")}
         />
       );
     case "SYMPTOMS":
@@ -209,20 +190,77 @@ export function CaseFlow({ initial }: { initial: CaseView }) {
   }
 }
 
+/**
+ * FR 3.6, 4.1: every danger sign for this person on one screen, grouped as in Appendix C. Tapping one is a Yes and
+ * makes the case Urgent at once. "None of these" comes after the last sign, so it can only be reached past all of them.
+ */
+function Checklist({
+  name,
+  signs,
+  pending,
+  error,
+  onAnswer,
+}: {
+  name: string | null;
+  signs: { id: string; code: string; text: string }[];
+  pending: string | null;
+  error?: string;
+  onAnswer: (yes: string | null) => void;
+}) {
+  const { t } = useT();
+  const groups = [...new Set(signs.map((s) => s.code[0]))];
+  return (
+    <main className="flex flex-1 flex-col gap-6 lg:mx-auto lg:w-full lg:max-w-[560px]">
+      <BackLink href="/home" label={t.common.home} />
+      <div className="flex flex-col gap-3">
+        <h1 className="text-h1 text-fg">{name ? t.case.checklistThem(name) : t.case.checklistYou}</h1>
+        <p className="text-body text-fg-secondary">{t.case.checklistHint}</p>
+      </div>
+      {error && <Notice tone="urgent" title={error} />}
+      {groups.map((g) => (
+        <section key={g} className="flex flex-col gap-2" aria-labelledby={`signs-${g}`}>
+          <h2 id={`signs-${g}`} className="text-small font-semibold text-fg-secondary">
+            {t.case.checklistGroups[g]}
+          </h2>
+          {signs
+            .filter((s) => s.code[0] === g)
+            .map((s) => (
+              <Squircle
+                key={s.id}
+                as="button"
+                type="button"
+                radius="md"
+                disabled={!!pending}
+                onClick={() => onAnswer(s.id)}
+                className="flex min-h-14 cursor-pointer items-center gap-3 px-4 py-3 text-left sq-bg-surface sq-border-border-strong hover:sq-bg-gray-50 disabled:cursor-not-allowed"
+              >
+                <span className="flex-1 text-body text-fg">{s.text}</span>
+                {pending === s.id ? (
+                  <LuLoaderCircle className="size-5 shrink-0 animate-spin text-fg-secondary" aria-hidden />
+                ) : (
+                  <LuChevronRight className="size-5 shrink-0 text-fg-muted" aria-hidden />
+                )}
+              </Squircle>
+            ))}
+        </section>
+      ))}
+      <Button variant="primary" className="h-14 text-body md:h-12 md:self-start" loading={pending === "none"} disabled={!!pending} onClick={() => onAnswer(null)}>
+        {t.case.noneOfThese}
+      </Button>
+    </main>
+  );
+}
+
 /** A yes/no question with two big answers. Neither is red: red is for the result, not the question. */
 function Question({
   title,
   hint,
-  progress,
   pending,
   error,
-  offline,
   onAnswer,
 }: {
   title: string;
   hint: string;
-  progress?: { index: number; total: number };
-  offline?: boolean;
   pending: string | null;
   error?: string;
   onAnswer: (yes: boolean) => void;
@@ -231,17 +269,11 @@ function Question({
   return (
     <main className="flex flex-1 flex-col gap-6 lg:mx-auto lg:w-full lg:max-w-[480px]">
       <BackLink href="/home" label={t.common.home} />
-      {progress && (
-        <div aria-live="polite">
-          <StepProgress current={progress.index} total={progress.total} text={t.common.question(progress.index, progress.total)} />
-        </div>
-      )}
       <div className="flex flex-col gap-3">
         <h1 className="text-h1 text-fg">{title}</h1>
         <p className="text-body text-fg-secondary">{hint}</p>
       </div>
       {error && <Notice tone="urgent" title={error} />}
-      {offline && <OfflineNote />}
       <div className="flex-1" />
       <BottomBar>
         <div className="grid grid-cols-2 gap-3 sm:flex sm:justify-start">
@@ -581,7 +613,6 @@ function VisitNotice({ visit }: { visit: NonNullable<CaseView["visit"]> }) {
 }
 
 type Local =
-  | { kind: "question"; id: string; text: string; index: number; total: number; after: NonNullable<CaseView["question"]>["after"] }
   | { kind: "symptoms" }
   | { kind: "yes" }
   | { kind: "waiting" };
