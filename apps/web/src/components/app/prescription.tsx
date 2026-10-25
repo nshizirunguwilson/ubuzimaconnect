@@ -165,7 +165,14 @@ async function prescriptionImage(
   });
   const c = document.createElement("canvas");
   const ctx = c.getContext("2d")!;
-  const font = (size: number, weight = 400) => `${weight} ${size}px system-ui, sans-serif`;
+  // The app's own fonts (app/layout.tsx): Outfit for headings, Google Sans Flex for text, Google Sans Code for the code.
+  const css = getComputedStyle(document.documentElement);
+  const family = (v: string, fallback: string) => `${css.getPropertyValue(v).trim() || fallback}, ${fallback}`;
+  const heading = family("--font-outfit", "sans-serif");
+  const sans = family("--font-google-sans-flex", "sans-serif");
+  const mono = family("--font-google-sans-code", "monospace");
+  await Promise.all([`600 18px ${heading}`, `400 18px ${sans}`, `600 22px ${sans}`, `600 34px ${mono}`].map((f) => document.fonts.load(f).catch(() => null)));
+  const font = (size: number, weight = 400, face = sans) => `${weight} ${size}px ${face}`;
   // Medicine lines wrap to the width left of the QR code.
   const wrap = (s: string, size: number, max: number) => {
     ctx.font = font(size);
@@ -186,9 +193,9 @@ async function prescriptionImage(
   ctx.fillStyle = "#ffffff";
   ctx.fillRect(0, 0, c.width, c.height);
   ctx.fillStyle = "#1b2733";
-  ctx.font = font(18, 600);
+  ctx.font = font(18, 600, heading);
   ctx.fillText(text.title, 40, 52);
-  ctx.font = `600 34px ui-monospace, monospace`;
+  ctx.font = font(34, 600, mono);
   ctx.fillText(p.code, 40, 100);
   ctx.font = font(17);
   ctx.fillStyle = "#4a5866";

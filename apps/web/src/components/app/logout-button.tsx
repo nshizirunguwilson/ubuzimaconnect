@@ -11,16 +11,22 @@ import { useT } from "@/i18n/client";
  * Asks first, so a stray tap doesn't end the session mid-task. Then a full page load, not a client
  * navigation: nothing from this session (a patient's details, a typed message) stays in the browser's memory.
  */
-export function LogoutButton({ to }: { to: string }) {
+export function LogoutButton({ to, iconOnly = false }: { to: string; iconOnly?: boolean }) {
   const staff = to.startsWith("/staff");
   // Patients see it in their language (NFR 7); staff screens are English.
   const { t } = useT();
   return (
     <Confirm
       trigger={
-        <Button variant="ghost" size="compact" icon={<LuLogOut />}>
-          {staff ? "Log out" : t.logout.button}
-        </Button>
+        iconOnly ? (
+          <Button variant="ghost" size="icon" aria-label={staff ? "Log out" : t.logout.button} title={staff ? "Log out" : t.logout.button} className="mx-auto">
+            <LuLogOut />
+          </Button>
+        ) : (
+          <Button variant="ghost" size="compact" icon={<LuLogOut />}>
+            {staff ? "Log out" : t.logout.button}
+          </Button>
+        )
       }
       title={staff ? "Log out?" : t.logout.title}
       description={

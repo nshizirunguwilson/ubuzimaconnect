@@ -10,7 +10,7 @@ import { Squircle } from "@/components/ui/squircle";
 export type NavItem = { href: string; label: string; icon: ReactNode };
 
 /** RESEARCH R2: a narrow left navigation with a few labelled items; the active one is blue. */
-export function StaffNav({ items, className }: { items: NavItem[]; className?: string }) {
+export function StaffNav({ items, folded = false, className }: { items: NavItem[]; folded?: boolean; className?: string }) {
   const path = usePathname();
   const list = useRef<HTMLUListElement>(null);
   // Phones: bring the current page's item into view in the sideways-scrolling row.
@@ -34,15 +34,27 @@ export function StaffNav({ items, className }: { items: NavItem[]; className?: s
                 radius="md"
                 focus="self"
                 aria-current={active ? "page" : undefined}
+                // Folded (D71): the label fades and slides away; the name stays for screen readers and as a tooltip.
+                aria-label={folded ? label : undefined}
+                title={folded ? label : undefined}
                 className={cn(
                   "flex h-11 items-center gap-3 px-3 text-small font-medium md:h-10",
+                  folded && "md:justify-center md:gap-0 md:px-0",
                   active ? "sq-bg-accent-soft text-info-fg" : "text-fg-secondary hover:sq-bg-sunken hover:text-fg",
                 )}
               >
                 <span className="flex shrink-0 [&_svg]:size-5" aria-hidden>
                   {icon}
                 </span>
-                {label}
+                <span
+                  className={cn(
+                    "whitespace-nowrap transition-[opacity,translate,max-width] duration-300 ease-out motion-reduce:transition-none",
+                    folded ? "md:max-w-0 md:-translate-x-3 md:opacity-0" : "md:max-w-48",
+                  )}
+                  aria-hidden={folded || undefined}
+                >
+                  {label}
+                </span>
               </Squircle>
             </li>
           );
