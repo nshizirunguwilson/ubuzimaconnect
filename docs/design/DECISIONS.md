@@ -406,3 +406,8 @@ After reading the full requirement text, I fixed these details:
 - **Already safe before this:** the dispatcher and the timers each run under a Postgres advisory lock, so only one instance offers cases or fires a timer at a time.
 - **Proof:** `instances.test.ts` starts a second API instance on the same database: a message sent through one reaches a patient connected to the other within 3 seconds, and back.
 - **Scaling out** is then only a setting: Azure App Service → Scale out → more instances, behind its built-in load balancer (NFR 5, SRS deployment diagram). The B1 plan allows up to 3.
+
+### D71. The staff menu folds to its icons
+- **Decision:** from 768 px a button at the top of the staff menu folds it from 240 px to 76 px: icons only (each with its name as a tooltip and for screen readers), the heart symbol instead of the name, the person's initials, and Log out as an icon. The choice is kept on the device (`localStorage`, with an in-memory fallback where storage is blocked); the server always renders it open. Phones keep the row at the top.
+- **The slide:** the grid column animates over 500 ms with a springy ease (`cubic-bezier(0.34, 1.4, 0.64, 1)`), so the panel overshoots a little and settles; labels fade and slide away in 300 ms. Measured: 76 → 168 → 221 → 247 → 248 → 241 → 240 px. It is turned off for people who ask their device for reduced motion.
+- **Why:** on a laptop the agent's case screen needs the width (Wilson's review, 25 Oct).
