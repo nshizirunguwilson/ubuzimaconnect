@@ -319,6 +319,10 @@ async function CDE() {
   check("E2", "FR 7.7", "Updating an entry creates a new version", upd.status < 300, upd.body);
   const bed = await doc(`/clinician/visits/${visitId}/bed`, {});
   check("E4", "FR 7.8", "Clinician assigns a bed", bed.status < 300 || bed.status === 409, bed.body);
+  const mgr = await staff("manager@ubuzima.test");
+  const zero = await mgr("/facilities/mine/beds", { totalBeds: 0 }, "PUT");
+  check("F1", "FR 8.3", "With a patient in a bed, a bed total of 0 is refused", zero.status === 400, zero.body);
+  if (zero.status < 300) await mgr("/facilities/mine/beds", { totalBeds: 120 }, "PUT"); // never leave the demo without beds
   const drx = await doc(`/clinician/visits/${visitId}/prescriptions`, { items: [{ medicine: "Salbutamol inhaler 100 mcg", dose: "2 puffs", frequency: "When short of breath", days: 7 }] });
   check("E3", "FR 11.1", "Clinician issues a prescription during the visit", drx.status < 300, drx.body);
   const fin = await doc(`/clinician/visits/${visitId}/finish`, {});
@@ -362,8 +366,9 @@ async function FG() {
   check("F1", "FR 2.1", "Facility manager logs in", m.loginStatus === 200, m.loginStatus);
   const fac = (await m("/facilities/mine")).body;
   check("F1", "FR 8.1", "Manager sees their facility profile and beds", fac && (fac.name || fac.facility?.name), fac);
-  const low = await m("/facilities/mine/beds", { totalBeds: 0 }, "PUT");
-  check("F1", "FR 8.3", "Total beds below occupied + reserved is refused", low.status === 400 || low.status === 409 || low.status === 200, low.body);
+  // Re-saves the current total: the refusal below occupied beds is checked while a patient is in a bed (section C).
+  const same = await m("/facilities/mine/beds", { totalBeds: fac.totalBeds }, "PUT");
+  check("F1", "FR 8.3", "Manager saves the bed total (unchanged)", same.status === 200 && fac.totalBeds > 0, { status: same.status, total: fac.totalBeds });
   const sched = await m("/schedule");
   check("F3", "FR 8.4", "Weekly schedule with gaps", sched.status === 200 && sched.body?.gaps, Object.keys(sched.body ?? {}));
   const cl = await m("/clinicians");
