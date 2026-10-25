@@ -1,13 +1,13 @@
 import { z } from "zod";
 
 /**
- * Rwandan national ID: 16 digits in six parts, as printed on the card: 1 2006 8 0041223 1 72.
+ * Rwandan national ID: 16 digits in six parts, as printed on the card: 1 1987 8 0592371 0 64.
  * Nationality (1 Rwandan, 2 refugee, 3 foreign resident), birth year, sex (8 male, 7 female),
  * birth-order number, how many times the card was issued, and two check digits (NIDA).
  */
 export const NID_PARTS = [1, 4, 1, 7, 1, 2] as const;
 
-/** "1200680041223172" → "1 2006 8 0041223 1 72", also while the person is still typing. */
+/** "1198780592371064" → "1 1987 8 0592371 0 64", also while the person is still typing. */
 export function formatNationalId(value: string) {
   const digits = value.replace(/\D/g, "").slice(0, 16);
   const parts: string[] = [];

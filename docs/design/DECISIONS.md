@@ -226,7 +226,7 @@ After reading the full requirement text, I fixed these details:
 - **Why:** the user couldn't tell the chosen status from the others when all three looked alike.
 
 ### D44. Demo identities follow the real ID layout
-- **Decision:** IDs are shown and typed in the card's six parts: `1 2006 8 0041223 1 72`. The parts are nationality (1 Rwandan, 2 refugee, 3 foreign resident), year of birth, sex (8 male, 7 female), birth-order number, times issued, and two check digits. The form groups the digits as they are typed. The API refuses 16 digits whose first or sixth digit can't be right.
+- **Decision:** IDs are shown and typed in the card's six parts: `1 1987 8 0592371 0 64`. The parts are nationality (1 Rwandan, 2 refugee, 3 foreign resident), year of birth, sex (8 male, 7 female), birth-order number, times issued, and two check digits. The form groups the digits as they are typed. The API refuses 16 digits whose first or sixth digit can't be right.
 - **Demo people:** each ID's year and sex digit match the person's date of birth and sex. Names follow Rwandan custom: each person has their own Kinyarwanda name, so a child seldom shares a parent's surname. Given names fit the generation: Esperance (1960), Jean Claude (1985), Aline (1992), Ange (2009), Keza (2026). Claudine's birth year moved from 1978 to 1996, because a 48-year-old mother of a 5-week-old was unlikely. The check digits are invented: NIDA doesn't publish the method.
 - **Words:** patient screens say "device", not "phone": the same screens are used on laptops.
 

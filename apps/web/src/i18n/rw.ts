@@ -48,7 +48,7 @@ export const rw: Messages = {
   login: {
     idTitle: "Nimero y'indangamuntu yawe ni iyihe?",
     idLabel: "Nimero y'indangamuntu",
-    idHint: "Imibare 16 iri imbere ku ndangamuntu, urugero: 1\u00a02006\u00a08\u00a00041223\u00a01\u00a072",
+    idHint: "Imibare 16 iri imbere ku ndangamuntu, urugero: 1\u00a01987\u00a08\u00a00592371\u00a00\u00a064",
     confirmTitle: "Emeza ko ari wowe",
     confirmIntro: "Tubigenzura ku makuru y'indangamuntu",
     noMatch: "Ayo makuru ntahura",

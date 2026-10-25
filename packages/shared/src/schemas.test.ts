@@ -3,19 +3,19 @@ import { formatNationalId, greetingName, nationalId, newPassword, patientLogin }
 
 describe("shared rules", () => {
   it("accepts a national ID typed with spaces and stores it without them", () => {
-    expect(nationalId.parse("1 2006 8 0041223 1 72")).toBe("1200680041223172");
-    expect(nationalId.safeParse("1 2006 8").success).toBe(false);
+    expect(nationalId.parse("1 1987 8 0592371 0 64")).toBe("1198780592371064");
+    expect(nationalId.safeParse("1 1987 8").success).toBe(false);
   });
 
   it("shows a national ID in the card's six parts, even half typed", () => {
-    expect(formatNationalId("1200680041223172")).toBe("1 2006 8 0041223 1 72");
-    expect(formatNationalId("120068")).toBe("1 2006 8");
-    expect(formatNationalId("1 2006 8 0041223 1 72 99")).toBe("1 2006 8 0041223 1 72");
+    expect(formatNationalId("1198780592371064")).toBe("1 1987 8 0592371 0 64");
+    expect(formatNationalId("119878")).toBe("1 1987 8");
+    expect(formatNationalId("1 1987 8 0592371 0 64 99")).toBe("1 1987 8 0592371 0 64");
   });
 
   it("refuses 16 digits that can't be a Rwandan ID (sex digit must be 7 or 8)", () => {
-    expect(nationalId.safeParse("1200650041223172").success).toBe(false);
-    expect(nationalId.safeParse("9200680041223172").success).toBe(false);
+    expect(nationalId.safeParse("1198750592371064").success).toBe(false);
+    expect(nationalId.safeParse("9198780592371064").success).toBe(false);
   });
 
   it("treats the shared-phone choice as off unless chosen (FR 1.8)", () => {
