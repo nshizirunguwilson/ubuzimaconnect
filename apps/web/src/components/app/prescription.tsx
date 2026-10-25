@@ -156,8 +156,13 @@ async function prescriptionImage(
 ) {
   const W = 720;
   const qr = new Image();
-  qr.src = await QRCode.toDataURL(`${window.location.origin}/check/${p.code}`, { width: 240, margin: 1, errorCorrectionLevel: "M" });
-  await qr.decode();
+  const src = await QRCode.toDataURL(`${window.location.origin}/check/${p.code}`, { width: 240, margin: 1, errorCorrectionLevel: "M" });
+  // onload, not decode(): decode() never settles in some embedded browsers.
+  await new Promise((res, rej) => {
+    qr.onload = res;
+    qr.onerror = rej;
+    qr.src = src;
+  });
   const c = document.createElement("canvas");
   const ctx = c.getContext("2d")!;
   const font = (size: number, weight = 400) => `${weight} ${size}px system-ui, sans-serif`;
