@@ -19,7 +19,7 @@ Every scenario in the *UbuzimaConnect Full System Description* (sections 8 and 9
 
 ## Results
 
-**Live run:** 103 to 104 checks (one runs only when the pause succeeds), last run 25 Oct after the final deploy: 103 passed, 0 failed. **Automated:** 174 tests, all passing (122 API, 31 web, 21 shared).
+**Live run:** 103 to 104 checks (one runs only when the pause succeeds), last run 25 Oct after the final deploy: 103 passed, 0 failed. **Automated:** 191 tests, all passing (130 API, 31 web, 26 shared, 4 mock NIDA). The escalation timer test failed once under a full run and passed on three re-runs: it is timing-sensitive.
 
 | ID | Scenario | SRS | How tested | Result |
 |---|---|---|---|---|
