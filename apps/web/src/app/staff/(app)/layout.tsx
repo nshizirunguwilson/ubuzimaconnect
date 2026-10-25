@@ -1,6 +1,6 @@
 import { ROLE_LABEL, type StaffMe } from "@ubuzima/shared";
 import { Suspense } from "react";
-import { LuBuilding2, LuCalendarDays, LuCalendarClock, LuHouse, LuInbox, LuListChecks, LuSettings, LuStethoscope, LuUsers, LuUsersRound, LuPill, LuHistory, LuActivity, LuBell, LuChartColumn } from "react-icons/lu";
+import { LuBuilding2, LuCalendarDays, LuCalendarClock, LuHouse, LuInbox, LuListChecks, LuSettings, LuStethoscope, LuUsers, LuUsersRound, LuPill, LuHistory, LuActivity, LuBell, LuChartColumn, LuIdCard } from "react-icons/lu";
 import { AgentPresence } from "@/components/app/agent-presence";
 import { AdminAlerts } from "@/components/app/admin-alerts";
 import { ClinicianNotices } from "@/components/app/clinician-notices";
@@ -19,6 +19,7 @@ function navFor(role: StaffMe["role"]): NavItem[] {
         { href: "/staff/alerts", label: "Alerts", icon: <LuBell /> },
         { href: "/staff/facilities", label: "Facilities", icon: <LuBuilding2 /> },
         { href: "/staff/team", label: "Staff accounts", icon: <LuUsers /> },
+        { href: "/staff/nida", label: "Mock NIDA", icon: <LuIdCard /> },
         { href: "/staff/on-duty", label: "On duty", icon: <LuActivity /> },
         { href: "/staff/schedule", label: "Agent schedule", icon: <LuCalendarDays /> },
         { href: "/staff/red-flags", label: "Red-flag list", icon: <LuListChecks /> },
