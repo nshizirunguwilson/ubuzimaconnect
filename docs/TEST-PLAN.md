@@ -19,7 +19,7 @@ Every scenario in the *UbuzimaConnect Full System Description* (sections 8 and 9
 
 ## Results
 
-**Live run:** 102 checks, all passing after the fixes below (the last full run: 101, plus one check corrected for an ID my earlier runs had locked). **Automated:** 172 tests, all passing.
+**Live run:** 104 checks, all passing (sections A 16, B 14, C 42, F 23, N 2, X 7). **Automated:** 174 tests, all passing (122 API, 31 web, 21 shared).
 
 | ID | Scenario | SRS | How tested | Result |
 |---|---|---|---|---|
@@ -65,7 +65,7 @@ Every scenario in the *UbuzimaConnect Full System Description* (sections 8 and 9
 | E4 | Assigning a bed | FR 7.8, 7.9 | Live; automated: no free bed offers a transfer | ✅ |
 | E5 | Discharge | FR 7.11 | Live: visit ends, the clinician's access ends | ✅ |
 | E6 | Marking unavailable | FR 8.5, 5.13 | Live; automated: patients on the way move to a colleague | ✅ |
-| F1 | Facility profile | FR 8.1, 8.3 | Live: profile and beds; automated: inactive facility never routed, total below occupied refused | ✅ |
+| F1 | Facility profile | FR 8.1, 8.3 | Live: profile and beds, a total of 0 refused while a patient is in a bed; automated: inactive facility never routed, total below occupied refused | ✅ |
 | F2 | Clinician accounts | FR 8.2, 2.6 | Live: Kacyiru's manager added 6 clinicians through invitations | ✅ |
 | F3 | Weekly schedule | FR 8.4 | Live: schedule with gaps; "copy last week" is not in the SRS and not built | ✅ |
 | G1 | Facilities, managers, agents | FR 12.1, 12.2, 2.6 | Live: invitation emailed, link works once, account deactivated and kept | ✅ |
@@ -88,6 +88,8 @@ Every scenario in the *UbuzimaConnect Full System Description* (sections 8 and 9
 | The pharmacy check page was blank while it loaded. | "Checking the prescription…" while it loads. |
 | A schedule test failed on Sundays (it looked for a later day in the same week). | It now schedules tomorrow and looks in that week. |
 | The patient's 15-minute timeout had no test. | Test added. |
+| My own manager check set Kacyiru's bed total to 0 (allowed, since no bed was in use at that moment), which made Kacyiru unsuitable for every routing. | Beds restored to 120. The check now tries 0 while a patient is in a bed, where it must be (and is) refused, and changes nothing. |
+| NFR 5: live updates stayed inside one API instance. | Postgres LISTEN/NOTIFY between instances (D70); a second instance delivers chat both ways within 3 s (`instances.test.ts`). |
 
 ## Not testable here
 
