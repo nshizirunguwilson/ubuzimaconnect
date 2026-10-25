@@ -21,6 +21,26 @@ export const triageReview = z.object({
 export const QUICK_REPLIES = ["Yes", "No", "Better", "Worse", "Same", "I don't know"] as const;
 export const chatMessage = z.object({ text: z.string().trim().min(1, "Write a message").max(2000) });
 
+/** D74: a voice note of up to 60 seconds, as a data URL; its real type is checked by its first bytes (audioType). */
+export const VOICE_MAX_MS = 60_000;
+export const VOICE_MAX_BYTES = 1_500_000;
+export const voiceNote = z.object({
+  audio: z
+    .string()
+    .regex(/^data:audio\/(webm|ogg|mp4|mpeg)(;codecs=[\w.,-]+)?;base64,[A-Za-z0-9+/]+=*$/, "Record the voice note again")
+    .refine((v) => Math.floor(((v.length - v.indexOf(",") - 1) * 3) / 4) <= VOICE_MAX_BYTES, "The voice note is too long"),
+  durationMs: z.number().int().min(500, "Hold a little longer to record").max(VOICE_MAX_MS + 2_000, "Voice notes can be up to 1 minute"),
+});
+
+/** The real audio type, from the file's first bytes; null for anything else. */
+export function audioType(b: Uint8Array): "audio/webm" | "audio/ogg" | "audio/mp4" | "audio/mpeg" | null {
+  if (b[0] === 0x1a && b[1] === 0x45 && b[2] === 0xdf && b[3] === 0xa3) return "audio/webm";
+  if (b[0] === 0x4f && b[1] === 0x67 && b[2] === 0x67 && b[3] === 0x53) return "audio/ogg";
+  if (b[4] === 0x66 && b[5] === 0x74 && b[6] === 0x79 && b[7] === 0x70) return "audio/mp4";
+  if ((b[0] === 0x49 && b[1] === 0x44 && b[2] === 0x33) || (b[0] === 0xff && (b[1] & 0xe0) === 0xe0)) return "audio/mpeg";
+  return null;
+}
+
 /** FR 6.7: one call attempt. */
 export const callNote = z.object({
   answered: z.boolean(),
@@ -56,7 +76,7 @@ export const rating = z.object({ rating: z.number().int().min(1).max(5) });
 
 /** Live events sent over Server-Sent Events. */
 export type LiveEvent =
-  | { type: "message"; caseId: string; message: { id: string; sender: "PATIENT" | "AGENT" | "SYSTEM"; text: string; createdAt: string; staffName?: string | null } }
+  | { type: "message"; caseId: string; message: { id: string; sender: "PATIENT" | "AGENT" | "SYSTEM"; text: string; createdAt: string; staffName?: string | null; audioMs?: number | null } }
   | { type: "case"; caseId: string }
   | { type: "offer"; caseId: string; expiresAt: string }
   | { type: "offer-ended"; caseId: string }

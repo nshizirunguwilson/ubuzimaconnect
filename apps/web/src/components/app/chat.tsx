@@ -1,8 +1,8 @@
 "use client";
 
-import { QUICK_REPLIES } from "@ubuzima/shared";
+import { QUICK_REPLIES, VOICE_MAX_MS } from "@ubuzima/shared";
 import { useEffect, useRef, useState, type FormEvent } from "react";
-import { LuSendHorizontal } from "react-icons/lu";
+import { LuCheck, LuMic, LuSendHorizontal, LuX } from "react-icons/lu";
 import { Button } from "@/components/ui/button";
 import { Squircle } from "@/components/ui/squircle";
 import { cn } from "@/lib/cn";
@@ -19,10 +19,81 @@ export type ChatLabels = {
   quick: Record<string, string>;
   /** Server sentences (system notes) in the reader's language. */
   system: (text: string) => string;
+  /** D74: voice notes. Optional; English when not given. */
+  record?: string;
+  recording?: string;
+  sendVoice?: string;
+  cancelVoice?: string;
+  voiceNote?: string;
+  micBlocked?: string;
 };
-const EN: ChatLabels = { messages: "Messages", empty: "No messages yet.", you: "You", agent: "Agent", send: "Send", quickReplies: "Quick replies", quick: {}, system: (t) => t };
+const EN: Required<ChatLabels> = {
+  messages: "Messages",
+  empty: "No messages yet.",
+  you: "You",
+  agent: "Agent",
+  send: "Send",
+  quickReplies: "Quick replies",
+  quick: {},
+  system: (t) => t,
+  record: "Record a voice note",
+  recording: "Recording",
+  sendVoice: "Send the voice note",
+  cancelVoice: "Cancel the recording",
+  voiceNote: "Voice note",
+  micBlocked: "Allow the microphone in your browser to send a voice note.",
+};
 
-export type ChatMsg = { id: string; sender: "PATIENT" | "AGENT" | "SYSTEM"; text: string; createdAt: string | Date; staffName?: string | null };
+export type ChatMsg = { id: string; sender: "PATIENT" | "AGENT" | "SYSTEM"; text: string; createdAt: string | Date; staffName?: string | null; audioMs?: number | null };
+
+/** D74: how to send and play voice notes in this chat. */
+export type ChatVoice = { send: (dataUrl: string, durationMs: number) => Promise<void>; url: (messageId: string) => string };
+
+const clock = (ms: number) => `${Math.floor(ms / 60_000)}:${String(Math.floor((ms % 60_000) / 1000)).padStart(2, "0")}`;
+
+/** D74: records up to a minute with the browser's own recorder (WebM/Opus, or MP4 on Safari), then hands back a data URL. */
+function useRecorder(onDone: (dataUrl: string, ms: number) => void, onBlocked: () => void) {
+  const [ms, setMs] = useState<number | null>(null);
+  const rec = useRef<{ mr: MediaRecorder; chunks: Blob[]; start: number; timer: ReturnType<typeof setInterval>; keep: boolean } | null>(null);
+  async function start() {
+    let stream: MediaStream;
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    } catch {
+      return onBlocked();
+    }
+    const type = ["audio/webm;codecs=opus", "audio/webm", "audio/mp4", "audio/ogg;codecs=opus"].find((t) => MediaRecorder.isTypeSupported(t));
+    const mr = new MediaRecorder(stream, type ? { mimeType: type, audioBitsPerSecond: 32_000 } : undefined);
+    const r = { mr, chunks: [] as Blob[], start: Date.now(), keep: true, timer: setInterval(() => {
+      const t = Date.now() - r.start;
+      setMs(t);
+      if (t >= VOICE_MAX_MS) stop(true); // a minute at most: send what was said
+    }, 200) };
+    rec.current = r;
+    mr.ondataavailable = (e) => e.data.size && r.chunks.push(e.data);
+    mr.onstop = () => {
+      clearInterval(r.timer);
+      stream.getTracks().forEach((t) => t.stop());
+      setMs(null);
+      const length = Math.min(Date.now() - r.start, VOICE_MAX_MS);
+      rec.current = null;
+      if (!r.keep || length < 500) return;
+      const reader = new FileReader();
+      reader.onload = () => onDone(String(reader.result), length);
+      reader.readAsDataURL(new Blob(r.chunks, { type: mr.mimeType }));
+    };
+    mr.start(250);
+    setMs(0);
+  }
+  function stop(keep: boolean) {
+    const r = rec.current;
+    if (!r || r.mr.state === "inactive") return;
+    r.keep = keep;
+    r.mr.stop();
+  }
+  useEffect(() => () => stop(false), []);
+  return { ms, start, stop };
+}
 
 /**
  * FR 6.6: text chat with quick replies. New messages are announced to screen readers (DESIGN.md §8),
@@ -36,7 +107,8 @@ export function Chat({
   placeholder = "Write a message",
   quickReplies = false,
   sendVariant = "primary",
-  labels = EN,
+  labels: given = EN,
+  voice,
   className,
 }: {
   messages: ChatMsg[];
@@ -48,10 +120,25 @@ export function Chat({
   /** One primary button per screen (DESIGN.md §1): secondary where something else is primary. */
   sendVariant?: "primary" | "secondary";
   labels?: ChatLabels;
+  /** D74: voice notes, where this chat allows them. */
+  voice?: ChatVoice;
   className?: string;
 }) {
+  const labels = { ...EN, ...given };
   const [text, setText] = useState("");
   const [sending, setSending] = useState(false);
+  const [blocked, setBlocked] = useState(false);
+  const recorder = useRecorder(
+    async (dataUrl, ms) => {
+      setSending(true);
+      try {
+        await voice?.send(dataUrl, ms);
+      } finally {
+        setSending(false);
+      }
+    },
+    () => setBlocked(true),
+  );
   const end = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -85,7 +172,16 @@ export function Chat({
                 radius="lg"
                 className={cn("px-3.5 py-2 text-body whitespace-pre-wrap", m.sender === me ? "sq-bg-accent-soft text-fg" : "sq-bg-surface sq-border-border text-fg")}
               >
-                {m.text}
+                {m.audioMs && voice ? (
+                  <span className="flex flex-col gap-1">
+                    <audio controls preload="none" src={voice.url(m.id)} className="h-10 w-56 max-w-full" aria-label={`${labels.voiceNote}, ${clock(m.audioMs)}`} />
+                    <span className="text-caption text-fg-secondary">
+                      {labels.voiceNote} · {clock(m.audioMs)}
+                    </span>
+                  </span>
+                ) : (
+                  m.text
+                )}
               </Squircle>
               <span className="px-1 text-caption text-fg-muted">
                 {m.sender === me ? labels.you : m.sender === "AGENT" ? (m.staffName ?? labels.agent) : "Patient"} · {formatTime(m.createdAt)}
@@ -114,36 +210,73 @@ export function Chat({
               ))}
             </div>
           )}
-          <form
-            onSubmit={(e: FormEvent) => {
-              e.preventDefault();
-              void send(text);
-            }}
-            className="flex items-end gap-2"
-          >
-            <Squircle radius="md" focus="within" className="flex min-w-0 flex-1 items-center px-3 sq-bg-surface sq-border-border-strong">
-              <label htmlFor="chat-input" className="sr-only">
-                {placeholder}
-              </label>
-              <textarea
-                id="chat-input"
-                rows={1}
-                value={text}
-                onChange={(e) => setText(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" && !e.shiftKey) {
-                    e.preventDefault();
-                    void send(text);
-                  }
-                }}
-                placeholder={placeholder}
-                className="max-h-32 min-h-11 w-full resize-none bg-transparent py-2.5 text-body text-fg outline-none placeholder:text-fg-muted"
-              />
-            </Squircle>
-            <Button type="submit" variant={sendVariant} size="icon" aria-label={labels.send} loading={sending} disabled={!text.trim()}>
-              <LuSendHorizontal />
-            </Button>
-          </form>
+          {blocked && <p className="text-caption text-urgent-fg">{labels.micBlocked}</p>}
+          {recorder.ms !== null ? (
+            // D74: while recording, the bar shows the time left to a minute, with cancel and send.
+            <div className="flex items-center gap-2" role="group" aria-label={labels.recording}>
+              <Squircle radius="md" className="flex h-11 min-w-0 flex-1 items-center gap-3 px-3 sq-bg-urgent-soft">
+                <span className="size-2.5 shrink-0 animate-pulse rounded-full bg-urgent" aria-hidden />
+                <span className="text-small font-medium text-fg">{labels.recording}</span>
+                <span className="ml-auto font-mono text-small text-fg-secondary tabular-nums" aria-live="off">
+                  {clock(recorder.ms)} / {clock(VOICE_MAX_MS)}
+                </span>
+              </Squircle>
+              <Button type="button" variant="ghost" size="icon" aria-label={labels.cancelVoice} onClick={() => recorder.stop(false)}>
+                <LuX />
+              </Button>
+              <Button type="button" variant={sendVariant} size="icon" aria-label={labels.sendVoice} onClick={() => recorder.stop(true)}>
+                <LuCheck />
+              </Button>
+            </div>
+          ) : (
+            <form
+              onSubmit={(e: FormEvent) => {
+                e.preventDefault();
+                void send(text);
+              }}
+              className="flex items-end gap-2"
+            >
+              <Squircle radius="md" focus="within" className="flex min-w-0 flex-1 items-center px-3 sq-bg-surface sq-border-border-strong">
+                <label htmlFor="chat-input" className="sr-only">
+                  {placeholder}
+                </label>
+                <textarea
+                  id="chat-input"
+                  rows={1}
+                  value={text}
+                  onChange={(e) => setText(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && !e.shiftKey) {
+                      e.preventDefault();
+                      void send(text);
+                    }
+                  }}
+                  placeholder={placeholder}
+                  className="max-h-32 min-h-11 w-full resize-none bg-transparent py-2.5 text-body text-fg outline-none placeholder:text-fg-muted"
+                />
+              </Squircle>
+              {/* Nothing typed: the microphone; something typed: send (D74) */}
+              {voice && !text.trim() && !sending ? (
+                <Button
+                  type="button"
+                  variant={sendVariant}
+                  size="icon"
+                  aria-label={labels.record}
+                  title={labels.record}
+                  onClick={() => {
+                    setBlocked(false);
+                    void recorder.start();
+                  }}
+                >
+                  <LuMic />
+                </Button>
+              ) : (
+                <Button type="submit" variant={sendVariant} size="icon" aria-label={labels.send} loading={sending} disabled={!text.trim()}>
+                  <LuSendHorizontal />
+                </Button>
+              )}
+            </form>
+          )}
         </>
       )}
     </div>
