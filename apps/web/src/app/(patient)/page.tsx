@@ -17,7 +17,7 @@ export default async function Welcome() {
         <LanguageSwitch />
       </header>
       <main className="flex flex-1 flex-col gap-8 pt-6 lg:mx-auto lg:w-full lg:max-w-[480px]">
-        <Logo variant="stacked" height={104} />
+        <Logo variant="hero" />
         <div className="flex flex-col gap-3">
           <h1 className="text-display text-fg">{t.welcome.title}</h1>
           <p className="text-body text-fg-secondary">{t.welcome.intro}</p>

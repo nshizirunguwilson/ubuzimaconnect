@@ -113,7 +113,7 @@ export function LoginFlow({ ended }: { ended: boolean }) {
 
       {step === 1 && (
         <div className="flex justify-center">
-          <Logo variant="stacked" height={80} />
+          <Logo variant="hero" height={48} />
         </div>
       )}
 
