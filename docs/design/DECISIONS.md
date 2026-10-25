@@ -283,9 +283,9 @@ After reading the full requirement text, I fixed these details:
 ## Phase 3, batch A (timers, escalations, alerts)
 
 ### D53. One timer loop, beside the dispatcher
-- **Decision:** `TimersService` runs every 15 seconds (`TIMER_MS`; 300 ms in tests) under its own Postgres advisory lock, so only one instance runs it. It expires routings (24 h), releases held beds (6 h), reassigns patients whose clinician's shift ended, escalates waiting cases, watches for no agent online, and counts AI failures.
+- **Decision:** `TimersService` runs every 10 seconds (`TIMER_MS`; 300 ms in tests) under its own Postgres advisory lock, so only one instance runs it. It expires routings (24 h), releases held beds (6 h), reassigns patients whose clinician's shift ended, escalates waiting cases, watches for no agent online, and counts AI failures.
 - **Why separate from the dispatcher:** the dispatcher must answer within seconds (offers last 30 s). These jobs work in minutes and hours. Keeping them apart means a slow pass of one never delays the other.
-- **Why every 15 seconds:** the tightest deadline here is 2 minutes (FR 6.10). 15 s keeps every alert within 15 s of its deadline and costs a few small queries.
+- **Why every 10 seconds:** the SRS deployment diagram (Appendix B, Figure 11) says the timers are checked every ten seconds. The tightest deadline is 2 minutes (FR 6.10), so every alert fires within 10 s of its deadline, for a few small queries.
 
 ### D54. Escalation is measured from when the case started waiting again
 - **Decision:** a case returned to the queue (released, paused, lost connection, or a facility that can't take the patient) gets a fresh waiting time and escalation level 0.
@@ -381,3 +381,12 @@ After reading the full requirement text, I fixed these details:
 - **The API's certificate** is a Let's Encrypt certificate uploaded to Azure (valid to 23 Jan 2027), because Azure's free managed certificate never completed for `api.ubuzima.wilsonn.tech`, twice. Renewal: request a new one with a DNS TXT record (`lego --dns manual`), then upload it.
 - **The mock NIDA keeps its Azure address** (`ubuzima-nida.azurewebsites.net`): only the API calls it, so a custom domain would add nothing.
 
+
+### D68. Logos as vectors, three placements
+- **Decision:** the logos come from the UbuzimaConnect Logo Pack's `.ai` files, converted to SVG with `pdftocairo -svg` and cropped to the artwork (the pack's PNGs carry a wide empty border, which made the old header logo about 13 px tall). They live in `apps/web/public/brand/`, and `components/app/logo.tsx` places them by height.
+- **Where each one goes:**
+  - **Stacked, with the tagline** ("Your Health, On Time"): the welcome page, the patient login and the staff login. These are the pages where the brand is seen first.
+  - **Horizontal, 28–30 px tall:** headers with room for it (patient pages on a computer, the staff sidebar from 640 px, the design system sheet).
+  - **Symbol only, under 640 px:** headers that share a phone-width row with Log out or the language switch (patient home, staff pages, the prescription check). The full name would push the button off a 375 px screen.
+  - **Black horizontal:** printed pages, including the printable summary (FR 7.2), so the logo prints sharply without colour.
+- **The icons** (favicon, Apple touch, PWA 192 and 512, maskable) were already the pack's own files, byte for byte.

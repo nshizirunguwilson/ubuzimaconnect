@@ -1,6 +1,7 @@
 "use client";
 
 import { LuPrinter } from "react-icons/lu";
+import { PrintLogo } from "@/components/app/logo";
 import { BackLink } from "@/components/patient/back-link";
 import { Button } from "@/components/ui/button";
 import type { Records } from "../load";
@@ -24,6 +25,7 @@ export function PrintSummary({ data }: { data: Records }) {
       </div>
 
       <header className="flex flex-col gap-1 border-b border-gray-900 pb-3">
+        <PrintLogo />
         <p className="text-small font-semibold">{t.print.heading}</p>
         <h1 className="text-h1">{p.name}</h1>
         <p className="text-small">

@@ -39,7 +39,7 @@ export default function PatientHome() {
   return (
     <>
       <header className="flex items-center justify-between gap-4 lg:border-b lg:border-border lg:pb-4">
-        <Logo href="/home" width={120} />
+        <Logo href="/home" variant="compact" />
         <div className="flex items-center gap-2">
           <LanguageSwitch className="max-sm:hidden" />
           <LogoutButton to="/" />

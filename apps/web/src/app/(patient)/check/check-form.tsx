@@ -25,7 +25,7 @@ export function CheckForm() {
   return (
     <main className="flex flex-1 flex-col gap-6 lg:mx-auto lg:w-full lg:max-w-[480px]">
       <div className="flex items-center justify-between gap-3">
-        <Logo href="/" width={140} />
+        <Logo href="/" variant="compact" />
         <LanguageSwitch />
       </div>
       <div className="flex flex-col gap-2">

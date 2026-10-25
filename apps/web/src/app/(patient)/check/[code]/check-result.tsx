@@ -26,7 +26,7 @@ export function CheckResult({ code }: { code: string }) {
   return (
     <main className="flex flex-1 flex-col gap-6 lg:mx-auto lg:w-full lg:max-w-[480px]">
       <div className="flex items-center justify-between gap-3">
-        <Logo href="/" width={140} />
+        <Logo href="/" variant="compact" />
         <LanguageSwitch />
       </div>
       <Link href="/check" className="-ml-2 inline-flex min-h-11 w-fit items-center gap-2 px-2 text-small font-medium text-fg">

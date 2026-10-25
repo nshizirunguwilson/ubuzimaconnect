@@ -13,11 +13,11 @@ export default async function Welcome() {
   const t = await getT();
   return (
     <>
-      <header className="flex items-center justify-between gap-3 lg:mx-auto lg:w-full lg:max-w-[480px]">
-        <Logo />
+      <header className="flex items-center justify-end gap-3 lg:mx-auto lg:w-full lg:max-w-[480px]">
         <LanguageSwitch />
       </header>
-      <main className="flex flex-1 flex-col gap-8 pt-16 lg:mx-auto lg:w-full lg:max-w-[480px]">
+      <main className="flex flex-1 flex-col gap-8 pt-6 lg:mx-auto lg:w-full lg:max-w-[480px]">
+        <Logo variant="stacked" height={104} />
         <div className="flex flex-col gap-3">
           <h1 className="text-display text-fg">{t.welcome.title}</h1>
           <p className="text-body text-fg-secondary">{t.welcome.intro}</p>

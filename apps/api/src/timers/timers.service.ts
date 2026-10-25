@@ -20,7 +20,7 @@ const kigaliTime = (d: Date) => new Intl.DateTimeFormat("en-GB", { hour: "2-digi
 const LOCK_KEY = 61_802;
 
 /**
- * The jobs nobody presses a button for. Runs every TIMER_MS (15 s by default):
+ * The jobs nobody presses a button for. Runs every TIMER_MS (10 s by default, as in the SRS deployment diagram):
  * - FR 5.11: routings without an arrival after 24 hours expire, and their bed is released.
  * - FR 5.7: a held bed is released after 6 hours without the patient (the routing itself stays valid).
  * - FR 5.13: patients on the way to a clinician whose shift ended go to a colleague.
@@ -43,7 +43,7 @@ export class TimersService implements OnModuleInit, OnModuleDestroy {
   ) {}
 
   onModuleInit() {
-    this.timer = setInterval(() => void this.tick(), Number(process.env.TIMER_MS ?? 15_000));
+    this.timer = setInterval(() => void this.tick(), Number(process.env.TIMER_MS ?? 10_000));
   }
 
   onModuleDestroy() {
