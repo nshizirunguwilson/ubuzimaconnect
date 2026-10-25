@@ -176,7 +176,7 @@ After reading the full requirement text, I fixed these details:
 - **Why not through `/api`:** the Next.js docs warn that proxied long connections are closed on timeout. A direct stream avoids that. Locally the cookie reaches `localhost:4000` because cookies don't depend on the port. In production `COOKIE_DOMAIN=.ubuzima.wilsonn.tech` shares it with `api.ubuzima.wilsonn.tech`, and CORS allows only the web address, with credentials.
 - **Why not Socket.IO (the earlier plan):** chat here is one-way pushes plus ordinary sends. Server-Sent Events do that with the existing cookie check, reconnect on their own, and add no extra library or second login path.
 - **Proof:** an agent's message reaches the patient's stream in under 3 seconds, as NFR 4 requires (`agent.test.ts`).
-- **Limit:** the event bus is in memory, which is right for one API instance. With more instances it becomes Postgres LISTEN/NOTIFY (NFR 5, phase 3).
+- **Several instances:** events also travel through Postgres LISTEN/NOTIFY (D70).
 
 ### D35. "Connected" means the agent's stream is open
 - **Decision:** while an agent's stream is open, the API marks them as seen every 15 seconds. The stream is opened on every staff page, not only the queue. The dispatcher treats 60 seconds without it as a lost connection (FR 6.14).
@@ -397,3 +397,12 @@ After reading the full requirement text, I fixed these details:
 - **Why through the API, not the seed:** it needs no database password, it leaves the same trail in the activity log as a real manager would, and it proves FR 2.6, 8.2 and 8.4 work on the live site.
 - **Gaps kept on purpose:** Kibagabaga has no emergency clinician at night and Remera no one at night, so the coverage view and the shift-gap report still show real gaps.
 - **Before mid-January 2027** run it again (`node scripts/demo-schedule.mjs 12`), or the schedule runs out.
+
+### D70. Live events cross API instances through Postgres (NFR 5)
+- **Decision:** `EventsService` delivers each event to the browsers connected to its own instance at once, and also sends it with `pg_notify('uc_live', …)`. Every instance keeps one connection that `LISTEN`s on that channel and passes the other instances' events to its own browsers. Its own events are skipped by an instance id, so nothing arrives twice.
+- **Why Postgres:** the database is already shared by every instance, so this adds no new service (no Redis), and Supabase's session pooler supports LISTEN.
+- **Push notifications** are sent only by the instance where the event started, so a phone is never notified twice. The "app is open" check is per instance: a patient whose app is open on another instance may still get a push, which carries no medical details anyway.
+- **Large messages:** NOTIFY refuses payloads of 8000 bytes or more. A longer chat message reaches the other instances as "case changed", and their browsers reload the case.
+- **Already safe before this:** the dispatcher and the timers each run under a Postgres advisory lock, so only one instance offers cases or fires a timer at a time.
+- **Proof:** `instances.test.ts` starts a second API instance on the same database: a message sent through one reaches a patient connected to the other within 3 seconds, and back.
+- **Scaling out** is then only a setting: Azure App Service → Scale out → more instances, behind its built-in load balancer (NFR 5, SRS deployment diagram). The B1 plan allows up to 3.
