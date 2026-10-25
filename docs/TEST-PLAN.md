@@ -19,7 +19,7 @@ Every scenario in the *UbuzimaConnect Full System Description* (sections 8 and 9
 
 ## Results
 
-**Live run:** 104 checks, all passing (sections A 16, B 14, C 42, F 23, N 2, X 7). **Automated:** 174 tests, all passing (122 API, 31 web, 21 shared).
+**Live run:** 103 to 104 checks (one runs only when the pause succeeds), last run 25 Oct after the final deploy: 103 passed, 0 failed. **Automated:** 174 tests, all passing (122 API, 31 web, 21 shared).
 
 | ID | Scenario | SRS | How tested | Result |
 |---|---|---|---|---|
@@ -79,6 +79,16 @@ Every scenario in the *UbuzimaConnect Full System Description* (sections 8 and 9
 | 9.3 | Elderly man who can't type | – | Live B7 and C5 | ✅ |
 | 9.4 | AI down and no free beds | – | Live B6 and C8; automated D2 | ✅ |
 
+## Screen tests (25 October)
+
+Done in the browser, as each person would, on top of the API checks above.
+
+**Every page, every role.** Each role was logged in and every page it can use was loaded and rendered: 14 public pages, 11 patient, 9 agent, 8 clinician, 9 manager, 12 administrator. None showed an error or a blank page. Pages of another role redirect to that person's own start page; logged-out visitors go to the right login.
+
+**Chat, patient on screen** (live site): Jean Claude Habimana logged in by typing his ID (grouped into the card's six parts as typed), date of birth and name; chose "Me" from Me, Ange (17) and Divine (11); chose Kigali City → Gasabo → Kimironko from the lists; tapped "None of these"; described a cough, 1 to 3 days, 4 out of 10; sent it. The AI triaged it Minor; an agent was offered it within seconds. The agent's message appeared on his screen without reloading, with the quick replies; his tap on "Yes" reached the agent; when the agent closed the case his screen switched by itself to "This case is closed" and he rated it 5.
+
+**Chat, agent on screen** (the same code run locally, so that the staff password is typed only into a local copy): Diane logged in with the password and the 6-digit code typed into the code boxes; set Available (with its confirmation); the offer appeared with a live 30-second countdown and no patient name; accepted; the case showed Claudine's name, photo and "Red flag A2: Yes"; Diane's message reached the patient and the reply appeared on her screen without reloading; she confirmed routing to Kacyiru (bed held, valid 24 hours; the patient's chat got the address and phone number); closed as Routed to facility.
+
 ## What the testing found, and what was fixed
 
 | Found | Fix |
@@ -89,6 +99,9 @@ Every scenario in the *UbuzimaConnect Full System Description* (sections 8 and 9
 | A schedule test failed on Sundays (it looked for a later day in the same week). | It now schedules tomorrow and looks in that week. |
 | The patient's 15-minute timeout had no test. | Test added. |
 | My own manager check set Kacyiru's bed total to 0 (allowed, since no bed was in use at that moment), which made Kacyiru unsuitable for every routing. | Beds restored to 120. The check now tries 0 while a patient is in a bed, where it must be (and is) refused, and changes nothing. |
+| After the agent closed a case, the patient could no longer read the chat, including the agent's last advice. | The closed screen shows the conversation, read-only. |
+| While an agent was helping, the heading said so but the line under it still said "waiting for a health agent". | The line now says the agent will write here. |
+| A patient who opens a staff page lands on the staff login with "your session ended", though their own session is fine. | Wording only; left as is. |
 | NFR 5: live updates stayed inside one API instance. | Postgres LISTEN/NOTIFY between instances (D70); a second instance delivers chat both ways within 3 s (`instances.test.ts`). |
 
 ## Not testable here
