@@ -15,6 +15,7 @@ import {
   pregnancyAnswer,
   rating,
   redFlagAnswer,
+  redFlagChecklist,
   redFlagGroups,
   sectorByCode,
   SERVICE_LABEL,
@@ -225,6 +226,32 @@ export class CasesController {
       });
       await this.finishUrgent(c, service, `Red flag ${next.question.code} answered Yes.`);
       await this.audit.record({ type: "patient", id: s.patientId }, "case.redflag.yes", { caseId: id, code: next.question.code }, req.ip);
+    }
+    return this.patientView(await this.load(id));
+  }
+
+  /**
+   * FR 3.6, 4.1: the checklist answered on one screen. A danger sign tapped is a Yes and makes the case Urgent,
+   * exactly as the first Yes does one question at a time. "None of these" saves a No for every question shown.
+   */
+  @Post(":id/checklist")
+  @HttpCode(200)
+  async checklist(@Param("id", ParseUUIDPipe) id: string, @Body() body: unknown, @CurrentSession() s: LiveSession, @Req() req: Request) {
+    const c = await this.own(s, id);
+    const { yes } = parse(redFlagChecklist, body);
+    const next = await this.nextQuestion(c);
+    if (c.triageLevel || !next) throw new ApiException(409, "CONFLICT", "The danger signs have already been answered. Reload the page.");
+    const open = [next.question, ...next.after];
+    const tapped = yes ? open.find((q) => q.id === yes) : null;
+    if (yes && !tapped) throw new ApiException(400, "VALIDATION", "That danger sign isn't on this list. Reload the page.");
+    const answers = tapped ? [{ q: tapped, answer: true }] : open.map((q) => ({ q, answer: false }));
+    await this.db.client.redFlagAnswer.createMany({
+      data: answers.map(({ q, answer }) => ({ caseId: id, questionId: q.id, code: q.code, textEn: q.textEn, answer })),
+    });
+    if (tapped) {
+      const service = chooseService({ redFlag: tapped, pregnant: c.pregnant, years: age(c.patient.dateOfBirth).years });
+      await this.finishUrgent(c, service, `Red flag ${tapped.code} answered Yes.`);
+      await this.audit.record({ type: "patient", id: s.patientId }, "case.redflag.yes", { caseId: id, code: tapped.code }, req.ip);
     }
     return this.patientView(await this.load(id));
   }
