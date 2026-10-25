@@ -3,7 +3,7 @@
 import { PRESCRIPTION_VALID_DAYS, prescriptionItem, type PrescriptionStatus } from "@ubuzima/shared";
 import QRCode from "qrcode";
 import { useEffect, useState, type FormEvent, type ReactNode } from "react";
-import { LuPlus, LuTrash2 } from "react-icons/lu";
+import { LuCheck, LuCopy, LuDownload, LuPlus, LuTrash2 } from "react-icons/lu";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/field";
@@ -72,7 +72,12 @@ export function PrescriptionCard({ p, qr, action }: { p: Prescription; qr?: bool
         <div className="min-w-0 flex-1">
           <Medicines items={p.items} />
         </div>
-        {qr && p.status === "VALID" && <QrCode code={p.code} />}
+        {qr && p.status === "VALID" && (
+          <div className="flex flex-col items-center gap-2">
+            <QrCode code={p.code} />
+            <PrescriptionActions p={p} />
+          </div>
+        )}
       </div>
       {p.status === "CANCELLED" && p.cancelReason && <p className="text-small text-fg-secondary">{t.prescription.cancelledBecause(p.cancelReason)}</p>}
       {action}
@@ -102,6 +107,105 @@ export function QrCode({ code, size = 128 }: { code: string; size?: number }) {
       {svg ? <div role="img" aria-label={t.prescription.qr(code)} className="size-full [&_svg]:size-full" dangerouslySetInnerHTML={{ __html: svg }} /> : <div className="size-full" aria-busy />}
     </Squircle>
   );
+}
+
+/** Copy the code to paste in a message, or save the prescription as an image to show at a pharmacy offline. */
+function PrescriptionActions({ p }: { p: Prescription }) {
+  const { t, dateTime } = useT();
+  const [copied, setCopied] = useState(false);
+  async function copy() {
+    try {
+      await navigator.clipboard.writeText(p.code);
+      setCopied(true);
+      toast.success(t.prescription.copied(p.code));
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      toast.error(t.prescription.cantCopy);
+    }
+  }
+  async function download() {
+    const blob = await prescriptionImage(p, {
+      title: t.prescription.imageTitle,
+      issued: t.prescription.issued(dateTime(p.issuedAt), p.prescriber.name + (p.prescriber.licence ? ` (${p.prescriber.licence})` : "")),
+      valid: t.prescription.validUntil(dateTime(p.validUntil)),
+      dose: (it) => t.prescription.dose(it.dose, it.frequency, it.days) + (it.instructions ? `. ${it.instructions}` : ""),
+      footer: t.prescription.imageFooter(window.location.host),
+    });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = `prescription-${p.code}.png`;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  }
+  return (
+    <div className="flex gap-1">
+      <Button variant="ghost" size="icon" aria-label={t.prescription.copy} title={t.prescription.copy} onClick={copy}>
+        {copied ? <LuCheck /> : <LuCopy />}
+      </Button>
+      <Button variant="ghost" size="icon" aria-label={t.prescription.download} title={t.prescription.download} onClick={download}>
+        <LuDownload />
+      </Button>
+    </div>
+  );
+}
+
+/** The prescription drawn on a white image: what a pharmacist needs, and the QR code to scan. */
+async function prescriptionImage(
+  p: Prescription,
+  text: { title: string; issued: string; valid: string; dose: (it: Prescription["items"][number]) => string; footer: string },
+) {
+  const W = 720;
+  const qr = new Image();
+  qr.src = await QRCode.toDataURL(`${window.location.origin}/check/${p.code}`, { width: 240, margin: 1, errorCorrectionLevel: "M" });
+  await qr.decode();
+  const c = document.createElement("canvas");
+  const ctx = c.getContext("2d")!;
+  const font = (size: number, weight = 400) => `${weight} ${size}px system-ui, sans-serif`;
+  // Medicine lines wrap to the width left of the QR code.
+  const wrap = (s: string, size: number, max: number) => {
+    ctx.font = font(size);
+    const lines: string[] = [];
+    let line = "";
+    for (const word of s.split(" ")) {
+      const next = line ? `${line} ${word}` : word;
+      if (ctx.measureText(next).width > max && line) {
+        lines.push(line);
+        line = word;
+      } else line = next;
+    }
+    return [...lines, line];
+  };
+  const rows = p.items.flatMap((it) => [{ s: it.medicine, size: 22, weight: 600 }, ...wrap(text.dose(it), 18, 400).map((s) => ({ s, size: 18, weight: 400 }))]);
+  c.width = W;
+  c.height = Math.max(420, 250 + rows.length * 30 + 60);
+  ctx.fillStyle = "#ffffff";
+  ctx.fillRect(0, 0, c.width, c.height);
+  ctx.fillStyle = "#1b2733";
+  ctx.font = font(18, 600);
+  ctx.fillText(text.title, 40, 52);
+  ctx.font = `600 34px ui-monospace, monospace`;
+  ctx.fillText(p.code, 40, 100);
+  ctx.font = font(17);
+  ctx.fillStyle = "#4a5866";
+  let y = 136;
+  for (const s of [p.patient ?? "", text.issued, text.valid].filter(Boolean)) {
+    for (const line of wrap(s, 17, W - 340)) {
+      ctx.fillText(line, 40, y);
+      y += 26;
+    }
+  }
+  y += 18;
+  ctx.fillStyle = "#1b2733";
+  for (const r of rows) {
+    ctx.font = font(r.size, r.weight);
+    ctx.fillText(r.s, 40, y);
+    y += r.size === 22 ? 30 : 26;
+  }
+  ctx.drawImage(qr, W - 280, 40, 240, 240);
+  ctx.font = font(14);
+  ctx.fillStyle = "#6b7885";
+  ctx.fillText(text.footer, 40, c.height - 28);
+  return new Promise<Blob>((res) => c.toBlob((b) => res(b!), "image/png"));
 }
 
 type Row = { medicine: string; dose: string; frequency: string; days: string; instructions: string };

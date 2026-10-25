@@ -269,6 +269,12 @@ export const en = {
     cancelledBecause: (why: string) => `Cancelled: ${why}`,
     dose: (dose: string, often: string, days: number) => `${dose}, ${often}, for ${days === 1 ? "1 day" : `${days} days`}`,
     qr: (code: string) => `QR code for prescription ${code}`,
+    copy: "Copy code",
+    copied: (code: string) => `${code} copied`,
+    cantCopy: "Couldn't copy. Select the code and copy it instead.",
+    download: "Download prescription",
+    imageTitle: "UbuzimaConnect prescription",
+    imageFooter: (host: string) => `Check at ${host}/check or scan the QR code. Valid for 7 days.`,
   },
   activity: {
     title: "Activity",

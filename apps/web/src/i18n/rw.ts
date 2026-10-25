@@ -271,6 +271,12 @@ export const rw: Messages = {
     cancelledBecause: (why) => `Yahagaritswe: ${why}`,
     dose: (dose, often, days) => `${dose}, ${often}, mu ${days === 1 ? "munsi 1" : `minsi ${days}`}`,
     qr: (code) => `QR kode y'urupapuro rw'imiti ${code}`,
+    copy: "Koporora kode",
+    copied: (code) => `${code} yakoporowe`,
+    cantCopy: "Ntibyakunze gukoporora. Hitamo kode uyikoporore.",
+    download: "Kuramo urupapuro rw'imiti",
+    imageTitle: "Urupapuro rw'imiti rwa UbuzimaConnect",
+    imageFooter: (host) => `Genzura kuri ${host}/check cyangwa usikane kode ya QR. Rumara iminsi 7.`,
   },
   activity: {
     title: "Ibyakozwe",
