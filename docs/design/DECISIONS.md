@@ -379,7 +379,7 @@ After reading the full requirement text, I fixed these details:
 - **Found on the first login:** Azure's front end writes the caller into X-Forwarded-For as "address:port". Express took the whole string as the address, so the mock NIDA refused the API, and every connection would have counted as a new visitor for the guessing pauses. Both apps now drop the port before Express reads the header (`forwarded.ts`, tested in `forwarded.test.ts`). Proved live: the same call to the mock NIDA went from 403 to 200 once the fix was uploaded.
 - **Found on Vercel:** Turborepo's strict mode hides environment variables a task doesn't declare (except `NEXT_PUBLIC_*`). The web build never saw `API_URL`, fell back to `http://localhost:4000`, and Vercel refused the rewrite with DNS_HOSTNAME_RESOLVED_PRIVATE. `turbo.json` now declares `API_URL` and `NEXT_PUBLIC_API_URL` for the build.
 - **The API's certificate** is a Let's Encrypt certificate uploaded to Azure (valid to 23 Jan 2027), because Azure's free managed certificate never completed for `api.ubuzima.wilsonn.tech`, twice. Renewal: request a new one with a DNS TXT record (`lego --dns manual`), then upload it.
-- **The mock NIDA keeps its Azure address** (`ubuzima-nida.azurewebsites.net`): only the API calls it, so a custom domain would add nothing.
+- **The mock NIDA is at `nida.ubuzima.wilsonn.tech`** (25 Oct), as in the SRS deployment diagram: a CNAME and an `asuid` TXT record at get.tech, and a Let's Encrypt certificate (valid to 23 Jan 2027) uploaded to Azure, the same way as the API's. get.tech took about 2 hours 40 minutes to publish the challenge record. The API's `NIDA_URL` points there; the IP allowlist and the API key still decide who may call it.
 
 
 ### D68. Logos as vectors, three placements
