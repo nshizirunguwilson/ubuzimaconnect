@@ -69,7 +69,8 @@ export function Button({
       {...rest}
     >
       {loading ? <LuLoaderCircle className="animate-spin" aria-hidden /> : icon}
-      {children}
+      {/* An icon-only button has no text to keep: the spinner takes the icon's place */}
+      {loading && size === "icon" ? null : children}
     </Squircle>
   );
 }

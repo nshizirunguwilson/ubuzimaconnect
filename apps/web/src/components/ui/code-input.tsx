@@ -8,7 +8,8 @@ import { Squircle } from "./squircle";
 /**
  * A 6-digit code shown as one box per digit (FR 2.2, 2.4). Underneath it is a single real input laid
  * over the boxes, so pasting the whole code, the device's "code from email" autofill and screen readers
- * all work as with a normal field (DECISIONS.md D41). Only digits are kept.
+ * all work as with a normal field (DECISIONS.md D41). Only digits are kept. There is no maxLength: the email
+ * shows the code as "616 260", and a 6-character limit would cut the pasted text before the space is removed.
  */
 export function CodeInput({
   label,
@@ -55,7 +56,6 @@ export function CodeInput({
             inputMode="numeric"
             autoComplete="one-time-code"
             pattern="\d*"
-            maxLength={length}
             autoFocus={autoFocus}
             value={digits}
             onChange={(e) => onChange(e.target.value.replace(/\D/g, "").slice(0, length))}
