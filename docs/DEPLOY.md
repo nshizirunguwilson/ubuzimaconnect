@@ -6,7 +6,7 @@ The agreed plan (DECISIONS.md D67):
 |---|---|---|
 | Web app (`apps/web`) | Vercel, from this GitHub repo, root directory `apps/web` | https://ubuzima.wilsonn.tech |
 | API (`apps/api`) | Azure App Service, Linux, B1 plan, Central India (Azure for Students) | https://api.ubuzima.wilsonn.tech |
-| Mock NIDA (`apps/nida-mock`) | Same App Service plan, open only to the API's addresses | https://ubuzima-nida.azurewebsites.net (only the API calls it, so it needs no custom domain) |
+| Mock NIDA (`apps/nida-mock`) | Same App Service plan, open only to the API's addresses | https://nida.ubuzima.wilsonn.tech (only the API calls it) |
 | Database | Supabase, region Mumbai (ap-south-1) | |
 | Email | Resend, sending as `noreply@ubuzima.wilsonn.tech` | |
 | DNS | get.tech, where `wilsonn.tech` is registered | |
@@ -65,7 +65,7 @@ az webapp update -g ubuzima-rg -n ubuzima-nida --https-only true
 | `APP_SECRET` | a new random string: `openssl rand -hex 32` |
 | `WEB_URL` | `https://ubuzima.wilsonn.tech` |
 | `COOKIE_DOMAIN` | `.ubuzima.wilsonn.tech` (the browser opens live streams straight to the API, D34) |
-| `NIDA_URL` | `https://ubuzima-nida.azurewebsites.net` |
+| `NIDA_URL` | `https://nida.ubuzima.wilsonn.tech` |
 | `NIDA_API_KEY` | a new random string, the same on both apps |
 | `GEMINI_API_KEY` | from `apps/api/.env` |
 | `GEMINI_MODEL`, `GEMINI_THINKING` | as in `apps/api/.env` |
@@ -130,6 +130,8 @@ Add the domain `ubuzima.wilsonn.tech` in Resend, add the DNS records it shows (s
 |---|---|---|
 | `ubuzima` | CNAME | the value Vercel shows under Domains |
 | `api.ubuzima` | CNAME | `ubuzima-api.azurewebsites.net` |
+| `nida.ubuzima` | CNAME | `ubuzima-nida.azurewebsites.net` |
+| `asuid.nida.ubuzima` | TXT | the same verification ID as `asuid.api.ubuzima` |
 | `asuid.api.ubuzima` | TXT | the API's verification ID: `az webapp show -g ubuzima-rg -n ubuzima-api --query customDomainVerificationId -o tsv` |
 | Resend's records | as shown | |
 
