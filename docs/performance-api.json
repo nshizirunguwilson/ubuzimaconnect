@@ -1,77 +1,77 @@
 {
-  "measuredAt": "2026-10-24T22:07:35.555Z",
+  "measuredAt": "2026-10-25T08:49:34.859Z",
   "concurrency": 20,
   "requestsPerAction": 200,
   "results": [
     {
       "action": "Patient: open a request",
       "n": 200,
-      "p50": 25,
-      "p95": 31,
-      "max": 33
+      "p50": 26,
+      "p95": 41,
+      "max": 43
     },
     {
       "action": "Patient: home list of requests",
       "n": 200,
-      "p50": 45,
-      "p95": 56,
-      "max": 63
+      "p50": 120,
+      "p95": 158,
+      "max": 180
     },
     {
       "action": "Patient: send a chat message",
       "n": 200,
-      "p50": 19,
-      "p95": 22,
-      "max": 23
+      "p50": 38,
+      "p95": 52,
+      "max": 58
     },
     {
       "action": "Agent: queue and status",
       "n": 200,
-      "p50": 19,
-      "p95": 21,
-      "max": 22
+      "p50": 30,
+      "p95": 34,
+      "max": 37
     },
     {
       "action": "Agent: open the case",
       "n": 200,
-      "p50": 60,
-      "p95": 74,
-      "max": 82
+      "p50": 151,
+      "p95": 166,
+      "max": 175
     },
     {
       "action": "Agent: facilities to route to (50 facilities)",
       "n": 200,
-      "p50": 49,
-      "p95": 58,
-      "max": 61
+      "p50": 86,
+      "p95": 130,
+      "max": 149
     },
     {
       "action": "Clinician: patients on the way",
       "n": 200,
-      "p50": 22,
-      "p95": 25,
-      "max": 27
+      "p50": 36,
+      "p95": 41,
+      "max": 43
     },
     {
       "action": "Pharmacy: check a code",
       "n": 200,
-      "p50": 12,
-      "p95": 14,
-      "max": 16
+      "p50": 20,
+      "p95": 24,
+      "max": 27
     },
     {
       "action": "Administrator: on-duty dashboard",
       "n": 200,
-      "p50": 11,
-      "p95": 14,
-      "max": 14
+      "p50": 20,
+      "p95": 23,
+      "max": 25
     },
     {
       "action": "Administrator: month report (30,000 requests)",
       "n": 1,
-      "p50": 145,
-      "p95": 145,
-      "max": 145
+      "p50": 216,
+      "p95": 216,
+      "max": 216
     }
   ]
 }

@@ -390,3 +390,10 @@ After reading the full requirement text, I fixed these details:
   - **The symbol alone, under 640 px:** headers that share a phone-width row with Log out or the language switch. The name would push the button off a 375 px screen.
   - **Black wordmark:** printed pages, including the printable summary (FR 7.2).
 - **The icons** (favicon, Apple touch, PWA 192 and 512, maskable) were already the pack's own files, byte for byte.
+
+### D69. The live demo stays staffed
+- **Found by the live tests (25 Oct):** the seed filled only the week it ran in, with one clinician per specialty working either every day shift or every night shift. In the day no paediatrician was on duty anywhere, so a child could not be routed, and from Monday 26 October nobody was on duty at all: routing would have found no facility for anyone.
+- **Decision:** `scripts/demo-schedule.mjs` does, through the app's own API, what the managers and the administrator would do. Kacyiru's manager invites a partner for each specialty (6 clinicians), so every specialty there is covered day and night; the administrator creates a manager for Remera Health Centre; each manager fills 12 weeks of shifts, and the administrator the two agents'. It is safe to run again and only adds what is missing.
+- **Why through the API, not the seed:** it needs no database password, it leaves the same trail in the activity log as a real manager would, and it proves FR 2.6, 8.2 and 8.4 work on the live site.
+- **Gaps kept on purpose:** Kibagabaga has no emergency clinician at night and Remera no one at night, so the coverage view and the shift-gap report still show real gaps.
+- **Before mid-January 2027** run it again (`node scripts/demo-schedule.mjs 12`), or the schedule runs out.
