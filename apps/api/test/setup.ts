@@ -27,7 +27,7 @@ export async function setup() {
   await resetDatabase();
   execSync("pnpm --filter @ubuzima/api --filter @ubuzima/nida-mock build", { cwd: root, stdio: "ignore" });
 
-  procs.push(spawn("node", ["apps/nida-mock/dist/main.js"], { cwd: root, env: { ...env, PORT: "4199" }, stdio: "ignore" }));
+  procs.push(spawn("node", ["apps/nida-mock/dist/main.js"], { cwd: root, env: { ...env, PORT: "4199", NIDA_DATABASE_URL: DB }, stdio: "ignore" }));
   procs.push(
     spawn("node", ["apps/api/dist/main.js"], {
       cwd: root,
@@ -62,6 +62,8 @@ export async function resetDatabase() {
   await client.connect();
   const { rows } = await client.query(`select tablename from pg_tables where schemaname = 'public' and tablename <> '_prisma_migrations'`);
   await client.query(`truncate ${rows.map((r) => `"${r.tablename}"`).join(", ")} cascade`);
+  // People added to the mock NIDA (D73) live in its own schema.
+  await client.query(`do $$ begin if to_regclass('nida.person') is not null then truncate nida.person; end if; end $$`);
   await client.end();
   execSync("pnpm --filter @ubuzima/api seed", { cwd: root, env: { ...process.env, DATABASE_URL: DB }, stdio: "ignore" });
 }

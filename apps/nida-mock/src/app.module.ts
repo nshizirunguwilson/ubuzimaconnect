@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Body,
   CanActivate,
   Controller,
@@ -12,12 +13,16 @@ import {
   NotFoundException,
   Param,
   Post,
+  Res,
   ServiceUnavailableException,
   UnauthorizedException,
   UseGuards,
 } from "@nestjs/common";
 import type { Request } from "express";
+import { nidaPersonInput, photoType } from "@ubuzima/shared";
+import type { Response } from "express";
 import { findByRef, verify } from "./verify";
+import { add, everyone, NidaInputError } from "./store";
 import { photoSvg } from "./photo";
 
 /** Outage switch for FR 1.5 ("verification unavailable"); also set with NIDA_OUTAGE=1. */
@@ -65,17 +70,55 @@ class HealthController {
 class NidaController {
   @Post("verify")
   @HttpCode(200)
-  verify(@Body() body: { nationalId?: string; dateOfBirth?: string; name?: string }) {
+  async verify(@Body() body: { nationalId?: string; dateOfBirth?: string; name?: string }) {
     return verify(String(body.nationalId ?? ""), String(body.dateOfBirth ?? ""), String(body.name ?? ""));
   }
 
+  /** FR 1.10: the uploaded photo for people added through the form (D73), a silhouette for everyone else. */
   @Get("photos/:ref")
-  @Header("Content-Type", "image/svg+xml")
-  @Header("Cache-Control", "private, max-age=86400")
-  photo(@Param("ref") ref: string) {
-    const c = findByRef(ref);
+  async photo(@Param("ref") ref: string, @Res() res: Response) {
+    const c = await findByRef(ref);
     if (!c) throw new NotFoundException();
-    return photoSvg(c);
+    res.setHeader("Cache-Control", "private, max-age=86400");
+    if (c.photo && c.photoType) return res.type(c.photoType).send(c.photo);
+    return res.type("image/svg+xml").send(photoSvg(c));
+  }
+
+  /** D73: everyone in the records, newest additions first, for the administrator's list and the choice of a parent. */
+  @Get("people")
+  async people() {
+    return (await everyone()).map((c) => ({
+      ref: c.ref,
+      nationalId: c.nationalId,
+      names: c.names,
+      dateOfBirth: c.dateOfBirth,
+      sex: c.sex,
+      district: c.district,
+      parentRefs: c.parentRefs,
+      hasPhoto: !!c.photo,
+      addedAt: c.addedAt,
+    }));
+  }
+
+  /** D73: a new made-up person. The rules are checked again here, whoever calls. */
+  @Post("people")
+  async addPerson(@Body() body: unknown) {
+    const r = nidaPersonInput.safeParse(body);
+    if (!r.success) throw new BadRequestException(r.error.issues[0]?.message ?? "Check the details");
+    let photo: { bytes: Buffer; type: "image/jpeg" | "image/png" } | null = null;
+    if (r.data.photo) {
+      const bytes = Buffer.from(r.data.photo.slice(r.data.photo.indexOf(",") + 1), "base64");
+      const type = photoType(bytes);
+      if (!type) throw new BadRequestException("The photo isn't a real JPG or PNG file");
+      photo = { bytes, type };
+    }
+    try {
+      const c = await add(r.data, photo);
+      return { ref: c.ref, nationalId: c.nationalId, names: c.names, dateOfBirth: c.dateOfBirth, sex: c.sex, district: c.district, parentRefs: c.parentRefs };
+    } catch (e) {
+      if (e instanceof NidaInputError) throw new BadRequestException(e.message);
+      throw e;
+    }
   }
 
   @Post("outage")

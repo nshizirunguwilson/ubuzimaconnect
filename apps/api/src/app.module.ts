@@ -41,6 +41,7 @@ import { RedFlagsController } from "./setup/red-flags.controller";
 import { MyShiftsController, ScheduleController } from "./setup/schedule.controller";
 import { SettingsController } from "./setup/settings.controller";
 import { StaffController } from "./staff/staff.controller";
+import { NidaAdminController } from "./nida-admin/nida-admin.controller";
 
 @Controller()
 class HealthController {
@@ -53,6 +54,7 @@ class HealthController {
 @Module({
   controllers: [
     HealthController,
+    NidaAdminController,
     PatientAuthController,
     StaffAuthController,
     MeController,

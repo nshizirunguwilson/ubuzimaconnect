@@ -9,3 +9,4 @@ export * from "./agent";
 export * from "./clinician";
 export * from "./records";
 export * from "./reports";
+export * from "./nida";

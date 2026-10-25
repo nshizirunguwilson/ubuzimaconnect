@@ -1,4 +1,5 @@
-import { citizens, type Citizen } from "./citizens";
+import type { Citizen } from "./citizens";
+import { byNationalId, byRef, childrenOf } from "./store";
 
 const fold = (s: string) =>
   s
@@ -31,15 +32,15 @@ function out(c: Citizen): PersonOut {
  * FR 1.1 and 1.2: the ID must exist, and the date of birth and one of the person's names must match.
  * A mismatch returns the same answer as an unknown ID, so the response never reveals which part was wrong.
  */
-export function verify(nationalId: string, dateOfBirth: string, name: string) {
-  const c = citizens.find((x) => x.nationalId === nationalId);
+export async function verify(nationalId: string, dateOfBirth: string, name: string) {
+  const c = await byNationalId(nationalId);
   const ok =
     !!c && c.dateOfBirth === dateOfBirth && name.split(/\s+/).some((n) => c.names.map(fold).includes(fold(n)));
   if (!c || !ok) return { match: false as const };
-  const children = citizens.filter((x) => x.parentRefs.includes(c.ref)).map(out);
+  const children = (await childrenOf(c.ref)).map(out);
   return { match: true as const, person: out(c), children };
 }
 
 export function findByRef(ref: string) {
-  return citizens.find((c) => c.ref === ref);
+  return byRef(ref);
 }
