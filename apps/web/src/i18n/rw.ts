@@ -177,6 +177,7 @@ export const rw: Messages = {
     willReply: "Umukozi w'ubuzima azagusubiza hano",
     noAgentBody: "Ubusabe bwawe bwabitswe kandi umukozi w'ubuzima azagusubiza hano akimara kuboneka. Nurushaho kumererwa nabi, kanda Ubutabazi.",
     delayedBody: "Abakozi bose bafite akazi. Niba ubishoboye, jya ku ivuriro rikwegereye; ubusabe bwawe buguma bufunguye hano.",
+    helpingBody: "Azakwandikira hano. Ushobora gufunga porogaramu; ibiganiro bigumaho hano.",
     waitingYou: "Ubusabe bwawe butegereje umukozi w'ubuzima. Ushobora gufunga porogaramu; bwabitswe.",
     waitingThem: (name) => `Ubusabe bwa ${name} butegereje umukozi w'ubuzima. Ushobora gufunga porogaramu; bwabitswe.`,
     sentYouTo: "Umukozi w'ubuzima yakohereje kuri",

@@ -175,6 +175,7 @@ export const en = {
     willReply: "An agent will reply here",
     noAgentBody: "Your request is saved and an agent will reply here as soon as one is online. If you get worse, tap Emergency.",
     delayedBody: "All agents are busy. If you can, go to the nearest place that can help; your request stays open here.",
+    helpingBody: "They will write to you here. You can close the app; the conversation stays here.",
     waitingYou: "Your request is waiting for a health agent. You can close the app; it's saved.",
     waitingThem: (name: string) => `${name}'s request is waiting for a health agent. You can close the app; it's saved.`,
     sentYouTo: "Your agent sent you to",
