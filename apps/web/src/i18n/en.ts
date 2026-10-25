@@ -292,6 +292,7 @@ export const en = {
     statuses: { VALID: "Valid", EXPIRED: "Expired", CANCELLED: "Cancelled" } as Record<string, string>,
   },
   check: {
+    checking: "Checking the prescription…",
     title: "Check a prescription",
     intro: "For pharmacies. Enter the code on the prescription, or scan its QR code with your phone's camera.",
     label: "Prescription code",

@@ -108,14 +108,19 @@ describe("schedules (FR 8.4, 8.5, 12.4)", () => {
 
   it("lets a clinician mark a current or future shift unavailable, which counts as a gap", async () => {
     const c = await staffLogin("clinician@ubuzima.test");
+    const manager = await staffLogin("manager@ubuzima.test");
     const mine = await c("/me/shifts");
     const now = mine.body.now;
-    const upcoming = mine.body.shifts.find((s: { date: string }) => s.date > now.date);
+    // Tomorrow, so the test also works on a Sunday, when no later day is left in this week.
+    const tomorrow = new Date(Date.parse(`${now.date}T00:00:00Z`) + 86_400_000).toISOString().slice(0, 10);
+    const me = (await c("/auth/me")).body;
+    await manager("/schedule", { staffId: me.id, date: tomorrow, shift: "DAY", assigned: true }, "PUT");
+    const week = weekStart(tomorrow);
+    const upcoming = (await c(`/me/shifts?week=${week}`)).body.shifts.find((s: { date: string }) => s.date === tomorrow);
     expect(upcoming).toBeDefined();
     expect((await c(`/me/shifts/${upcoming.id}/unavailable`, { unavailable: true, reason: "Training" })).status).toBe(200);
-    const manager = await staffLogin("manager@ubuzima.test");
-    const week = await manager("/schedule");
-    const gap = week.body.gaps.find((g: { date: string; shift: string }) => g.date === upcoming.date && g.shift === upcoming.shift);
+    const sched = await manager(`/schedule?week=${week}`);
+    const gap = sched.body.gaps.find((g: { date: string; shift: string }) => g.date === upcoming.date && g.shift === upcoming.shift);
     expect(gap.missing).toContain("EMERGENCY_CARE");
 
     const past = mine.body.shifts.find((s: { date: string }) => s.date < now.date);

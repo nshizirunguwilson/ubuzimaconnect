@@ -294,6 +294,7 @@ export const rw: Messages = {
     statuses: { VALID: "Ifite agaciro", EXPIRED: "Yarangije igihe", CANCELLED: "Yahagaritswe" },
   },
   check: {
+    checking: "Turimo kugenzura urupapuro rw'imiti…",
     title: "Genzura urupapuro rw'imiti",
     intro: "Ku mafarumasi. Andika kode iri ku rupapuro rw'imiti, cyangwa usuzume QR kode yayo ukoresheje kamera ya telefoni.",
     label: "Kode y'urupapuro rw'imiti",

@@ -2,7 +2,7 @@
 
 import { formatPrescriptionCode, type PrescriptionStatus } from "@ubuzima/shared";
 import Link from "next/link";
-import { LuArrowLeft } from "react-icons/lu";
+import { LuArrowLeft, LuLoaderCircle } from "react-icons/lu";
 import { Logo } from "@/components/app/logo";
 import { Medicines, type Prescription } from "@/components/app/prescription";
 import { Card } from "@/components/ui/card";
@@ -39,7 +39,10 @@ export function CheckResult({ code }: { code: string }) {
           {tr(error)}
         </Notice>
       ) : !data ? (
-        <div className="h-48" aria-busy />
+        <p className="flex h-48 items-start gap-2 text-body text-fg-secondary" aria-busy>
+          <LuLoaderCircle className="mt-1 size-5 animate-spin" aria-hidden />
+          {t.check.checking}
+        </p>
       ) : !data.found ? (
         <Notice tone="warning" title={t.check.notFound}>
           {t.check.notFoundBody}
