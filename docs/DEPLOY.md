@@ -6,7 +6,7 @@ The agreed plan (DECISIONS.md D67):
 |---|---|---|
 | Web app (`apps/web`) | Vercel, from this GitHub repo, root directory `apps/web` | https://ubuzima.wilsonn.tech |
 | API (`apps/api`) | Azure App Service, Linux, B1 plan, Central India (Azure for Students) | https://api.ubuzima.wilsonn.tech |
-| Mock NIDA (`apps/nida-mock`) | Same App Service plan, open only to the API's addresses | https://nida.ubuzima.wilsonn.tech |
+| Mock NIDA (`apps/nida-mock`) | Same App Service plan, open only to the API's addresses | https://ubuzima-nida.azurewebsites.net (only the API calls it, so it needs no custom domain) |
 | Database | Supabase, region Mumbai (ap-south-1) | |
 | Email | Resend, sending as `noreply@ubuzima.wilsonn.tech` | |
 | DNS | get.tech, where `wilsonn.tech` is registered | |
@@ -39,15 +39,18 @@ brew install azure-cli
 az login
 ```
 
-Create the plan and the two apps (Node 22, Linux, Central India):
+Create the plan and the two apps (Node 22, Linux, Central India). A new student subscription must first allow App Service:
 
 ```bash
+az provider register -n Microsoft.Web --wait
 az group create -n ubuzima-rg -l centralindia
 az appservice plan create -g ubuzima-rg -n ubuzima-plan --sku B1 --is-linux -l centralindia
 az webapp create -g ubuzima-rg -p ubuzima-plan -n ubuzima-api --runtime "NODE:22-lts"
 az webapp create -g ubuzima-rg -p ubuzima-plan -n ubuzima-nida --runtime "NODE:22-lts"
-az webapp config set -g ubuzima-rg -n ubuzima-api --always-on true --startup-file "node dist/main.js"
-az webapp config set -g ubuzima-rg -n ubuzima-nida --always-on true --startup-file "node dist/main.js"
+az webapp config set -g ubuzima-rg -n ubuzima-api --always-on true --startup-file "node app/dist/main.js" --min-tls-version 1.2 --ftps-state Disabled
+az webapp config set -g ubuzima-rg -n ubuzima-nida --always-on true --startup-file "node app/dist/main.js" --min-tls-version 1.2 --ftps-state Disabled
+az webapp update -g ubuzima-rg -n ubuzima-api --https-only true
+az webapp update -g ubuzima-rg -n ubuzima-nida --https-only true
 ```
 
 ### Settings
@@ -62,7 +65,7 @@ az webapp config set -g ubuzima-rg -n ubuzima-nida --always-on true --startup-fi
 | `APP_SECRET` | a new random string: `openssl rand -hex 32` |
 | `WEB_URL` | `https://ubuzima.wilsonn.tech` |
 | `COOKIE_DOMAIN` | `.ubuzima.wilsonn.tech` (the browser opens live streams straight to the API, D34) |
-| `NIDA_URL` | `https://nida.ubuzima.wilsonn.tech` |
+| `NIDA_URL` | `https://ubuzima-nida.azurewebsites.net` |
 | `NIDA_API_KEY` | a new random string, the same on both apps |
 | `GEMINI_API_KEY` | from `apps/api/.env` |
 | `GEMINI_MODEL`, `GEMINI_THINKING` | as in `apps/api/.env` |
@@ -79,10 +82,16 @@ az webapp config set -g ubuzima-rg -n ubuzima-nida --always-on true --startup-fi
 | `NODE_ENV` | `production` |
 | `SCM_DO_BUILD_DURING_DEPLOYMENT` | `false` |
 | `NIDA_API_KEY` | the same value as on the API |
-| `NIDA_ALLOWED_IPS` | the API's outbound addresses: `az webapp show -g ubuzima-rg -n ubuzima-api --query outboundIpAddresses -o tsv` |
+| `NIDA_ALLOWED_IPS` | every address the API may call from: `az webapp show -g ubuzima-rg -n ubuzima-api --query possibleOutboundIpAddresses -o tsv` |
 | `TRUST_PROXY` | `1` |
 
-Then lock the mock NIDA to those same addresses at Azure's front door too, so other traffic never reaches it: under Networking → Access restrictions, add one Allow rule per address.
+The mock NIDA refuses every other address (and every caller without the key). Azure's front end writes the caller as "address:port"; both apps drop the port before checking (D67).
+
+`DATABASE_URL` holds the database password, so set it from your own terminal, where it was exported in step 1:
+
+```bash
+az webapp config appsettings set -g ubuzima-rg -n ubuzima-api --settings DATABASE_URL="$DATABASE_URL" -o none
+```
 
 ### Upload
 
@@ -91,12 +100,14 @@ Then lock the mock NIDA to those same addresses at Azure's front door too, so ot
 ```
 
 ```bash
-az webapp deploy -g ubuzima-rg -n ubuzima-api --src-path .deploy/api.zip --type zip
+az webapp deploy -g ubuzima-rg -n ubuzima-api --src-path .deploy/api.zip --type zip --clean true --track-status false
 ```
 
 ```bash
-az webapp deploy -g ubuzima-rg -n ubuzima-nida --src-path .deploy/nida.zip --type zip
+az webapp deploy -g ubuzima-rg -n ubuzima-nida --src-path .deploy/nida.zip --type zip --clean true --track-status false
 ```
+
+Each zip holds the app in `app/`. Azure's Node startup moves a top-level `node_modules` to `/node_modules`, where ES modules can't find it, so the app must not sit at the top of the zip (D67).
 
 Check: `https://ubuzima-api.azurewebsites.net/health` answers `{"ok":true}`.
 
@@ -119,11 +130,10 @@ Add the domain `ubuzima.wilsonn.tech` in Resend, add the DNS records it shows (s
 |---|---|---|
 | `ubuzima` | CNAME | the value Vercel shows under Domains |
 | `api.ubuzima` | CNAME | `ubuzima-api.azurewebsites.net` |
-| `nida.ubuzima` | CNAME | `ubuzima-nida.azurewebsites.net` |
-| `asuid.api.ubuzima`, `asuid.nida.ubuzima` | TXT | the verification IDs Azure shows when adding the custom domains |
+| `asuid.api.ubuzima` | TXT | the API's verification ID: `az webapp show -g ubuzima-rg -n ubuzima-api --query customDomainVerificationId -o tsv` |
 | Resend's records | as shown | |
 
-Then add the custom domains in Vercel and in each Azure app, and turn on Azure's free managed certificate for each, so everything is HTTPS (NFR 1).
+Then add the custom domains in Vercel and in the API app, and turn on Azure's free managed certificate for each, so everything is HTTPS (NFR 1).
 
 ## 6. After it's live
 
