@@ -193,7 +193,8 @@ export function CaseFlow({ initial }: { initial: CaseView }) {
                 me="PATIENT"
                 messages={view.messages}
                 disabled
-                labels={{ messages: t.case.messages, empty: t.chat.empty, you: t.common.you, agent: t.chat.agent, send: t.chat.send, quickReplies: t.chat.quickReplies, quick: t.chat.quick, system: tr }}
+                voice={{ send: async () => {}, url: (m) => `/api/cases/${view.id}/voice/${m}` }}
+                labels={{ messages: t.case.messages, empty: t.chat.empty, you: t.common.you, agent: t.chat.agent, send: t.chat.send, quickReplies: t.chat.quickReplies, quick: t.chat.quick, system: tr, record: t.chat.record, recording: t.chat.recording, sendVoice: t.chat.sendVoice, cancelVoice: t.chat.cancelVoice, voiceNote: t.chat.voiceNote, micBlocked: t.chat.micBlocked }}
                 onSend={async () => {}}
               />
             </section>
@@ -529,8 +530,20 @@ function Waiting({ view, onChange }: { view: CaseView; onChange: (v: CaseView) =
           me="PATIENT"
           messages={view.messages}
           quickReplies={view.withAgent}
+          voice={{
+            url: (m) => `/api/cases/${view.id}/voice/${m}`,
+            send: async (audio, durationMs) => {
+              const { id } = await api<{ id: string }>(`/cases/${view.id}/voice`, { audio, durationMs });
+              onChange({
+                ...view,
+                messages: view.messages.some((m) => m.id === id)
+                  ? view.messages
+                  : [...view.messages, { id, sender: "PATIENT", text: "Voice note", createdAt: new Date().toISOString(), audioMs: durationMs }],
+              });
+            },
+          }}
           placeholder={view.withAgent ? t.case.writeToAgent : t.case.addSomething}
-          labels={{ messages: t.case.messages, empty: t.chat.empty, you: t.common.you, agent: t.chat.agent, send: t.chat.send, quickReplies: t.chat.quickReplies, quick: t.chat.quick, system: tr }}
+          labels={{ messages: t.case.messages, empty: t.chat.empty, you: t.common.you, agent: t.chat.agent, send: t.chat.send, quickReplies: t.chat.quickReplies, quick: t.chat.quick, system: tr, record: t.chat.record, recording: t.chat.recording, sendVoice: t.chat.sendVoice, cancelVoice: t.chat.cancelVoice, voiceNote: t.chat.voiceNote, micBlocked: t.chat.micBlocked }}
           onSend={async (text) => {
             const { id } = await api<{ id: string }>(`/cases/${view.id}/messages`, { text });
             onChange({

@@ -158,6 +158,13 @@ export function Workspace({ id }: { id: string }) {
                 await api(`/agent/cases/${id}/messages`, { text });
                 await reload();
               }}
+              voice={{
+                url: (m) => `/api/agent/cases/${id}/voice/${m}`,
+                send: async (audio, durationMs) => {
+                  await api(`/agent/cases/${id}/voice`, { audio, durationMs });
+                  await reload();
+                },
+              }}
             />
           </Card>
           {data.call && <Calls data={data} onDone={reload} />}

@@ -19,8 +19,10 @@ async function bootstrap() {
   // D73: a person added to the mock NIDA may carry a photo of up to 1 MB (base64). Only this route takes more than
   // the default 100 kB; it runs before Nest's own parser, which then leaves the parsed body alone.
   // Wrapped: Nest skips its own parser for every route if it finds a middleware named "jsonParser".
-  const nidaBody = json({ limit: "2mb" });
-  app.use("/staff/nida/people", (req: Request, res: Response, next: NextFunction) => nidaBody(req, res, next));
+  const largeBody = json({ limit: "2mb" });
+  app.use("/staff/nida/people", (req: Request, res: Response, next: NextFunction) => largeBody(req, res, next));
+  // D74: a voice note of up to 1 minute is about 1 MB once base64-encoded.
+  app.use(/^\/(agent\/)?cases\/[^/]+\/voice$/, (req: Request, res: Response, next: NextFunction) => largeBody(req, res, next));
   app.enableCors({ origin: env.webUrl, credentials: true });
   app.enableShutdownHooks();
   await app.listen(env.port);

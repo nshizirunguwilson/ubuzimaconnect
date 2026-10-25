@@ -210,6 +210,12 @@ export const rw: Messages = {
     agent: "Umukozi w'ubuzima",
     send: "Ohereza",
     quickReplies: "Ibisubizo byihuse",
+    record: "Ohereza ubutumwa bw'ijwi",
+    recording: "Birimo gufatwa",
+    sendVoice: "Ohereza ubutumwa bw'ijwi",
+    cancelVoice: "Hagarika gufata ijwi",
+    voiceNote: "Ubutumwa bw'ijwi",
+    micBlocked: "Emerera mikoro muri mushakisha kugira ngo wohereze ubutumwa bw'ijwi.",
     quick: { Yes: "Yego", No: "Oya", Better: "Ndumva meze neza", Worse: "Ndumva meze nabi", Same: "Ntacyahindutse", "I don't know": "Simbizi" },
   },
   notify: {
