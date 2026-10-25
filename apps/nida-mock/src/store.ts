@@ -17,7 +17,10 @@ let ready: Promise<void> | null = null;
 function init() {
   ready ??= (async () => {
     if (!pool) return;
-    await pool.query(`create schema if not exists nida`);
+    // In production the schema is made by the database owner, and this service's own user (nida_svc) may only
+    // work inside it: "create schema if not exists" would still need rights on the whole database.
+    const { rowCount } = await pool.query(`select 1 from pg_namespace where nspname = 'nida'`);
+    if (!rowCount) await pool.query(`create schema nida`);
     await pool.query(`create sequence if not exists nida.person_ref start 1001`);
     await pool.query(`
       create table if not exists nida.person (

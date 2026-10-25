@@ -62,7 +62,7 @@ All staff accounts use the password **`Ubuzima-demo-2026`** (set in [`apps/api/s
 
 | Role | Email | Name | What to try |
 |---|---|---|---|
-| Administrator | `admin@ubuzima.test` | Patrick Nkurunziza | Staff accounts and invitations, facilities, agent schedule, on duty, red-flag list, AI switch, alerts, activity log, reports |
+| Administrator | `admin@ubuzima.test` | Patrick Nkurunziza | Staff accounts and invitations, facilities, agent schedule, on duty, red-flag list, AI switch, alerts, activity log, reports, and **Mock NIDA**: add your own made-up person, then log in as them |
 | Health agent | `agent@ubuzima.test` | Diane Umutoni | Set **Available**, accept the offer, chat, call note, triage, routing, prescription, close |
 | Health agent | `agent2@ubuzima.test` | Eric Habineza | A second agent, for offers passing between agents |
 | Facility manager | `manager@ubuzima.test` | Olivier Rukundo | Kacyiru District Hospital: profile, beds, clinicians, weekly schedule, reports |
@@ -98,6 +98,8 @@ Log in at **/login** with one of these fictional people from the mock NIDA ([`ap
 | 1 2001 8 0054377 1 09 | 30 Sep 2001 | Eric | A parent of a 3-day-old baby: Urgent with no questions (FR 4.2) |
 | 1 1996 7 0078215 1 35 | 18 Apr 1996 | Claudine | A woman of 30 ("Are you pregnant?"), and a 5-week-old baby who gets the young-baby sign N1 |
 | 1 1960 7 0012689 2 41 | 25 Dec 1960 | Mukamana | Aged 65, no children in the record |
+
+To make your own patient, log in as the administrator and open **Mock NIDA**: add a person (with a photo if you like), and the page shows the new ID to log in with.
 
 Children have no ID of their own: a parent chooses them under "Who is sick?". The example ID in the login hint is made up and is not in the mock NIDA. Five wrong tries lock an ID for 15 minutes (FR 1.6).
 

@@ -84,6 +84,7 @@ az webapp update -g ubuzima-rg -n ubuzima-nida --https-only true
 | `NIDA_API_KEY` | the same value as on the API |
 | `NIDA_ALLOWED_IPS` | every address the API may call from: `az webapp show -g ubuzima-rg -n ubuzima-api --query possibleOutboundIpAddresses -o tsv` |
 | `TRUST_PROXY` | `1` |
+| `NIDA_DATABASE_URL` | the same database, but logged in as its own user `nida_svc`, which can only work in the `nida` schema (D73). Create it once as the database owner: `create role nida_svc login password '…'; grant nida_svc to postgres; create schema nida authorization nida_svc;`. On Supabase's pooler the user name is `nida_svc.<project-ref>`. Without this setting the mock NIDA still verifies the built-in people but can't add new ones. |
 
 The mock NIDA refuses every other address (and every caller without the key). Azure's front end writes the caller as "address:port"; both apps drop the port before checking (D67).
 
