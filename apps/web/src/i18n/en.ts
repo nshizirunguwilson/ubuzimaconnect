@@ -46,7 +46,7 @@ export const en = {
   login: {
     idTitle: "What is your national ID number?",
     idLabel: "National ID number",
-    idHint: "16 digits on the front of your ID card, e.g. 1\u00a02006\u00a08\u00a00041223\u00a01\u00a072",
+    idHint: "16 digits on the front of your ID card, e.g. 1\u00a01987\u00a08\u00a00592371\u00a00\u00a064",
     confirmTitle: "Confirm it's you",
     confirmIntro: "We check these with the national ID record for",
     noMatch: "Those details don't match",
