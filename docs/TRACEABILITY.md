@@ -71,7 +71,7 @@ Source: the FR headings of the SRS (Assignment 2 copy, 23 Oct 2026).
 | 3.3 | Capture current location | 1 | Done: device GPS with permission (`/cases/new`) |
 | 3.4 | Manual location fallback | 1 | Done: Province → District → Sector, using the sector’s centre from NISR boundaries (`packages/shared/src/data`, `cases.test.ts`) |
 | 3.5 | Save nearby facilities | 1 | Done: the 5 nearest facilities with name, distance, services and phone are saved on the device; never on a device that isn’t the patient’s (`cases.test.ts`) |
-| 3.6 | Red-flag checklist | 1 | Done: one question at a time; groups A, C, N and P by age and sex; pregnancy asked only of females 12–55 (`cases.test.ts`, `triage.test.ts`) |
+| 3.6 | Red-flag checklist | 1 | Done: every sign that applies on one screen, a tap is Yes, "None of these" after the last sign (SRS revised 25 Oct); groups A, C, N and P by age and sex; pregnancy asked only of females 12–55 (`cases.test.ts`, `triage.test.ts`) |
 | 3.7 | Submit symptoms | 1 | Done: own words, how long (4 choices), how bad (1–10) (`cases.test.ts`) |
 | 3.8 | Prefer a call | 1 | Done: from the home screen and the case screen; the agent sees the number and whose it is (`agent.test.ts`, `cases.test.ts`) |
 | 3.9 | Phone number not required | 1 | Done: a phone number is asked only here and kept on that case (`cases.test.ts`) |
