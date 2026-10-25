@@ -54,22 +54,61 @@ pnpm dev
 
 ## Try it
 
-**Patient** (http://localhost:3000): log in with a fictional person from the mock NIDA ([`apps/nida-mock/src/citizens.ts`](apps/nida-mock/src/citizens.ts)):
+**Live demo: https://ubuzima.wilsonn.tech** (locally: http://localhost:3000). Everyone below is made up: the patients exist only in the mock NIDA, and the staff accounts only in the demo database.
 
-| National ID | Date of birth | A name | Notes |
+### Staff: email + password, then a 6-digit code
+
+All staff accounts use the password **`Ubuzima-demo-2026`** (set in [`apps/api/src/seed.ts`](apps/api/src/seed.ts)). After the password, the login code is "emailed" to the made-up address: open **https://ubuzima.wilsonn.tech/demo/inbox** (locally `/demo/inbox`) and copy the newest code for that email. Staff log in at **/staff/login**.
+
+| Role | Email | Name | What to try |
 |---|---|---|---|
-| 1 1992 7 0045823 1 16 | 14 Mar 1992 | Uwase | Has two children, aged 7 and 3 |
-| 1 1985 8 0067412 1 63 | 1 Jul 1985 | Habimana | Has two children, one aged 17 |
-| 1 2009 7 0031504 1 28 | 21 May 2009 | Ange | The 17-year-old: sees only her own record (FR 1.3) |
-| 1 2001 8 0054377 1 09 | 30 Sep 2001 | Eric | Has a 3-day-old baby: Urgent with no questions (FR 4.2) |
-| 1 1996 7 0078215 1 35 | 18 Apr 1996 | Claudine | Has a 5-week-old baby: gets the newborn question N1 |
+| Administrator | `admin@ubuzima.test` | Patrick Nkurunziza | Staff accounts and invitations, facilities, agent schedule, on duty, red-flag list, AI switch, alerts, activity log, reports |
+| Health agent | `agent@ubuzima.test` | Diane Umutoni | Set **Available**, accept the offer, chat, call note, triage, routing, prescription, close |
+| Health agent | `agent2@ubuzima.test` | Eric Habineza | A second agent, for offers passing between agents |
+| Facility manager | `manager@ubuzima.test` | Olivier Rukundo | Kacyiru District Hospital: profile, beds, clinicians, weekly schedule, reports |
+| Facility manager | `manager2@ubuzima.test` | Grace Mukandori | Kibagabaga Hospital |
+| Facility manager | `manager3@ubuzima.test` | Jeanne Uwamariya | Remera Health Centre (live demo only, D69) |
+| Clinician, emergency care | `clinician@ubuzima.test` | Dr. Samuel Mugisha | Kacyiru, day shift: **Patients → On the way**, mark arrived, record entries, bed, prescription, discharge |
+| Clinician, emergency care | `er.night@ubuzima.test` | Dr. Alice Mukarwego | Kacyiru, night shift (live demo only) |
+| Clinician, paediatrics | `paeds.day@ubuzima.test` | Dr. Fabrice Nshimiyimana | Kacyiru, day shift (live demo only) |
+| Clinician, paediatrics | `paeds@ubuzima.test` | Dr. Claudine Ingabire | Kacyiru, night shift |
+| Clinician, maternity | `maternity@ubuzima.test` | Marie Uwera | Kacyiru, day shift |
+| Clinician, maternity | `maternity.night@ubuzima.test` | Agnes Nyirahabimana | Kacyiru, night shift (live demo only) |
+| Clinician, surgery | `surgery.day@ubuzima.test` | Dr. Thierry Bizimana | Kacyiru, day shift (live demo only) |
+| Clinician, surgery | `surgery@ubuzima.test` | Dr. Jean Bosco Nsengimana | Kacyiru, night shift |
+| Clinician, general medicine | `gp@ubuzima.test` | Dr. Yvette Uwamahoro | Kacyiru, day shift |
+| Clinician, general medicine | `gp.night@ubuzima.test` | Dr. Chantal Uwineza | Kacyiru, night shift (live demo only) |
+| Clinician, internal medicine | `internal.day@ubuzima.test` | Dr. Didier Hakizimana | Kacyiru, day shift (live demo only) |
+| Clinician, internal medicine | `internal@ubuzima.test` | Dr. Emmanuel Kayitare | Kacyiru, night shift |
+| Clinician, emergency care | `kib.er@ubuzima.test` | Dr. Aimable Ndayisaba | Kibagabaga, day shift |
+| Clinician, mental health | `kib.mh@ubuzima.test` | Dr. Solange Uwase | Kibagabaga, night shift |
+| Clinician, general medicine | `remera@ubuzima.test` | Josiane Mukeshimana | Remera Health Centre, day shift |
+
+Day shifts run 07:00 to 19:00 and night shifts 19:00 to 07:00, Kigali time. A clinician only sees patients routed to them while they are on duty.
+
+### Patients: national ID, date of birth and one name (no password)
+
+Log in at **/login** with one of these fictional people from the mock NIDA ([`apps/nida-mock/src/citizens.ts`](apps/nida-mock/src/citizens.ts)). Type the 16 digits; the form groups them as on the card.
+
+| National ID | Date of birth | A name | What it shows |
+|---|---|---|---|
+| 1 1992 7 0045823 1 16 | 14 Mar 1992 | Uwase | A parent with Kevin (7) and Grace (3): the family model, child signs |
+| 1 1985 8 0067412 1 63 | 1 Jul 1985 | Habimana | A parent with Divine (11) and Ange (17): parents see children at any age |
+| 1 2009 7 0031504 1 28 | 21 May 2009 | Ange | The 17-year-old: logs in herself and sees only her own record (FR 1.3) |
+| 1 2001 8 0054377 1 09 | 30 Sep 2001 | Eric | A parent of a 3-day-old baby: Urgent with no questions (FR 4.2) |
+| 1 1996 7 0078215 1 35 | 18 Apr 1996 | Claudine | A woman of 30 ("Are you pregnant?"), and a 5-week-old baby who gets the young-baby sign N1 |
 | 1 1960 7 0012689 2 41 | 25 Dec 1960 | Mukamana | Aged 65, no children in the record |
 
-**Agent workflow:** log in as `agent@ubuzima.test`, choose **Available**, and accept the case offered. In another browser (or a private window), log in as a patient and start a request to see it arrive.
+Children have no ID of their own: a parent chooses them under "Who is sick?". The example ID in the login hint is made up and is not in the mock NIDA. Five wrong tries lock an ID for 15 minutes (FR 1.6).
 
-**Clinician workflow:** log in as `clinician@ubuzima.test` (Kacyiru, emergency care). When a patient answers Yes to a red flag near Kigali, they appear under **Patients → On the way**. Open them, compare the photo, and mark them arrived to open the visit.
+### No account needed
 
-**Staff** (http://localhost:3000/staff/login): seeded accounts in [`apps/api/src/seed.ts`](apps/api/src/seed.ts), all with the demo password set there: `admin@`, `agent@`, `manager@` (Kacyiru District Hospital), `clinician@` (emergency care) and more, all `@ubuzima.test`. The seed also creates six Kigali facilities (real names; services, beds and coordinates are approximate demo values), this week's shifts and the red-flag list from SRS Appendix C. After the password, the login code is "emailed": open **http://localhost:3000/demo/inbox** to read it.
+- **Emergency:** the Emergency button on the first screen (`/emergency`): 912 and the nearest emergency facility.
+- **Pharmacist:** `/check`, then a prescription code such as `RX-449Q-XJYX`, or scan a prescription's QR code with a phone camera.
+
+### Try a whole case
+
+Use two browsers (or one normal and one private window). In one, log in as `agent@ubuzima.test` and choose **Available**. In the other, log in as a patient, tap **Get help**, and tap a danger sign or describe a problem. The offer reaches the agent within seconds; chat from both sides, then route the patient (Kacyiru, emergency care) and log in as `clinician@ubuzima.test` to mark them arrived.
 
 To see "verification unavailable" (FR 1.5), switch the mock NIDA off and on:
 
