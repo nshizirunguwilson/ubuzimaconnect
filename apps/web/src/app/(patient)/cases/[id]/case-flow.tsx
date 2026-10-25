@@ -185,6 +185,19 @@ export function CaseFlow({ initial }: { initial: CaseView }) {
           <ButtonLink href="/cases/new" variant="primary" className="self-start">
             {t.case.getHelp}
           </ButtonLink>
+          {/* The conversation stays readable after closing: the agent's last advice is often its final message (FR 6.9). */}
+          {view.messages.length > 0 && (
+            <section aria-label={t.case.chatLabel} className="flex flex-col gap-3 border-t border-border pt-4">
+              <h2 className="text-h3 text-fg">{t.case.messages}</h2>
+              <Chat
+                me="PATIENT"
+                messages={view.messages}
+                disabled
+                labels={{ messages: t.case.messages, empty: t.chat.empty, you: t.common.you, agent: t.chat.agent, send: t.chat.send, quickReplies: t.chat.quickReplies, quick: t.chat.quick, system: tr }}
+                onSend={async () => {}}
+              />
+            </section>
+          )}
         </main>
       );
   }
@@ -431,7 +444,9 @@ function Waiting({ view, onChange }: { view: CaseView; onChange: (v: CaseView) =
               </h1>
               <p className="text-body text-fg-secondary">
                 {/* FR 6.13: the SRS wording for a Minor case with no agent online */}
-                {view.noAgent
+                {view.withAgent
+                  ? t.case.helpingBody
+                  : view.noAgent
                   ? t.case.noAgentBody
                   : view.delayed
                     ? t.case.delayedBody
