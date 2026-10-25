@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 import { LuArrowLeft, LuIdCard } from "react-icons/lu";
 import { BottomBar } from "@/components/app/bottom-bar";
+import { Logo } from "@/components/app/logo";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/choice";
 import { Input } from "@/components/ui/field";
@@ -109,6 +110,12 @@ export function LoginFlow({ ended }: { ended: boolean }) {
         )}
         <LanguageSwitch />
       </div>
+
+      {step === 1 && (
+        <div className="flex justify-center">
+          <Logo variant="stacked" height={80} />
+        </div>
+      )}
 
       <StepProgress current={step} total={2} text={t.common.step(step, 2)} />
 

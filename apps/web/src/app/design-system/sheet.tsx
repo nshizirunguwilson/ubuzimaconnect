@@ -70,7 +70,7 @@ function Header() {
   const mode = useSquircleMode();
   return (
     <header className="flex flex-col gap-6">
-      <Image src="/brand/logo-horizontal.png" alt="UbuzimaConnect" width={164} height={28} priority />
+      <Image src="/brand/logo-horizontal.svg" alt="UbuzimaConnect" width={250} height={28} priority />
       <div className="flex flex-col gap-2">
         <h1 className="text-h1 text-fg">Component sheet</h1>
         <p className="max-w-[70ch] text-body text-fg-secondary">
