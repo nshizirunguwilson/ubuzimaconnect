@@ -24,6 +24,7 @@ import { Chat, type ChatMsg } from "@/components/app/chat";
 import { Confirm } from "@/components/app/confirm";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Tab, Tabs, TabsContent, TabsList } from "@/components/ui/tabs";
 import { Checkbox, ChoiceRow } from "@/components/ui/choice";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { Input, Select, Textarea } from "@/components/ui/field";
@@ -118,11 +119,32 @@ export function Workspace({ id }: { id: string }) {
       <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_400px]">
         <div className="flex flex-col gap-6">
           <PatientCard data={data} />
-          <WhatTheySaid data={data} />
-          <Review data={data} onSaved={reload} />
-          <RoutingPanel data={data} active={active} onDone={reload} />
-          <Prescriptions data={data} onIssued={reload} />
-          <History data={data} />
+          {/* One part of the work at a time (D72); forceMount keeps half-filled forms when switching. */}
+          <Tabs defaultValue="case" className="flex flex-col gap-6">
+            <TabsList aria-label="Case sections">
+              <Tab value="case">Case</Tab>
+              <Tab value="routing">Routing</Tab>
+              <Tab value="prescribe" count={data.prescriptions.length}>
+                Prescribe
+              </Tab>
+              <Tab value="history" count={data.history.length}>
+                History
+              </Tab>
+            </TabsList>
+            <TabsContent value="case" forceMount className="flex flex-col gap-6 data-[state=inactive]:hidden">
+              <WhatTheySaid data={data} />
+              <Review data={data} onSaved={reload} />
+            </TabsContent>
+            <TabsContent value="routing" forceMount className="data-[state=inactive]:hidden">
+              <RoutingPanel data={data} active={active} onDone={reload} />
+            </TabsContent>
+            <TabsContent value="prescribe" forceMount className="data-[state=inactive]:hidden">
+              <Prescriptions data={data} onIssued={reload} />
+            </TabsContent>
+            <TabsContent value="history" forceMount className="data-[state=inactive]:hidden">
+              <History data={data} />
+            </TabsContent>
+          </Tabs>
         </div>
         <div className="flex flex-col gap-6 lg:sticky lg:top-6">
           <Card className="flex h-[520px] flex-col gap-3">
@@ -573,7 +595,7 @@ function Actions({
 }
 
 function History({ data }: { data: View }) {
-  if (data.history.length === 0) return null;
+  if (data.history.length === 0) return <Card className="text-small text-fg-secondary">No earlier requests.</Card>;
   return (
     <Card className="flex flex-col gap-3">
       <h2 className="text-h3 text-fg">Earlier requests</h2>

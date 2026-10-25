@@ -411,3 +411,8 @@ After reading the full requirement text, I fixed these details:
 - **Decision:** from 768 px a button at the top of the staff menu folds it from 240 px to 76 px: icons only (each with its name as a tooltip and for screen readers), the heart symbol instead of the name, the person's initials, and Log out as an icon. The choice is kept on the device (`localStorage`, with an in-memory fallback where storage is blocked); the server always renders it open. Phones keep the row at the top.
 - **The slide:** the grid column animates over 500 ms with a springy ease (`cubic-bezier(0.34, 1.4, 0.64, 1)`), so the panel overshoots a little and settles; labels fade and slide away in 300 ms. Measured: 76 → 168 → 221 → 247 → 248 → 241 → 240 px. It is turned off for people who ask their device for reduced motion.
 - **Why:** on a laptop the agent's case screen needs the width (Wilson's review, 25 Oct).
+
+### D72. Tabs on the agent's case and the clinician's visit
+- **Decision:** the agent's case screen keeps the patient card on top and splits the rest into tabs: **Case** (what the patient said, triage review), **Routing**, **Prescribe** and **History**, with counts. The clinician's visit uses **Why they came**, **Record**, **Prescribe** and **History**. The chat, the case actions, the bed and "End or hand over" stay in the right-hand column, always visible.
+- **Why:** both screens had grown to six stacked cards, so the agent scrolled past the triage to reach routing while the patient waited (Wilson's review, 25 Oct).
+- **Forms survive switching tabs:** the tab panels stay mounted and are only hidden, so a half-filled prescription or record entry is not lost.

@@ -10,6 +10,7 @@ import { PrescribeForm, PrescriptionHistory, type Prescription } from "@/compone
 import { Confirm } from "@/components/app/confirm";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Tab, Tabs, TabsContent, TabsList } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { Select, Textarea } from "@/components/ui/field";
 import { Notice } from "@/components/ui/notice";
@@ -152,10 +153,33 @@ export function Visit({ id }: { id: string }) {
               </p>
             </div>
           </Card>
-          <WhyTheyCame data={data} />
-          <Record data={data} onSaved={reload} />
-          <Prescriptions data={data} onIssued={reload} />
-          <History data={data} />
+          {/* One part of the visit at a time (D72); forceMount keeps half-written entries when switching. */}
+          <Tabs defaultValue="why" className="flex flex-col gap-6">
+            <TabsList aria-label="Visit sections">
+              <Tab value="why">Why they came</Tab>
+              <Tab value="record" count={data.entries.length}>
+                Record
+              </Tab>
+              <Tab value="prescribe" count={data.prescriptions.length}>
+                Prescribe
+              </Tab>
+              <Tab value="history" count={data.history.length}>
+                History
+              </Tab>
+            </TabsList>
+            <TabsContent value="why" forceMount className="data-[state=inactive]:hidden">
+              <WhyTheyCame data={data} />
+            </TabsContent>
+            <TabsContent value="record" forceMount className="data-[state=inactive]:hidden">
+              <Record data={data} onSaved={reload} />
+            </TabsContent>
+            <TabsContent value="prescribe" forceMount className="data-[state=inactive]:hidden">
+              <Prescriptions data={data} onIssued={reload} />
+            </TabsContent>
+            <TabsContent value="history" forceMount className="data-[state=inactive]:hidden">
+              <History data={data} />
+            </TabsContent>
+          </Tabs>
         </div>
 
         <div className="flex flex-col gap-6 lg:sticky lg:top-6">
@@ -543,7 +567,7 @@ function Handover({ id, onDone }: { id: string; onDone: (m: string) => void }) {
 }
 
 function History({ data }: { data: View }) {
-  if (data.history.length === 0) return null;
+  if (data.history.length === 0) return <Card className="text-small text-fg-secondary">No earlier requests or visits.</Card>;
   return (
     <Card className="flex flex-col gap-3">
       <h2 className="text-h3 text-fg">Earlier requests and visits</h2>
