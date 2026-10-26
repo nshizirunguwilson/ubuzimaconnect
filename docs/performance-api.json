@@ -1,56 +1,56 @@
 {
-  "measuredAt": "2026-10-26T07:59:34.550Z",
+  "measuredAt": "2026-10-26T08:18:11.472Z",
   "concurrency": 20,
   "requestsPerAction": 200,
   "results": [
     {
       "action": "Patient: open a request",
       "n": 200,
-      "p50": 24,
+      "p50": 25,
       "p95": 31,
-      "max": 34
+      "max": 33
     },
     {
       "action": "Patient: home list of requests",
       "n": 200,
-      "p50": 46,
-      "p95": 60,
-      "max": 75
+      "p50": 47,
+      "p95": 62,
+      "max": 71
     },
     {
       "action": "Patient: send a chat message",
       "n": 200,
-      "p50": 19,
-      "p95": 22,
-      "max": 24
+      "p50": 20,
+      "p95": 24,
+      "max": 25
     },
     {
       "action": "Agent: queue and status",
       "n": 200,
-      "p50": 18,
-      "p95": 20,
-      "max": 21
+      "p50": 20,
+      "p95": 22,
+      "max": 23
     },
     {
       "action": "Agent: open the case",
       "n": 200,
-      "p50": 63,
-      "p95": 75,
+      "p50": 64,
+      "p95": 77,
       "max": 87
     },
     {
       "action": "Agent: facilities to route to (50 facilities)",
       "n": 200,
-      "p50": 48,
-      "p95": 53,
-      "max": 61
+      "p50": 50,
+      "p95": 54,
+      "max": 58
     },
     {
       "action": "Clinician: patients on the way",
       "n": 200,
-      "p50": 21,
+      "p50": 22,
       "p95": 24,
-      "max": 26
+      "max": 27
     },
     {
       "action": "Pharmacy: check a code",
@@ -69,9 +69,9 @@
     {
       "action": "Administrator: month report (30,000 requests)",
       "n": 1,
-      "p50": 157,
-      "p95": 157,
-      "max": 157
+      "p50": 164,
+      "p95": 164,
+      "max": 164
     }
   ]
 }

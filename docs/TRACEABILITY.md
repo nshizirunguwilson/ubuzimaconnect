@@ -322,6 +322,8 @@ Features added after the live testing and Wilson's review. Each has its decision
 | Administrator adds made-up people to the mock NIDA, stored with parameterised queries under its own database user | FR 1.1 to 1.3 (demo) | D73 | `nida-admin.test.ts` (admin only, login with the new ID, child under a parent, SQL and fake photos refused); live test |
 | Voice notes in the chat, up to a minute | FR 6.6, NFR 7 | D74 | `voice.test.ts`; live test (patient's note played by the agent) |
 | Login pages say "this page is for staff/patients" to someone logged in to the other app | FR 1.7, 2.5 | – | Screen test |
+| One session cookie per app, so a patient tab can't end a staff login | FR 1.7, 2.5, NFR 9 | D76 | `two-apps.test.ts`; live check |
+| Schedule as a calendar: add, drag to move, remove; copy last week; own shifts as a week calendar | FR 8.4, 8.5, 12.4 | D77 | `setup.test.ts` (copying last week); screen test |
 
 ## Submission (phase 4)
 
