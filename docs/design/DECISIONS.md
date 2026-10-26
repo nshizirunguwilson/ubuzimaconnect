@@ -396,7 +396,7 @@ After reading the full requirement text, I fixed these details:
 - **Decision:** `scripts/demo-schedule.mjs` does, through the app's own API, what the managers and the administrator would do. Kacyiru's manager invites a partner for each specialty (6 clinicians), so every specialty there is covered day and night; the administrator creates a manager for Remera Health Centre; each manager fills 12 weeks of shifts, and the administrator the two agents'. It is safe to run again and only adds what is missing.
 - **Why through the API, not the seed:** it needs no database password, it leaves the same trail in the activity log as a real manager would, and it proves FR 2.6, 8.2 and 8.4 work on the live site.
 - **Gaps kept on purpose:** Kibagabaga has no emergency clinician at night and Remera no one at night, so the coverage view and the shift-gap report still show real gaps.
-- **Before mid-January 2027** run it again (`node scripts/demo-schedule.mjs 12`), or the schedule runs out.
+- **Before mid-January 2027** run it again (`node scripts/demo-schedule.mjs 12`), or the schedule runs out (after the 26 Oct reset it runs to 17 Jan 2027).
 
 ### D70. Live events cross API instances through Postgres (NFR 5)
 - **Decision:** `EventsService` delivers each event to the browsers connected to its own instance at once, and also sends it with `pg_notify('uc_live', …)`. Every instance keeps one connection that `LISTEN`s on that channel and passes the other instances' events to its own browsers. Its own events are skipped by an instance id, so nothing arrives twice.
@@ -429,3 +429,8 @@ After reading the full requirement text, I fixed these details:
 - **Why:** people who can't read or type well can explain in their own voice (NFR 7), without needing a phone call on a shared phone.
 - **Storage and access:** the sound is kept in its own table (`ChatAudio`), so loading a chat never loads audio; the message keeps its length (`audioMs`). Only WebM, Ogg, MP4 or MP3 audio is accepted, checked by the file's first bytes, and served with its real type and `nosniff`. A note can be played only through the same checks as the chat: the patient (or parent) on their own case, or the agent while handling it. The AI never receives voice notes: triage reads only the written description.
 - **Limit:** the voice routes alone accept a 2 MB body. If the microphone is refused, the chat says how to allow it.
+
+### D75. A clean demo before submission
+- **Decision:** on 26 October the live database was emptied (every table except the migration history, and the people added to the mock NIDA) and filled again with the seed and `scripts/demo-schedule.mjs`. The test runs had left dozens of cases, prescriptions, alerts, ratings and test accounts that showed in the reports.
+- **The activity log:** it is append-only row by row (NFR 9); emptying the whole table is the deliberate exception for starting an environment afresh, as for the test database. The new log begins with one entry, `demo.reset`, saying so.
+- **Afterwards:** only read-only checks were run, so graders see the demo as a new deployment. The full live check (`scripts/live-check.mjs`) creates cases and test accounts; run it again only if the demo is reset once more.

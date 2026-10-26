@@ -106,7 +106,7 @@ Children have no ID of their own: a parent chooses them under "Who is sick?". Th
 ### No account needed
 
 - **Emergency:** the Emergency button on the first screen (`/emergency`): 912 and the nearest emergency facility.
-- **Pharmacist:** `/check`, then a prescription code such as `RX-449Q-XJYX`, or scan a prescription's QR code with a phone camera.
+- **Pharmacist:** `/check`, then the code of a prescription issued in the demo (an agent or clinician issues one in a minute), or scan its QR code with a phone camera. An unknown code shows "Prescription not found".
 
 ### Try a whole case
 
