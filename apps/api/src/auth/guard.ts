@@ -28,8 +28,13 @@ export class AuthGuard implements CanActivate {
     const need = this.reflector.getAllAndOverride<Need | undefined>(KEY, [ctx.getHandler(), ctx.getClass()]);
     if (!need) return true;
     const req = ctx.switchToHttp().getRequest<Request & { session?: LiveSession }>();
-    const s = await this.sessions.current(req);
-    if (!s || !s.verified) throw new ApiException(401, "UNAUTHENTICATED", "Your session has ended. Log in again.");
+    const s = await this.sessions.current(req, need.kind);
+    if (!s || !s.verified) {
+      // Logged in, but to the other app (a patient on a staff route, or the reverse): not allowed, rather than "log in".
+      const other = need.kind === "any" ? null : await this.sessions.current(req, need.kind === "staff" ? "patient" : "staff");
+      if (other?.verified) throw forbidden();
+      throw new ApiException(401, "UNAUTHENTICATED", "Your session has ended. Log in again.");
+    }
     if (need.kind === "patient" && !s.patient) throw forbidden();
     if (need.kind === "staff") {
       if (!s.staff || s.staff.status !== "ACTIVE") throw forbidden();
