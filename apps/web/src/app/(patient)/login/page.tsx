@@ -13,6 +13,6 @@ export default function LoginPage({ searchParams }: PageProps<"/login">) {
 }
 
 async function Login({ searchParams }: { searchParams: PageProps<"/login">["searchParams"] }) {
-  const { ended } = await searchParams;
-  return <LoginFlow ended={ended === "1"} />;
+  const { ended, other } = await searchParams;
+  return <LoginFlow ended={ended === "1"} other={other === "1"} />;
 }

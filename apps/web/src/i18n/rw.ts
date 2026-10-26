@@ -61,6 +61,8 @@ export const rw: Messages = {
     sharedHint: "Iki gikoresho ntikizakira ubutumwa, kandi nta makuru yawe asigara kuri cyo nyuma yo gusohoka.",
     checking: "Turagenzura",
     logIn: "Injira",
+    otherTitle: "Iyi paji ni iy'abarwayi",
+    otherBody: "Winjiye muri porogaramu y'abakozi. Injira nk'umurwayi kugira ngo ukomeze.",
     endedTitle: "Wasohowe",
     endedBody: "Wasohowe nyuma y'iminota 15 nta kintu ukora. Ongera winjire kugira ngo ukomeze.",
     lockedTitle: "Wagerageje inshuro nyinshi kuri iyi ndangamuntu",

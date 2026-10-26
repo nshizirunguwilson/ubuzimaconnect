@@ -59,6 +59,8 @@ export const en = {
     sharedHint: "This device won't get notifications, and nothing about you stays on it after you log out.",
     checking: "Checking",
     logIn: "Log in",
+    otherTitle: "This page is for patients",
+    otherBody: "You're logged in to the staff app. Log in as a patient to continue.",
     endedTitle: "You were logged out",
     endedBody: "Your session ended after 15 minutes without activity. Log in again to continue.",
     lockedTitle: "Too many tries with this ID",

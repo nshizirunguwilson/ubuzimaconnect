@@ -27,13 +27,13 @@ function EmergencyButton() {
   );
 }
 
-type Problem = { kind: "locked"; until: string } | { kind: "unavailable" } | { kind: "ended" } | null;
+type Problem = { kind: "locked"; until: string } | { kind: "unavailable" } | { kind: "ended" } | { kind: "other" } | null;
 
 /**
  * FR 1.1 to 1.8, one thing per page (RESEARCH §2.1): first the ID, then the two facts
  * that prove it is you. Nothing is stored on the device.
  */
-export function LoginFlow({ ended }: { ended: boolean }) {
+export function LoginFlow({ ended, other = false }: { ended: boolean; other?: boolean }) {
   const router = useRouter();
   const { t, tr, time } = useT();
   const [step, setStep] = useState<1 | 2>(1);
@@ -42,7 +42,7 @@ export function LoginFlow({ ended }: { ended: boolean }) {
   const [name, setName] = useState("");
   const [shared, setShared] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [problem, setProblem] = useState<Problem>(ended ? { kind: "ended" } : null);
+  const [problem, setProblem] = useState<Problem>(other ? { kind: "other" } : ended ? { kind: "ended" } : null);
   const [pending, setPending] = usePending(false);
   // Nothing typed here is kept once the screen is left.
   useOnHide(() => {
@@ -119,6 +119,11 @@ export function LoginFlow({ ended }: { ended: boolean }) {
 
       <StepProgress current={step} total={2} text={t.common.step(step, 2)} />
 
+      {problem?.kind === "other" && (
+        <Notice tone="info" title={t.login.otherTitle}>
+          {t.login.otherBody}
+        </Notice>
+      )}
       {problem?.kind === "ended" && (
         <Notice tone="info" title={t.login.endedTitle}>
           {t.login.endedBody}
