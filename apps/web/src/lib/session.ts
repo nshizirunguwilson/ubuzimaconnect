@@ -16,20 +16,24 @@ export async function getMe(): Promise<Me | null> {
   return res.json();
 }
 
-/** "?ended=1" only when there was a session that has now ended, so the login page can say why. */
-async function loginUrl(path: string) {
+/**
+ * Where to send someone without the right session, so the login page can say why: "?ended=1" when their session
+ * ended, "?other=1" when they are logged in, but to the other app (a patient on a staff page, or the reverse).
+ */
+async function loginUrl(path: string, me: Awaited<ReturnType<typeof getMe>>) {
+  if (me) return `${path}?other=1`;
   return (await cookies()).has("uc_session") ? `${path}?ended=1` : path;
 }
 
 export async function requirePatient() {
   const me = await getMe();
-  if (me?.kind !== "patient") redirect(await loginUrl("/login"));
+  if (me?.kind !== "patient") redirect(await loginUrl("/login", me));
   return me;
 }
 
 export async function requireStaff() {
   const me = await getMe();
-  if (me?.kind !== "staff") redirect(await loginUrl("/staff/login"));
+  if (me?.kind !== "staff") redirect(await loginUrl("/staff/login", me));
   return me;
 }
 

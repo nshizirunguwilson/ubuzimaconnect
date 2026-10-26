@@ -304,6 +304,25 @@ Source: the three use case tables in the SRS (Assignment 2 copy), read on 24 Oct
 | 12 | Staffing | At least 1 agent online 24/7 through the schedule | 1–3 | Done: the agent schedule shows every shift with nobody on it (`setup.test.ts`); the on-duty dashboard flags scheduled agents who are Offline (`records.test.ts`); the administrator is alerted and emailed after 5 minutes with no agent online (`timers.test.ts`). Filling the schedule is the service's job |
 | 13 | Notification privacy | Notifications never contain medical details | 3 | Done: every notification says only “You have a new message.”; proved by decrypting what the API sends, as a browser would (`push.test.ts`) |
 
+## Added after the SRS review (25 and 26 October 2026)
+
+Features added after the live testing and Wilson's review. Each has its decision in `docs/design/DECISIONS.md` and its proof.
+
+| Addition | Requirement | Decision | Proof |
+|---|---|---|---|
+| Red-flag checklist on one screen; a tap is Yes, "None of these" after the last sign | FR 3.6 (SRS revised 25 Oct), Appendix C rule 2 | – | `cases.test.ts` (one-screen checklist); live check B3 |
+| Live events across API instances (Postgres LISTEN/NOTIFY) | NFR 5 | D70 | `instances.test.ts`: a second API instance delivers chat both ways within 3 s |
+| Demo schedule for 12 weeks, with day and night cover at Kacyiru | FR 5.3, 8.4 (demo data) | D69 | Live check D1: a child can be routed |
+| Mock NIDA at `nida.ubuzima.wilsonn.tech` with its own certificate | SRS deployment diagram (Figure 11) | D67 | Live login through the new address |
+| Closed cases keep the conversation readable | FR 6.9 (final advice), FR 7.2 | – | Screen test: the patient reads the agent's last advice after closing |
+| Prescription: copy the code, download as an image with the QR code, in the app's fonts | FR 11.2 | – | Screen test: the downloaded image's QR code decodes to the check page |
+| Pasting a code ("616 260") fills all six boxes | FR 2.2 | D41 | Screen test on the live site |
+| Staff menu folds to icons, with a sliding animation | DESIGN | D71 | Screen test: widths 76 → 248 → 240 px while sliding |
+| Tabs on the agent's case and the clinician's visit | FR 6.5, 7.7 (usability) | D72 | Screen test on the case screen |
+| Administrator adds made-up people to the mock NIDA, stored with parameterised queries under its own database user | FR 1.1 to 1.3 (demo) | D73 | `nida-admin.test.ts` (admin only, login with the new ID, child under a parent, SQL and fake photos refused); live test |
+| Voice notes in the chat, up to a minute | FR 6.6, NFR 7 | D74 | `voice.test.ts`; live test (patient's note played by the agent) |
+| Login pages say "this page is for staff/patients" to someone logged in to the other app | FR 1.7, 2.5 | – | Screen test |
+
 ## Submission (phase 4)
 
 | Rubric line | Where | Status |
@@ -317,6 +336,8 @@ Source: the three use case tables in the SRS (Assignment 2 copy), read on 24 Oct
 
 | Date | Screens | Widths | Modes |
 |---|---|---|---|
+| 26 Oct 2026 | Mock NIDA page (validation, adding a person, logging in as them); agent case with voice note playback and the microphone button; tabs on the case screen; folded and unfolded staff menu | 1280 | Native |
+| 25 Oct 2026 | Every page for every role (63 pages); chat on screen from both sides; closed case with its conversation; prescription QR decoded, check page, download | 375, 1280 | Native |
 | 24 Oct 2026 | Welcome, login (both steps and errors), patient home, emergency, staff login, code, invitation, staff home, staff accounts and the invite dialog | 375, 1280 | Native and fallback squircles |
 | 25 Oct 2026 | Phase 3 batch E: reports (administrator, week) with real data | 1280 | Native |
 | 24 Oct 2026 | Phase 3 batch D: welcome, login, home, a red-flag question in Kinyarwanda, and switching back | 375 | Native |
