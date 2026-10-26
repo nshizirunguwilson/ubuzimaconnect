@@ -6,7 +6,7 @@ import { AuditService } from "../common/audit.service";
 import { DbService } from "../common/db.service";
 import { parse } from "../common/zod";
 import { Auth, CurrentSession } from "./guard";
-import { type LiveSession, SessionService } from "./session.service";
+import { appHint, type LiveSession, SessionService } from "./session.service";
 
 const age = (dob: Date) => {
   const now = new Date();
@@ -58,7 +58,9 @@ export class MeController {
   @HttpCode(200)
   async logout(@Req() req: Request, @Res({ passthrough: true }) res: Response) {
     const s = await this.sessions.current(req);
-    await this.sessions.end(req, res);
+    // The app that asked logs out; without a hint, the session found (staff first) is the one ended.
+    const app = appHint(req) ?? (s?.staffId ? "staff" : "patient");
+    await this.sessions.end(req, res, app);
     if (s) await this.audit.record({ type: s.staff ? "staff" : "patient", id: s.staffId ?? s.patientId }, "logout", undefined, req.ip);
     return { ok: true };
   }

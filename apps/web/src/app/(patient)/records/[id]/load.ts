@@ -1,5 +1,5 @@
 import "server-only";
-import { cookies } from "next/headers";
+import { sessionCookie } from "@/lib/session";
 import { notFound, redirect } from "next/navigation";
 import type { Prescription } from "@/components/app/prescription";
 
@@ -29,9 +29,9 @@ export type Records = {
 
 /** FR 7.2: loads a record on the server with the session cookie. Not yours or your child's: not found. */
 export async function loadRecords(id: string): Promise<Records> {
-  const session = (await cookies()).get("uc_session")?.value;
-  if (!session) redirect("/login");
-  const res = await fetch(`${apiUrl}/records/${encodeURIComponent(id)}`, { headers: { cookie: `uc_session=${session}` }, cache: "no-store" });
+  const cookie = await sessionCookie("patient");
+  if (!cookie) redirect("/login");
+  const res = await fetch(`${apiUrl}/records/${encodeURIComponent(id)}`, { headers: { cookie, "x-uc-app": "patient" }, cache: "no-store" });
   if (res.status === 401) redirect("/login?ended=1");
   if (!res.ok) notFound();
   return res.json();

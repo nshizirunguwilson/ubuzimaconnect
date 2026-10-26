@@ -5,7 +5,23 @@ import { DbService } from "../common/db.service";
 import { env } from "../common/env";
 import { newToken, sha256 } from "../common/crypto";
 
-export const COOKIE = "uc_session";
+/**
+ * One cookie per app (DECISIONS.md D76), so a patient and a staff member can be logged in side by side in the
+ * same browser, and one app's logout or idle timer never ends the other's session.
+ */
+export const COOKIES = { patient: "uc_patient", staff: "uc_staff" } as const;
+export type App = keyof typeof COOKIES;
+/** The cookie before D76: ignored, and cleared at logout. */
+const LEGACY = "uc_session";
+
+/**
+ * Which app a request comes from, for routes either may call: the web app says so in x-uc-app (or ?as= for live
+ * streams, which can't send headers). Without a hint, a valid staff session is used, then a patient one.
+ */
+export function appHint(req: Request): App | null {
+  const h = req.header("x-uc-app") ?? (typeof req.query?.as === "string" ? req.query.as : undefined);
+  return h === "staff" || h === "patient" ? h : null;
+}
 const idleMs = LIMITS.sessionIdleMinutes * 60_000;
 /** Write lastSeenAt at most once a minute, not on every request. */
 const touchEveryMs = 60_000;
@@ -36,7 +52,8 @@ export class SessionService {
         expiresAt: new Date(Date.now() + ttl),
       },
     });
-    res.cookie(COOKIE, token, {
+    const app: App = "patientId" in data ? "patient" : "staff";
+    res.cookie(COOKIES[app], token, {
       httpOnly: true,
       secure: env.prod,
       sameSite: "lax",
@@ -48,9 +65,16 @@ export class SessionService {
     return session;
   }
 
-  /** The live session for this request, or null. Slides the expiry forward. */
-  async current(req: Request) {
-    const token = req.cookies?.[COOKIE];
+  /** The live session for this request and app, or null. Slides the expiry forward. */
+  async current(req: Request, app: App | "any" = "any") {
+    if (app !== "any") return this.read(req, app);
+    const hint = appHint(req);
+    if (hint) return this.read(req, hint);
+    return (await this.read(req, "staff")) ?? (await this.read(req, "patient"));
+  }
+
+  private async read(req: Request, app: App) {
+    const token = req.cookies?.[COOKIES[app]];
     if (typeof token !== "string" || token.length < 20) return null;
     const session = await this.db.client.session.findUnique({
       where: { tokenHash: sha256(token) },
@@ -58,6 +82,7 @@ export class SessionService {
     });
     const now = Date.now();
     if (!session || session.revokedAt || session.expiresAt.getTime() <= now) return null;
+    if ((app === "staff") !== !!session.staffId) return null; // a cookie under the wrong name is ignored
     if (session.verified && now - session.lastSeenAt.getTime() > touchEveryMs) {
       await this.db.client.session.update({
         where: { id: session.id },
@@ -75,12 +100,14 @@ export class SessionService {
     });
   }
 
-  async end(req: Request, res: Response) {
-    const token = req.cookies?.[COOKIE];
+  /** Ends this app's session only; the other app's session in the same browser is left alone. */
+  async end(req: Request, res: Response, app: App) {
+    const token = req.cookies?.[COOKIES[app]];
     if (typeof token === "string") {
       await this.db.client.session.updateMany({ where: { tokenHash: sha256(token) }, data: { revokedAt: new Date() } });
     }
-    res.clearCookie(COOKIE, { path: "/", domain: env.cookieDomain });
+    res.clearCookie(COOKIES[app], { path: "/", domain: env.cookieDomain });
+    res.clearCookie(LEGACY, { path: "/", domain: env.cookieDomain });
   }
 
   /** After a password change every session ends, because the usual reason is fear that someone else knows it. */
