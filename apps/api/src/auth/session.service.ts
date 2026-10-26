@@ -92,6 +92,26 @@ export class SessionService {
     return session;
   }
 
+  /**
+   * Why there is no live session behind this app's cookie, so the login page can say the right thing: a staff login
+   * still waiting for its code ("unfinished"), one whose code ran out ("unfinished-expired"), a session that ended
+   * after 15 idle minutes ("ended"), or one ended on purpose: logout, or a password change ("revoked").
+   * Read-only: it never moves an expiry.
+   */
+  async state(req: Request, app: App): Promise<"live" | "unfinished" | "unfinished-expired" | "ended" | "revoked" | "none"> {
+    const token = req.cookies?.[COOKIES[app]];
+    if (typeof token !== "string" || token.length < 20) return "none";
+    const session = await this.db.client.session.findUnique({
+      where: { tokenHash: sha256(token) },
+      select: { verified: true, revokedAt: true, expiresAt: true, staffId: true },
+    });
+    if (!session || (app === "staff") !== !!session.staffId) return "none";
+    if (session.revokedAt) return "revoked";
+    const expired = session.expiresAt.getTime() <= Date.now();
+    if (!session.verified) return expired ? "unfinished-expired" : "unfinished";
+    return expired ? "ended" : "live";
+  }
+
   verify(id: string) {
     const now = Date.now();
     return this.db.client.session.update({
