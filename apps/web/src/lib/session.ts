@@ -27,12 +27,19 @@ export async function getMe(app: App): Promise<Me | null> {
 }
 
 /**
- * Where to send someone without the right session, so the login page can say why: "?ended=1" when their session
- * ended, "?other=1" when they are logged in, but to the other app (a patient on a staff page, or the reverse).
+ * Where to send someone without the right session, so the login page can say why: "?ended=1" only when their
+ * session ended after 15 idle minutes, "?other=1" when they are logged in, but to the other app (a patient on a staff
+ * page, or the reverse). A staff login still waiting for its code goes back to the code screen; one whose code ran
+ * out, or a session ended by logging out, goes to the plain login page.
  */
 async function loginUrl(app: App, path: string) {
   if (await getMe(app === "staff" ? "patient" : "staff")) return `${path}?other=1`;
-  return (await cookies()).has(COOKIE[app]) ? `${path}?ended=1` : path;
+  const cookie = await sessionCookie(app);
+  if (!cookie) return path;
+  const res = await fetch(`${apiUrl}/auth/session`, { headers: { cookie, "x-uc-app": app }, cache: "no-store" }).catch(() => null);
+  const { state } = res?.ok ? ((await res.json()) as { state: string }) : { state: "none" };
+  if (state === "unfinished" && app === "staff") return "/staff/login/code";
+  return state === "ended" ? `${path}?ended=1` : path;
 }
 
 export async function requirePatient() {

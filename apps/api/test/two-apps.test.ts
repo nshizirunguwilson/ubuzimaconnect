@@ -1,5 +1,5 @@
 import { beforeAll, describe, expect, it } from "vitest";
-import { API, codeIn, latestEmail } from "./client";
+import { API, codeIn, db, latestEmail } from "./client";
 import { resetDatabase } from "./setup";
 
 /** One browser holding both apps' cookies, as two tabs (or two incognito windows) share them (D76). */
@@ -44,5 +44,25 @@ describe("a patient and a staff member in the same browser (D76)", () => {
     await b("/auth/logout", {}, "staff");
     expect((await b("/agent/state")).status).toBe(403); // the patient is still logged in: not allowed, not "log in"
     expect((await b("/cases/mine")).status).toBe(200);
+  });
+});
+
+describe("why there is no session, for the login page", () => {
+  it("tells an unfinished staff login from a session that ended after 15 idle minutes", async () => {
+    const b = sharedBrowser();
+    const state = async () => (await b("/auth/session", undefined, "staff")).body.state;
+    const expireAll = () => db.query(`update "Session" set "expiresAt" = (now() at time zone 'utc') - interval '1 minute' where "staffId" = (select id from "Staff" where email = 'manager@ubuzima.test')`);
+    expect(await state()).toBe("none");
+    await b("/auth/staff/login", { email: "manager@ubuzima.test", password: "Ubuzima-demo-2026" });
+    expect(await state()).toBe("unfinished"); // waiting for the code: back to the code screen, not "logged out"
+    await expireAll();
+    expect(await state()).toBe("unfinished-expired");
+    await b("/auth/staff/login", { email: "manager@ubuzima.test", password: "Ubuzima-demo-2026" });
+    await b("/auth/staff/code", { code: codeIn((await latestEmail("manager@ubuzima.test")).subject) });
+    expect(await state()).toBe("live");
+    await expireAll();
+    expect(await state()).toBe("ended"); // the only case the login page says "after 15 minutes without activity"
+    await b("/auth/logout", {}, "staff");
+    expect(await state()).toBe("none");
   });
 });

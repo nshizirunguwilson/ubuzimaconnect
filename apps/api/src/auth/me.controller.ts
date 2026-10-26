@@ -23,6 +23,12 @@ export class MeController {
     private audit: AuditService,
   ) {}
 
+  /** For the web app's redirect to the login page: why this app has no live session (see SessionService.state). */
+  @Get("session")
+  async session(@Req() req: Request) {
+    return { state: await this.sessions.state(req, appHint(req) ?? "staff") };
+  }
+
   @Get("me")
   @Auth({ kind: "any" })
   async me(@CurrentSession() s: LiveSession): Promise<Me> {
