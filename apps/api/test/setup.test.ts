@@ -128,6 +128,21 @@ describe("schedules (FR 8.4, 8.5, 12.4)", () => {
   });
 });
 
+describe("copying last week (D77)", () => {
+  it("copies the week before into a coming week, keeps what is there, and is for managers only", async () => {
+    const manager = await staffLogin("manager@ubuzima.test");
+    const next = weekStart(new Date(Date.parse(`${currentShift().date}T00:00:00Z`) + 7 * 86_400_000).toISOString().slice(0, 10));
+    const thisWeek = (await manager(`/schedule?week=${weekStart(currentShift().date)}`)).body.assignments.length;
+    const r = await manager("/schedule/copy", { week: next });
+    expect(r.status).toBe(200);
+    expect(r.body.added).toBe(thisWeek);
+    expect((await manager(`/schedule?week=${next}`)).body.assignments.length).toBe(thisWeek);
+    expect((await manager("/schedule/copy", { week: next })).body.added).toBe(0); // nothing twice
+    const clinician = await staffLogin("clinician@ubuzima.test");
+    expect((await clinician("/schedule/copy", { week: next })).status).toBe(403);
+  });
+});
+
 describe("red flags and the AI switch (FR 12.6, 4.8)", () => {
   it("has the 23 Appendix C questions, and only the administrator can change them, with a log", async () => {
     const admin = await staffLogin("admin@ubuzima.test");

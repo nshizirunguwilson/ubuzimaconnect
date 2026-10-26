@@ -1,19 +1,21 @@
 "use client";
 
 import { addDays, SERVICE_LABEL, SHIFT_HOURS, SHIFT_LABEL, SHIFTS, type Service, type ShiftType } from "@ubuzima/shared";
+import dynamic from "next/dynamic";
 import { useEffect, useRef, useState } from "react";
-import { LuCheck, LuChevronLeft, LuChevronRight, LuCircleCheck, LuCircleHelp } from "react-icons/lu";
+import { LuCheck, LuChevronLeft, LuChevronRight, LuCircleCheck, LuCircleHelp, LuCopy } from "react-icons/lu";
 import { PageHeader } from "@/components/app/page-header";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Notice } from "@/components/ui/notice";
 import { Squircle } from "@/components/ui/squircle";
+import { Tab, Tabs, TabsContent, TabsList } from "@/components/ui/tabs";
 import { toast } from "@/components/ui/toast";
-import { api } from "@/lib/api";
+import { api, ApiFailure } from "@/lib/api";
 import { cn } from "@/lib/cn";
 import { useApi } from "@/lib/use-api";
 
-type Week = {
+export type Week = {
   monday: string;
   days: string[];
   now: { date: string; shift: ShiftType };
@@ -28,31 +30,26 @@ const range = (days: string[]) => {
   return `${f(days[0], { day: "numeric", month: "short" })} – ${f(days[6], { day: "numeric", month: "short", year: "numeric" })}`;
 };
 
+// FullCalendar reads the window, so it loads in the browser only, and only for this page.
+const ScheduleCalendar = dynamic(() => import("./schedule-calendar").then((m) => m.ScheduleCalendar), {
+  ssr: false,
+  loading: () => <div className="h-96" aria-busy />,
+});
+
 /**
  * FR 8.4 (clinicians, by the facility manager) and FR 12.4 (agents, by the administrator):
- * a week of Day and Night shifts. Tap a cell to add or remove a shift. Gaps are shown per shift.
+ * a week of Day and Night shifts, as a calendar (D77) or as a table. Gaps are shown per shift.
  */
 export function Schedule({ scope }: { scope: "agents" | "clinicians" }) {
   const [week, setWeek] = useState<string | null>(null);
   const { data, reload } = useApi<Week>(`/schedule${week ? `?week=${week}` : ""}`);
   const [busy, setBusy] = useState<string | null>(null);
-  const scroller = useRef<HTMLDivElement>(null);
-
-  // On narrow screens the grid scrolls sideways: open it at today, not Monday.
-  const today = data?.days.includes(data.now.date) ? data.now.date : null;
-  useEffect(() => {
-    const el = scroller.current;
-    const th = el?.querySelector<HTMLElement>("[data-today]");
-    const sticky = el?.querySelector<HTMLElement>("thead th");
-    if (el && th && sticky && el.scrollWidth > el.clientWidth) el.scrollLeft = th.offsetLeft - sticky.offsetWidth;
-  }, [today, data?.monday]);
+  const [copying, setCopying] = useState(false);
 
   if (!data) return <div className="h-96" aria-busy />;
 
   const isPast = (date: string, shift: ShiftType) =>
     date < data.now.date || (date === data.now.date && shift === "DAY" && data.now.shift === "NIGHT");
-  const cell = (staffId: string, date: string, shift: ShiftType) =>
-    data.assignments.find((a) => a.staffId === staffId && a.date === date && a.shift === shift);
   const gapShifts = data.gaps.filter((g) => g.missing.length > 0 && !isPast(g.date, g.shift));
 
   async function toggle(staffId: string, date: string, shift: ShiftType, assigned: boolean) {
@@ -61,10 +58,26 @@ export function Schedule({ scope }: { scope: "agents" | "clinicians" }) {
     try {
       await api("/schedule", { staffId, date, shift, assigned }, { method: "PUT" });
       await reload();
-    } catch {
-      toast.error("Couldn't change the shift. Try again.");
+      return true;
+    } catch (e) {
+      toast.error(e instanceof ApiFailure ? e.error.message : "Couldn't change the shift. Try again.");
+      return false;
     } finally {
       setBusy(null);
+    }
+  }
+
+  async function copyLastWeek() {
+    setCopying(true);
+    try {
+      const { added } = await api<{ added: number }>("/schedule/copy", { week: data!.monday });
+      await reload();
+      if (added) toast.success(`Copied ${added} ${added === 1 ? "shift" : "shifts"} from last week`);
+      else toast.success("Nothing new to copy: last week's shifts are already here, or these days have passed.");
+    } catch (e) {
+      toast.error(e instanceof ApiFailure ? e.error.message : "Couldn't copy last week. Try again.");
+    } finally {
+      setCopying(false);
     }
   }
 
@@ -72,12 +85,17 @@ export function Schedule({ scope }: { scope: "agents" | "clinicians" }) {
     <div className="flex flex-col gap-6">
       <PageHeader
         title={scope === "agents" ? "Agent schedule" : "Clinician schedule"}
-        intro={`Day ${SHIFT_HOURS.DAY}, Night ${SHIFT_HOURS.NIGHT}. Tap a shift to add or remove someone.${scope === "agents" ? " At least one agent must be on every shift." : ""}`}
+        intro={`Day ${SHIFT_HOURS.DAY}, Night ${SHIFT_HOURS.NIGHT}.${scope === "agents" ? " At least one agent must be on every shift." : ""}`}
       />
 
       <div className="flex flex-wrap items-center justify-between gap-3">
         <p className="font-heading text-h3 font-semibold text-fg">{range(data.days)}</p>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
+          {!isPast(data.days[6], "NIGHT") && (
+            <Button variant="secondary" size="compact" icon={<LuCopy />} loading={copying} onClick={copyLastWeek}>
+              Copy last week
+            </Button>
+          )}
           <Button variant="secondary" size="icon" aria-label="Previous week" onClick={() => setWeek(addDays(data.monday, -7))}>
             <LuChevronLeft />
           </Button>
@@ -100,6 +118,51 @@ export function Schedule({ scope }: { scope: "agents" | "clinicians" }) {
         <Notice tone="success" title="Every upcoming shift is covered" />
       )}
 
+      <Tabs defaultValue="calendar" className="flex flex-col gap-4">
+        <TabsList aria-label="Schedule view">
+          <Tab value="calendar">Calendar</Tab>
+          <Tab value="table">Table</Tab>
+        </TabsList>
+        <TabsContent value="calendar" className="flex flex-col gap-3">
+          <ScheduleCalendar data={data} scope={scope} isPast={isPast} setShift={toggle} />
+        </TabsContent>
+        <TabsContent value="table" className="flex flex-col gap-3">
+          <ScheduleTable data={data} scope={scope} isPast={isPast} busy={busy} toggle={toggle} />
+        </TabsContent>
+      </Tabs>
+    </div>
+  );
+}
+
+/** The same week as a table: every shift is a button, so it works with a keyboard and a screen reader. */
+function ScheduleTable({
+  data,
+  scope,
+  isPast,
+  busy,
+  toggle,
+}: {
+  data: Week;
+  scope: "agents" | "clinicians";
+  isPast: (date: string, shift: ShiftType) => boolean;
+  busy: string | null;
+  toggle: (staffId: string, date: string, shift: ShiftType, assigned: boolean) => Promise<boolean>;
+}) {
+  const scroller = useRef<HTMLDivElement>(null);
+  const cell = (staffId: string, date: string, shift: ShiftType) =>
+    data.assignments.find((a) => a.staffId === staffId && a.date === date && a.shift === shift);
+
+  // On narrow screens the grid scrolls sideways: open it at today, not Monday.
+  const today = data.days.includes(data.now.date) ? data.now.date : null;
+  useEffect(() => {
+    const el = scroller.current;
+    const th = el?.querySelector<HTMLElement>("[data-today]");
+    const sticky = el?.querySelector<HTMLElement>("thead th");
+    if (el && th && sticky && el.scrollWidth > el.clientWidth) el.scrollLeft = th.offsetLeft - sticky.offsetWidth;
+  }, [today, data.monday]);
+
+  return (
+    <>
       <Card className="overflow-hidden p-0 md:p-0">
         <div ref={scroller} className="overflow-x-auto">
           <table className="w-full min-w-[960px] border-collapse text-small">
@@ -196,6 +259,6 @@ export function Schedule({ scope }: { scope: "agents" | "clinicians" }) {
         <LuCheck className="inline size-4 align-[-3px] text-info-fg" aria-hidden /> on shift · <span className="font-medium text-warning-fg">Off</span> on shift but marked
         unavailable · hover or focus a coverage mark to see what&apos;s missing.
       </p>
-    </div>
+    </>
   );
 }

@@ -1,6 +1,7 @@
 import { Body, Controller, Get, HttpCode, Param, ParseUUIDPipe, Post, Put, Query, Req } from "@nestjs/common";
-import { currentShift, SERVICES, SHIFTS, shiftToggle, unavailability, weekDays, weekStart, type Service, type ShiftType } from "@ubuzima/shared";
+import { addDays, currentShift, SERVICES, SHIFTS, shiftToggle, unavailability, weekDays, weekStart, type Service, type ShiftType } from "@ubuzima/shared";
 import type { Request } from "express";
+import { z } from "zod";
 import { AuditService } from "../common/audit.service";
 import { DbService } from "../common/db.service";
 import { ApiException } from "../common/errors";
@@ -71,6 +72,34 @@ export class ScheduleController {
     }
     await this.audit.record({ type: "staff", id: s.staffId }, t.assigned ? "schedule.assigned" : "schedule.removed", { staffId: t.staffId, date: t.date, shift: t.shift }, req.ip);
     return { ok: true };
+  }
+
+  /**
+   * D77: copy the week before into this week, for everyone on this schedule. Shifts already planned stay, and shifts
+   * that have already started are not added. Returns how many were added.
+   */
+  @Post("copy")
+  @HttpCode(200)
+  @Auth({ kind: "staff", roles: ["ADMIN", "FACILITY_MANAGER"] })
+  async copy(@Body() body: unknown, @CurrentSession() s: LiveSession, @Req() req: Request) {
+    const { week } = parse(z.object({ week: z.string().regex(/^\d{4}-\d{2}-\d{2}$/) }), body);
+    const monday = validWeek(week);
+    const days = weekDays(monday);
+    const before = weekDays(addDays(monday, -7));
+    const people = await this.db.client.staff.findMany({ where: { ...this.scope(s), status: { not: "DEACTIVATED" } }, select: { id: true } });
+    const source = await this.db.client.shiftAssignment.findMany({
+      where: { staffId: { in: people.map((p) => p.id) }, date: { gte: day(before[0]), lte: day(before[6]) } },
+      select: { staffId: true, date: true, shift: true },
+    });
+    const now = currentShift();
+    const started = (date: string, shift: ShiftType) => date < now.date || (date === now.date && (shift === "DAY" || now.shift === "NIGHT"));
+    const rows = source
+      .map((a) => ({ staffId: a.staffId, date: addDays(isoOf(a.date), 7), shift: a.shift as ShiftType }))
+      .filter((a) => days.includes(a.date) && !started(a.date, a.shift))
+      .map((a) => ({ ...a, date: day(a.date), createdById: s.staffId! }));
+    const { count } = await this.db.client.shiftAssignment.createMany({ data: rows, skipDuplicates: true });
+    await this.audit.record({ type: "staff", id: s.staffId }, "schedule.copied", { week: monday, added: count }, req.ip);
+    return { added: count };
   }
 
   /** Administrator → agents; facility manager → clinicians at their facility. */
