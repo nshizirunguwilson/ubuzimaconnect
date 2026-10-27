@@ -215,6 +215,8 @@ export const en = {
     sendVoice: "Send the voice note",
     cancelVoice: "Cancel the recording",
     voiceNote: "Voice note",
+    play: "Play the voice note",
+    pause: "Pause",
     micBlocked: "Allow the microphone in your browser to send a voice note.",
     quick: { Yes: "Yes", No: "No", Better: "Better", Worse: "Worse", Same: "Same", "I don't know": "I don't know" } as Record<string, string>,
   },
