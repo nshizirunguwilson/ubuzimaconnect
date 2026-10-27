@@ -217,6 +217,8 @@ export const rw: Messages = {
     sendVoice: "Ohereza ubutumwa bw'ijwi",
     cancelVoice: "Hagarika gufata ijwi",
     voiceNote: "Ubutumwa bw'ijwi",
+    play: "Umva ubutumwa bw'ijwi",
+    pause: "Hagarika",
     micBlocked: "Emerera mikoro muri mushakisha kugira ngo wohereze ubutumwa bw'ijwi.",
     quick: { Yes: "Yego", No: "Oya", Better: "Ndumva meze neza", Worse: "Ndumva meze nabi", Same: "Ntacyahindutse", "I don't know": "Simbizi" },
   },

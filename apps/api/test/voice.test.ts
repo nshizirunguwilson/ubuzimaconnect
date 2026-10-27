@@ -44,11 +44,13 @@ describe("voice notes in the chat (D74)", () => {
     expect(r.status).toBe(201);
     const msg = (await patient(`/cases/${caseId}`)).body.messages.find((m: { id: string }) => m.id === r.body.id);
     expect(msg).toMatchObject({ sender: "AGENT", audioMs: 9000 });
+    // D78: up to 2 minutes
+    expect((await agent(`/agent/cases/${caseId}/voice`, { audio: WEBM, durationMs: 115_000 })).status).toBe(201);
   });
 
-  it("refuses something that isn't audio, a note over a minute, and other people", async () => {
+  it("refuses something that isn't audio, a note over 2 minutes, and other people", async () => {
     expect((await patient(`/cases/${caseId}/voice`, { audio: FAKE, durationMs: 3000 })).status).toBe(400);
-    expect((await patient(`/cases/${caseId}/voice`, { audio: WEBM, durationMs: 90_000 })).status).toBe(400);
+    expect((await patient(`/cases/${caseId}/voice`, { audio: WEBM, durationMs: 150_000 })).status).toBe(400);
     expect((await patient(`/cases/${caseId}/voice`, { audio: "data:image/png;base64,AAAA", durationMs: 3000 })).status).toBe(400);
     const stranger = browser();
     await stranger("/auth/patient/login", ALINE);

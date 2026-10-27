@@ -21,15 +21,16 @@ export const triageReview = z.object({
 export const QUICK_REPLIES = ["Yes", "No", "Better", "Worse", "Same", "I don't know"] as const;
 export const chatMessage = z.object({ text: z.string().trim().min(1, "Write a message").max(2000) });
 
-/** D74: a voice note of up to 60 seconds, as a data URL; its real type is checked by its first bytes (audioType). */
-export const VOICE_MAX_MS = 60_000;
-export const VOICE_MAX_BYTES = 1_500_000;
+/** D74, D78: a voice note of up to 2 minutes, as a data URL; its real type is checked by its first bytes (audioType). */
+export const VOICE_MAX_MS = 120_000;
+/** 2 minutes at 32 kbit/s is about 480 kB; Safari may record at a higher rate, so room is left for that. */
+export const VOICE_MAX_BYTES = 2_500_000;
 export const voiceNote = z.object({
   audio: z
     .string()
     .regex(/^data:audio\/(webm|ogg|mp4|mpeg)(;codecs=[\w.,-]+)?;base64,[A-Za-z0-9+/]+=*$/, "Record the voice note again")
     .refine((v) => Math.floor(((v.length - v.indexOf(",") - 1) * 3) / 4) <= VOICE_MAX_BYTES, "The voice note is too long"),
-  durationMs: z.number().int().min(500, "Hold a little longer to record").max(VOICE_MAX_MS + 2_000, "Voice notes can be up to 1 minute"),
+  durationMs: z.number().int().min(500, "Hold a little longer to record").max(VOICE_MAX_MS + 2_000, "Voice notes can be up to 2 minutes"),
 });
 
 /** The real audio type, from the file's first bytes; null for anything else. */

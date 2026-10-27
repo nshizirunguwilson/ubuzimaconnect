@@ -21,8 +21,9 @@ async function bootstrap() {
   // Wrapped: Nest skips its own parser for every route if it finds a middleware named "jsonParser".
   const largeBody = json({ limit: "2mb" });
   app.use("/staff/nida/people", (req: Request, res: Response, next: NextFunction) => largeBody(req, res, next));
-  // D74: a voice note of up to 1 minute is about 1 MB once base64-encoded.
-  app.use(/^\/(agent\/)?cases\/[^/]+\/voice$/, (req: Request, res: Response, next: NextFunction) => largeBody(req, res, next));
+  // D74, D78: a voice note of up to 2 minutes, at most 2.5 MB, is up to about 3.4 MB once base64-encoded.
+  const voiceBody = json({ limit: "3.5mb" });
+  app.use(/^\/(agent\/)?cases\/[^/]+\/voice$/, (req: Request, res: Response, next: NextFunction) => voiceBody(req, res, next));
   app.enableCors({ origin: env.webUrl, credentials: true });
   app.enableShutdownHooks();
   await app.listen(env.port);
