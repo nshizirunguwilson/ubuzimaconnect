@@ -2,7 +2,7 @@ import { Controller, Get, HttpCode, Post } from "@nestjs/common";
 import { DbService } from "../common/db.service";
 import { Auth } from "../auth/guard";
 
-/** FR 12.7: the administrator's alerts, newest first, and marking them read. */
+/** The administrator's alerts, newest first, and marking them as read. */
 @Controller("alerts")
 @Auth({ kind: "staff", roles: ["ADMIN"] })
 export class AlertsController {
@@ -14,10 +14,23 @@ export class AlertsController {
       this.db.client.alert.findMany({ orderBy: { createdAt: "desc" }, take: 100 }),
       this.db.client.alert.count({ where: { readAt: null } }),
     ]);
-    const cases = await this.db.client.case.findMany({ where: { id: { in: alerts.flatMap((a) => (a.caseId ? [a.caseId] : [])) } }, select: { id: true, code: true, status: true } });
+    const caseIds = alerts.flatMap((alert) => (alert.caseId ? [alert.caseId] : []));
+    const cases = await this.db.client.case.findMany({
+      where: { id: { in: caseIds } },
+      select: { id: true, code: true, status: true },
+    });
+
     return {
       unread,
-      alerts: alerts.map((a) => ({ id: a.id, kind: a.kind, message: a.message, emailed: a.emailed, read: !!a.readAt, at: a.createdAt, case: cases.find((c) => c.id === a.caseId) ?? null })),
+      alerts: alerts.map((alert) => ({
+        id: alert.id,
+        kind: alert.kind,
+        message: alert.message,
+        emailed: alert.emailed,
+        read: alert.readAt !== null,
+        at: alert.createdAt,
+        case: cases.find((found) => found.id === alert.caseId) ?? null,
+      })),
     };
   }
 

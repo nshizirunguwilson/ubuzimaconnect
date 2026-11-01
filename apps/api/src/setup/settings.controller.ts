@@ -7,7 +7,7 @@ import { parse } from "../common/zod";
 import { Auth, CurrentSession } from "../auth/guard";
 import type { LiveSession } from "../auth/session.service";
 
-/** FR 4.8: the administrator switches the AI off and on. While off, every new case is Uncertain. */
+/** The administrator switches the AI off and on. While it is off, every new case is Uncertain. */
 @Controller("settings")
 @Auth({ kind: "staff", roles: ["ADMIN"] })
 export class SettingsController {
@@ -18,20 +18,23 @@ export class SettingsController {
 
   @Get()
   async get() {
-    const s = await this.db.client.systemSettings.upsert({ where: { id: 1 }, create: { id: 1 }, update: {} });
-    const by = s.updatedById ? await this.db.client.staff.findUnique({ where: { id: s.updatedById }, select: { name: true } }) : null;
-    return { aiEnabled: s.aiEnabled, updatedAt: s.updatedAt, updatedBy: by?.name ?? null };
+    const settings = await this.db.client.systemSettings.upsert({ where: { id: 1 }, create: { id: 1 }, update: {} });
+    const updatedBy = settings.updatedById
+      ? await this.db.client.staff.findUnique({ where: { id: settings.updatedById }, select: { name: true } })
+      : null;
+    return { aiEnabled: settings.aiEnabled, updatedAt: settings.updatedAt, updatedBy: updatedBy?.name ?? null };
   }
 
   @Put()
-  async set(@Body() body: unknown, @CurrentSession() s: LiveSession, @Req() req: Request) {
+  async set(@Body() body: unknown, @CurrentSession() session: LiveSession, @Req() request: Request) {
     const { aiEnabled } = parse(z.object({ aiEnabled: z.boolean() }), body);
     await this.db.client.systemSettings.upsert({
       where: { id: 1 },
-      create: { id: 1, aiEnabled, updatedById: s.staffId },
-      update: { aiEnabled, updatedById: s.staffId },
+      create: { id: 1, aiEnabled, updatedById: session.staffId },
+      update: { aiEnabled, updatedById: session.staffId },
     });
-    await this.audit.record({ type: "staff", id: s.staffId }, aiEnabled ? "settings.ai.on" : "settings.ai.off", undefined, req.ip);
+    const action = aiEnabled ? "settings.ai.on" : "settings.ai.off";
+    await this.audit.record({ type: "staff", id: session.staffId }, action, undefined, request.ip);
     return { ok: true };
   }
 }
