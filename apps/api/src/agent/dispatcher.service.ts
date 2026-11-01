@@ -2,6 +2,7 @@ import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from "@nestjs/commo
 import type { TriageLevel } from "@ubuzima/shared";
 import { AuditService } from "../common/audit.service";
 import { DbService } from "../common/db.service";
+import { ChatService } from "../live/chat.service";
 import { EventsService } from "../live/events.service";
 
 /** How long an agent has to accept an offer (shorter only in tests). */
@@ -42,6 +43,7 @@ export class DispatcherService implements OnModuleInit, OnModuleDestroy {
   constructor(
     private db: DbService,
     private events: EventsService,
+    private chat: ChatService,
     private audit: AuditService,
   ) {}
 
@@ -100,12 +102,7 @@ export class DispatcherService implements OnModuleInit, OnModuleDestroy {
     });
 
     if (patientMessage) {
-      const message = await this.db.client.chatMessage.create({ data: { caseId, sender: "SYSTEM", text: patientMessage } });
-      this.events.emit(`case:${caseId}`, {
-        type: "message",
-        caseId,
-        message: { id: message.id, sender: "SYSTEM", text: message.text, createdAt: message.createdAt.toISOString() },
-      });
+      await this.chat.post(caseId, "SYSTEM", patientMessage);
     }
     this.events.emit(`case:${caseId}`, { type: "case", caseId });
     this.events.emit("agents", { type: "queue" });

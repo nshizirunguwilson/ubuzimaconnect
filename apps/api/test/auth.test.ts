@@ -189,8 +189,9 @@ describe("patient session (FR 1.7)", () => {
     const b = browser();
     expect((await b("/auth/patient/login", { nationalId: "1199270045823116", dateOfBirth: "1992-03-14", name: "Aline" })).status).toBe(200);
     expect((await b("/auth/me")).status).toBe(200);
-    const row = (await db.query(`select "expiresAt" - "lastSeenAt" as idle from "Session" where "patientId" is not null order by "createdAt" desc limit 1`)).rows[0];
-    expect(row.idle.minutes ?? row.idle.hours * 60).toBe(15); // the session lasts 15 minutes from the last request
+    const row = (await db.query(`select extract(epoch from "expiresAt" - "lastSeenAt") as idle from "Session" where "patientId" is not null order by "createdAt" desc limit 1`)).rows[0];
+    // The session lasts 15 minutes from the last request. Rounded: the two times come from two clocks a few ms apart.
+    expect(Math.round(Number(row.idle) / 60)).toBe(15);
     await db.query(`update "Session" set "expiresAt" = now() at time zone 'utc' - interval '1 second' where "patientId" is not null`);
     expect((await b("/auth/me")).status).toBe(401);
   });

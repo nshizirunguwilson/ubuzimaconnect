@@ -21,32 +21,44 @@ import { parse } from "../common/zod";
 import { Auth, CurrentSession } from "../auth/guard";
 import type { LiveSession } from "../auth/session.service";
 import { RoutingService } from "../cases/routing.service";
+import { ChatService } from "../live/chat.service";
 import { EventsService } from "../live/events.service";
 import { PrescriptionsService } from "../prescriptions/prescriptions.service";
 import { DispatcherService } from "./dispatcher.service";
 
-const LEVEL1_MS = 2 * 60_000; // FR 6.10: Urgent or Uncertain not accepted within 2 minutes
-const CALL_WINDOW_MS = 10 * 60_000; // FR 6.7: 3 unanswered attempts within 10 minutes
-const MINOR_SILENCE_MS = 10 * 60_000; // FR 6.9
+/** An Urgent or Uncertain case waiting this long raises a level 1 alert. */
+const LEVEL1_MS = 2 * 60_000;
+/** 3 unanswered calls within this window close the case as No response. */
+const CALL_WINDOW_MS = 10 * 60_000;
+const MAX_MISSED_CALLS = 3;
+/** A Minor case can close as No response after the patient has been silent this long. */
+const MINOR_SILENCE_MS = 10 * 60_000;
 
-/** The human agent's work (FR 6). Full case details only while the agent handles that case (FR 9.2). */
+/** "Diane Umutoni" becomes "Diane", the name patients see. */
+const firstName = (fullName: string) => fullName.split(" ")[0];
+
+/** The health agent's work. An agent sees a case's full details only while they are handling it. */
 @Controller("agent")
 @Auth({ kind: "staff", roles: ["AGENT"] })
 export class AgentController {
   constructor(
     private db: DbService,
     private events: EventsService,
+    private chat: ChatService,
     private dispatcher: DispatcherService,
     private routing: RoutingService,
     private audit: AuditService,
     private prescriptions: PrescriptionsService,
   ) {}
 
-  /** Status, the case being handled, the current offer, and the waiting counts per level. */
+  /** The agent's status, the case they are handling, their current offer, and the waiting queue. */
   @Get("state")
-  async state(@CurrentSession() s: LiveSession) {
-    const me = await this.db.client.staff.findUniqueOrThrow({ where: { id: s.staffId! } });
-    const active = await this.db.client.case.findFirst({ where: { agentId: me.id, status: "ASSIGNED" }, select: { id: true, code: true } });
+  async state(@CurrentSession() session: LiveSession) {
+    const me = await this.db.client.staff.findUniqueOrThrow({ where: { id: session.staffId! } });
+    const active = await this.db.client.case.findFirst({
+      where: { agentId: me.id, status: "ASSIGNED" },
+      select: { id: true, code: true },
+    });
     const offer = await this.db.client.case.findFirst({
       where: { offeredToId: me.id, status: "OFFERED" },
       include: { patient: true, answers: { where: { answer: true } } },
@@ -56,66 +68,98 @@ export class AgentController {
       orderBy: { queuedAt: "asc" },
       include: { patient: true, answers: { where: { answer: true } } },
     });
-    const level1 = waiting.some((c) => c.triageLevel !== "MINOR" && c.queuedAt && Date.now() - c.queuedAt.getTime() > LEVEL1_MS);
+
+    // A Busy agent may pause a Minor or Uncertain case to take an urgent one, once a level 1 alert is up.
+    const level1Alert = waiting.some(
+      (waitingCase) =>
+        waitingCase.triageLevel !== "MINOR" &&
+        waitingCase.queuedAt !== null &&
+        Date.now() - waitingCase.queuedAt.getTime() > LEVEL1_MS,
+    );
+
     return {
       status: me.agentStatus,
       statusSince: me.agentStatusSince,
       active,
-      offer: offer && { ...summary(offer), expiresAt: offer.offerExpiresAt },
-      waiting: waiting.map(summary),
-      // FR 6.12: a Busy agent may pause a Minor or Uncertain case after a level 1 alert.
-      level1Alert: level1,
+      offer: offer && { ...queueSummary(offer), expiresAt: offer.offerExpiresAt },
+      waiting: waiting.map(queueSummary),
+      level1Alert,
     };
   }
 
-  /** FR 6.1, 6.16: Available, Away or Offline; not Away or Offline while handling a case. */
+  /** Available, Away or Offline. An agent handling a case stays Busy until they close or release it. */
   @Put("status")
-  async setStatus(@Body() body: unknown, @CurrentSession() s: LiveSession, @Req() req: Request) {
+  async setStatus(@Body() body: unknown, @CurrentSession() session: LiveSession, @Req() request: Request) {
     const { status } = parse(agentStatusChange, body);
-    const active = await this.db.client.case.count({ where: { agentId: s.staffId!, status: "ASSIGNED" } });
-    if (active && status !== "AVAILABLE") {
+    const staffId = session.staffId!;
+
+    const handlingCase = (await this.db.client.case.count({ where: { agentId: staffId, status: "ASSIGNED" } })) > 0;
+    if (handlingCase && status !== "AVAILABLE") {
       throw new ApiException(409, "CONFLICT", "Close or release your case first.");
     }
-    if (active) return { ok: true }; // stays Busy
-    await this.db.client.staff.update({ where: { id: s.staffId! }, data: { agentStatus: status, agentStatusSince: new Date(), lastSeenAt: new Date() } });
+    if (handlingCase) return { ok: true }; // stays Busy
+
+    await this.db.client.staff.update({
+      where: { id: staffId },
+      data: { agentStatus: status, agentStatusSince: new Date(), lastSeenAt: new Date() },
+    });
+    // Going Away or Offline gives back an offer that is waiting for them.
     if (status !== "AVAILABLE") {
-      await this.db.client.case.updateMany({ where: { offeredToId: s.staffId!, status: "OFFERED" }, data: { status: "QUEUED", offeredToId: null, offerExpiresAt: null } });
+      await this.db.client.case.updateMany({
+        where: { offeredToId: staffId, status: "OFFERED" },
+        data: { status: "QUEUED", offeredToId: null, offerExpiresAt: null },
+      });
     }
-    await this.audit.record({ type: "staff", id: s.staffId }, "agent.status", { status }, req.ip);
+    await this.audit.record({ type: "staff", id: staffId }, "agent.status", { status }, request.ip);
     this.events.emit("agents", { type: "queue" });
     return { ok: true };
   }
 
-  /** FR 6.3: only one agent can accept; the update only succeeds while the offer is still theirs. */
+  /** Accepts an offer. Only one agent can: the update succeeds only while the offer is still theirs and unexpired. */
   @Post("offers/:id/accept")
   @HttpCode(200)
-  async accept(@Param("id", ParseUUIDPipe) id: string, @CurrentSession() s: LiveSession, @Req() req: Request) {
+  async accept(@Param("id", ParseUUIDPipe) caseId: string, @CurrentSession() session: LiveSession, @Req() request: Request) {
+    const staffId = session.staffId!;
     const taken = await this.db.client.case.updateMany({
-      where: { id, status: "OFFERED", offeredToId: s.staffId!, offerExpiresAt: { gt: new Date() } },
-      data: { status: "ASSIGNED", agentId: s.staffId!, assignedAt: new Date(), offeredToId: null, offerExpiresAt: null, offerSkipped: [], frontOfQueue: false },
+      where: { id: caseId, status: "OFFERED", offeredToId: staffId, offerExpiresAt: { gt: new Date() } },
+      data: {
+        status: "ASSIGNED",
+        agentId: staffId,
+        assignedAt: new Date(),
+        offeredToId: null,
+        offerExpiresAt: null,
+        offerSkipped: [],
+        frontOfQueue: false,
+      },
     });
     if (taken.count === 0) throw new ApiException(409, "CONFLICT", "This offer has ended.");
-    await this.db.client.staff.update({ where: { id: s.staffId! }, data: { agentStatus: "BUSY", agentStatusSince: new Date() } });
-    await this.system(id, `${s.staff!.name.split(" ")[0]}, a health agent, is now looking at your request.`);
-    await this.audit.record({ type: "staff", id: s.staffId }, "case.accepted", { caseId: id }, req.ip);
+
+    await this.db.client.staff.update({ where: { id: staffId }, data: { agentStatus: "BUSY", agentStatusSince: new Date() } });
+    await this.tellPatient(caseId, `${firstName(session.staff!.name)}, a health agent, is now looking at your request.`);
+    await this.audit.record({ type: "staff", id: staffId }, "case.accepted", { caseId }, request.ip);
     this.events.emit("agents", { type: "queue" });
     return { ok: true };
   }
 
+  /** Lets an offer pass. The case goes back to the queue and remembers that this agent let it pass. */
   @Post("offers/:id/decline")
   @HttpCode(200)
-  async decline(@Param("id", ParseUUIDPipe) id: string, @CurrentSession() s: LiveSession) {
-    const c = await this.db.client.case.findFirst({ where: { id, status: "OFFERED", offeredToId: s.staffId! } });
-    if (c) {
-      await this.db.client.case.update({ where: { id }, data: { status: "QUEUED", offeredToId: null, offerExpiresAt: null, offerSkipped: { push: s.staffId! } } });
+  async decline(@Param("id", ParseUUIDPipe) caseId: string, @CurrentSession() session: LiveSession) {
+    const staffId = session.staffId!;
+    const offered = await this.db.client.case.findFirst({ where: { id: caseId, status: "OFFERED", offeredToId: staffId } });
+    if (offered) {
+      await this.db.client.case.update({
+        where: { id: caseId },
+        data: { status: "QUEUED", offeredToId: null, offerExpiresAt: null, offerSkipped: { push: staffId } },
+      });
     }
     return { ok: true };
   }
 
-  /** FR 6.5: the full case, identity photo, AI result and reason, and the patient's history. */
+  /** The full case: identity photo, danger signs, the AI's suggestion and reason, the chat, calls, routings and history. */
   @Get("cases/:id")
-  async view(@Param("id", ParseUUIDPipe) id: string, @CurrentSession() s: LiveSession, @Req() req: Request) {
-    const c = await this.mine(id, s);
+  async view(@Param("id", ParseUUIDPipe) id: string, @CurrentSession() session: LiveSession, @Req() request: Request) {
+    const handled = await this.mine(id, session);
     const full = await this.db.client.case.findUniqueOrThrow({
       where: { id },
       include: {
@@ -126,18 +170,28 @@ export class AgentController {
         messages: { orderBy: { createdAt: "asc" }, include: { staff: { select: { name: true } } } },
         calls: { orderBy: { createdAt: "asc" }, include: { staff: { select: { name: true } } } },
         changes: { orderBy: { createdAt: "asc" } },
-        routings: { orderBy: { createdAt: "desc" }, include: { facility: true, clinician: { select: { id: true, name: true, specialty: true } }, reservation: true } },
+        routings: {
+          orderBy: { createdAt: "desc" },
+          include: { facility: true, clinician: { select: { id: true, name: true, specialty: true } }, reservation: true },
+        },
       },
     });
     const history = await this.db.client.case.findMany({
-      where: { patientId: c.patientId, id: { not: id } },
+      where: { patientId: handled.patientId, id: { not: id } },
       orderBy: { createdAt: "desc" },
       take: 10,
       select: { id: true, code: true, createdAt: true, triageLevel: true, category: true, outcome: true, closingNote: true },
     });
-    await this.audit.viewed({ type: "staff", id: s.staffId }, "record.viewed", { caseId: id, patientId: c.patientId }, req.ip);
-    const a = age(full.patient.dateOfBirth);
-    const lastPatient = [...full.messages].reverse().find((m) => m.sender === "PATIENT");
+    await this.audit.viewed(
+      { type: "staff", id: session.staffId },
+      "record.viewed",
+      { caseId: id, patientId: handled.patientId },
+      request.ip,
+    );
+
+    const lastPatientMessage = [...full.messages].reverse().find((message) => message.sender === "PATIENT");
+    const isForSomeoneElse = full.openedById !== full.patientId;
+
     return {
       id: full.id,
       code: full.code,
@@ -146,11 +200,11 @@ export class AgentController {
         id: full.patient.id,
         name: full.patient.fullName,
         sex: full.patient.sex,
-        age: a,
+        age: age(full.patient.dateOfBirth),
         dateOfBirth: full.patient.dateOfBirth,
         district: full.patient.district,
         photoUrl: full.patient.photoUrl,
-        openedBy: full.openedById !== full.patientId ? full.openedBy.fullName : null,
+        openedBy: isForSomeoneElse ? full.openedBy.fullName : null,
       },
       triage: {
         level: full.triageLevel,
@@ -160,248 +214,385 @@ export class AgentController {
         bedNeeded: full.bedNeeded,
       },
       pregnant: full.pregnant,
-      answers: full.answers.map((x) => ({ code: x.code, text: x.textEn, answer: x.answer })),
+      answers: full.answers.map((answer) => ({ code: answer.code, text: answer.textEn, answer: answer.answer })),
       description: full.description,
       duration: full.duration,
       severity: full.severity,
       ai: full.aiResult,
       call: full.callRequested ? { number: full.callNumber, owner: full.callNumberOwner } : null,
-      calls: full.calls.map((x) => ({ id: x.id, answered: x.answered, note: x.note, by: x.staff.name, at: x.createdAt })),
-      messages: full.messages.map((m) => ({ id: m.id, sender: m.sender, text: m.text, createdAt: m.createdAt, staffName: m.staff?.name ?? null, audioMs: m.audioMs })),
+      calls: full.calls.map((call) => ({
+        id: call.id,
+        answered: call.answered,
+        note: call.note,
+        by: call.staff.name,
+        at: call.createdAt,
+      })),
+      messages: full.messages.map((message) => ({
+        id: message.id,
+        sender: message.sender,
+        text: message.text,
+        createdAt: message.createdAt,
+        staffName: message.staff?.name ?? null,
+        audioMs: message.audioMs,
+      })),
       changes: full.changes,
-      routings: full.routings.map((r) => ({
-        id: r.id,
-        status: r.status,
-        facility: { id: r.facility.id, name: r.facility.name, phone: r.facility.phone },
-        service: r.service,
-        bedNeeded: r.bedNeeded,
-        bedHeld: r.reservation?.status === "HELD",
-        clinician: r.clinician,
-        distanceKm: r.distanceKm,
-        expiresAt: r.expiresAt,
+      routings: full.routings.map((routing) => ({
+        id: routing.id,
+        status: routing.status,
+        facility: { id: routing.facility.id, name: routing.facility.name, phone: routing.facility.phone },
+        service: routing.service,
+        bedNeeded: routing.bedNeeded,
+        bedHeld: routing.reservation?.status === "HELD",
+        clinician: routing.clinician,
+        distanceKm: routing.distanceKm,
+        expiresAt: routing.expiresAt,
       })),
       history,
-      // FR 11.6: the patient's full prescription history while the agent handles the case
-      prescriptions: await this.prescriptions.forPatient(c.patientId),
+      // The patient's full prescription history, while the agent handles the case.
+      prescriptions: await this.prescriptions.forPatient(handled.patientId),
       location: { latitude: full.latitude, longitude: full.longitude, source: full.locationSource },
-      patientSilentFor: lastPatient ? Date.now() - lastPatient.createdAt.getTime() : null,
+      patientSilentFor: lastPatientMessage ? Date.now() - lastPatientMessage.createdAt.getTime() : null,
     };
   }
 
-  /** FR 6.5: confirm or change level, category, service and bed; every change saved with name and time. */
+  /** Confirms or changes the triage level, category, service and bed. Each change is saved with who made it and when. */
   @Put("cases/:id/triage")
-  async review(@Param("id", ParseUUIDPipe) id: string, @Body() body: unknown, @CurrentSession() s: LiveSession, @Req() req: Request) {
-    const c = await this.mine(id, s);
-    const next = parse(triageReview, body);
+  async review(
+    @Param("id", ParseUUIDPipe) id: string,
+    @Body() body: unknown,
+    @CurrentSession() session: LiveSession,
+    @Req() request: Request,
+  ) {
+    const handled = await this.mine(id, session);
+    const reviewed = parse(triageReview, body);
+
     const fields = [
-      ["triageLevel", c.triageLevel, next.triageLevel],
-      ["category", c.category, next.category],
-      ["neededService", c.neededService, next.neededService],
-      ["bedNeeded", c.bedNeeded === null ? null : String(c.bedNeeded), String(next.bedNeeded)],
-    ] as const;
-    const changed = fields.filter(([, from, to]) => (from ?? null) !== (to ?? null));
-    await this.db.client.case.update({ where: { id }, data: next });
-    if (changed.length) {
+      { field: "triageLevel", from: handled.triageLevel, to: reviewed.triageLevel },
+      { field: "category", from: handled.category, to: reviewed.category },
+      { field: "neededService", from: handled.neededService, to: reviewed.neededService },
+      { field: "bedNeeded", from: textOrNull(handled.bedNeeded), to: String(reviewed.bedNeeded) },
+    ];
+    const changed = fields.filter(({ from, to }) => (from ?? null) !== (to ?? null));
+
+    await this.db.client.case.update({ where: { id }, data: reviewed });
+    if (changed.length > 0) {
       await this.db.client.caseChange.createMany({
-        data: changed.map(([field, from, to]) => ({ caseId: id, staffId: s.staffId!, field, fromValue: from === null ? null : String(from), toValue: to === null ? null : String(to) })),
+        data: changed.map(({ field, from, to }) => ({
+          caseId: id,
+          staffId: session.staffId!,
+          field,
+          fromValue: textOrNull(from),
+          toValue: textOrNull(to),
+        })),
       });
     }
-    await this.audit.record({ type: "staff", id: s.staffId }, "triage.confirmed", { caseId: id, changed: changed.map(([f]) => f) }, req.ip);
+    await this.audit.record(
+      { type: "staff", id: session.staffId },
+      "triage.confirmed",
+      { caseId: id, changed: changed.map(({ field }) => field) },
+      request.ip,
+    );
     return { ok: true, changed: changed.length };
   }
 
-  /** FR 6.6: a chat message, delivered live to the patient. */
+  /** A chat message to the patient, shown to them at once. */
   @Post("cases/:id/messages")
-  async message(@Param("id", ParseUUIDPipe) id: string, @Body() body: unknown, @CurrentSession() s: LiveSession) {
-    await this.mine(id, s);
+  async message(@Param("id", ParseUUIDPipe) id: string, @Body() body: unknown, @CurrentSession() session: LiveSession) {
+    await this.mine(id, session);
     const { text } = parse(chatMessage, body);
-    const m = await this.db.client.chatMessage.create({ data: { caseId: id, sender: "AGENT", staffId: s.staffId!, text } });
-    this.events.emit(`case:${id}`, {
-      type: "message",
-      caseId: id,
-      message: { id: m.id, sender: "AGENT", text, createdAt: m.createdAt.toISOString(), staffName: s.staff!.name },
-    });
-    // Push notifications for patients not in the app come in phase 3 (FR 6.6, NFR 13).
-    return { id: m.id };
+    const message = await this.chat.post(id, "AGENT", text, { id: session.staffId!, name: session.staff!.name });
+    return { id: message.id };
   }
 
-  /** D74: a voice note from the agent handling the case. */
+  /** A voice note from the agent handling the case. */
   @Post("cases/:id/voice")
-  async voice(@Param("id", ParseUUIDPipe) id: string, @Body() body: unknown, @CurrentSession() s: LiveSession) {
-    await this.mine(id, s);
-    return saveVoice(this.db, this.events, { caseId: id, sender: "AGENT", staffId: s.staffId!, staffName: s.staff!.name }, body);
+  async voice(@Param("id", ParseUUIDPipe) id: string, @Body() body: unknown, @CurrentSession() session: LiveSession) {
+    await this.mine(id, session);
+    const from = { caseId: id, sender: "AGENT" as const, staffId: session.staffId!, staffName: session.staff!.name };
+    return saveVoice(this.db, this.events, from, body);
   }
 
-  /** D74: play a voice note, only while handling the case (FR 9.2). */
+  /** Plays a voice note, only while the agent is handling the case. */
   @Get("cases/:id/voice/:messageId")
-  async playVoice(@Param("id", ParseUUIDPipe) id: string, @Param("messageId", ParseUUIDPipe) messageId: string, @CurrentSession() s: LiveSession, @Res() res: Response) {
-    await this.mine(id, s);
-    await sendVoice(this.db, res, id, messageId);
+  async playVoice(
+    @Param("id", ParseUUIDPipe) id: string,
+    @Param("messageId", ParseUUIDPipe) messageId: string,
+    @CurrentSession() session: LiveSession,
+    @Res() response: Response,
+  ) {
+    await this.mine(id, session);
+    await sendVoice(this.db, response, id, messageId);
   }
 
   /**
-   * FR 6.7: one call attempt with a note. When the number isn't the patient's own, the date of birth must be
-   * confirmed before anything medical. After 3 unanswered attempts in 10 minutes the case closes as No response.
+   * One attempt to call the patient, with a note. When the number isn't the patient's own, their date of birth
+   * must be confirmed before anything medical is said. After 3 unanswered attempts in 10 minutes the case closes
+   * as No response.
    */
   @Post("cases/:id/calls")
-  async call(@Param("id", ParseUUIDPipe) id: string, @Body() body: unknown, @CurrentSession() s: LiveSession, @Req() req: Request) {
-    const c = await this.mine(id, s);
+  async call(
+    @Param("id", ParseUUIDPipe) id: string,
+    @Body() body: unknown,
+    @CurrentSession() session: LiveSession,
+    @Req() request: Request,
+  ) {
+    const handled = await this.mine(id, session);
     const input = parse(callNote, body);
-    if (input.answered && c.callNumberOwner && c.callNumberOwner !== "MINE" && !input.dobConfirmed) {
+
+    const numberIsSomeoneElses = handled.callNumberOwner !== null && handled.callNumberOwner !== "MINE";
+    if (input.answered && numberIsSomeoneElses && !input.dobConfirmed) {
       throw new ApiException(400, "VALIDATION", "Confirm the patient's date of birth first: the number isn't theirs.", {
         fields: { dobConfirmed: "Confirm the patient's date of birth first" },
       });
     }
-    await this.db.client.callNote.create({ data: { caseId: id, staffId: s.staffId!, ...input } });
-    await this.audit.record({ type: "staff", id: s.staffId }, "case.call", { caseId: id, answered: input.answered }, req.ip);
-    if (!input.answered) {
-      const misses = await this.db.client.callNote.count({ where: { caseId: id, answered: false, createdAt: { gte: new Date(Date.now() - CALL_WINDOW_MS) } } });
-      if (misses >= 3) {
-        await this.system(id, "We tried to call you 3 times without an answer. Tap “Prefer a call” again when you can talk, or call 912 in an emergency.");
-        await this.finish(id, s, "NO_RESPONSE", "Closed automatically after 3 unanswered calls within 10 minutes.", req);
-        return { closed: true };
-      }
-    }
-    return { closed: false };
+
+    await this.db.client.callNote.create({ data: { caseId: id, staffId: session.staffId!, ...input } });
+    await this.audit.record({ type: "staff", id: session.staffId }, "case.call", { caseId: id, answered: input.answered }, request.ip);
+    if (input.answered) return { closed: false };
+
+    const missedCalls = await this.db.client.callNote.count({
+      where: { caseId: id, answered: false, createdAt: { gte: new Date(Date.now() - CALL_WINDOW_MS) } },
+    });
+    if (missedCalls < MAX_MISSED_CALLS) return { closed: false };
+
+    await this.tellPatient(
+      id,
+      "We tried to call you 3 times without an answer. Tap “Prefer a call” again when you can talk, or call 912 in an emergency.",
+    );
+    await this.finish(id, session, "NO_RESPONSE", "Closed automatically after 3 unanswered calls within 10 minutes.", request);
+    return { closed: true };
   }
 
+  /** The facilities the agent can choose from, with the clinicians on duty at the first 8. */
   @Get("cases/:id/routing-options")
   async routingOptions(
     @Param("id", ParseUUIDPipe) id: string,
-    @Query("service") service: string,
+    @Query("service") requestedService: string,
     @Query("bedNeeded") bedNeeded: string,
-    @CurrentSession() s: LiveSession,
+    @CurrentSession() session: LiveSession,
   ) {
-    const c = await this.mine(id, s);
-    const svc = (SERVICES as readonly string[]).includes(service) ? (service as Service) : (c.neededService ?? "GENERAL_MEDICINE");
-    const opts = await this.routing.options(id, svc, bedNeeded === "true");
-    const withClinicians = await Promise.all(
-      opts.facilities.slice(0, 8).map(async (f) => ({ ...f, clinicians: await this.routing.clinicians(f.id, svc) })),
+    const handled = await this.mine(id, session);
+    const isKnownService = (SERVICES as readonly string[]).includes(requestedService);
+    const service = isKnownService ? (requestedService as Service) : (handled.neededService ?? "GENERAL_MEDICINE");
+
+    const options = await this.routing.options(id, service, bedNeeded === "true");
+    const facilities = await Promise.all(
+      options.facilities.slice(0, 8).map(async (facility) => ({
+        ...facility,
+        clinicians: await this.routing.clinicians(facility.id, service),
+      })),
     );
-    return { ...opts, service: svc, facilities: withClinicians };
+    return { ...options, service, facilities };
   }
 
-  /** FR 5.6, 5.7, 5.10, 5.12: confirm or change the routing. */
+  /** Confirms or changes where the patient goes, and tells them. */
   @Post("cases/:id/routing")
-  async route(@Param("id", ParseUUIDPipe) id: string, @Body() body: unknown, @CurrentSession() s: LiveSession) {
-    const c = await this.mine(id, s);
+  async route(@Param("id", ParseUUIDPipe) id: string, @Body() body: unknown, @CurrentSession() session: LiveSession) {
+    const handled = await this.mine(id, session);
     const input = parse(routingChoice, body);
-    if (!c.neededService) throw new ApiException(400, "VALIDATION", "Confirm the needed service first.");
-    if (c.bedNeeded !== input.bedNeeded) {
+    if (!handled.neededService) throw new ApiException(400, "VALIDATION", "Confirm the needed service first.");
+
+    if (handled.bedNeeded !== input.bedNeeded) {
       await this.db.client.case.update({ where: { id }, data: { bedNeeded: input.bedNeeded } });
-      await this.db.client.caseChange.create({ data: { caseId: id, staffId: s.staffId!, field: "bedNeeded", fromValue: c.bedNeeded === null ? null : String(c.bedNeeded), toValue: String(input.bedNeeded) } });
+      await this.db.client.caseChange.create({
+        data: {
+          caseId: id,
+          staffId: session.staffId!,
+          field: "bedNeeded",
+          fromValue: textOrNull(handled.bedNeeded),
+          toValue: String(input.bedNeeded),
+        },
+      });
     }
-    const r = await this.routing.route({ caseId: id, service: c.neededService, status: "CONFIRMED", byStaffId: s.staffId!, ...input });
-    const f = await this.db.client.facility.findUniqueOrThrow({ where: { id: r.facilityId } });
-    await this.system(id, `Go to ${f.name}${f.phone ? ` (${f.phone})` : ""}. They are expecting you for the next 24 hours.`);
-    return { id: r.id };
+
+    const routing = await this.routing.route({
+      caseId: id,
+      service: handled.neededService,
+      status: "CONFIRMED",
+      byStaffId: session.staffId!,
+      ...input,
+    });
+    const facility = await this.db.client.facility.findUniqueOrThrow({ where: { id: routing.facilityId } });
+    const phone = facility.phone ? ` (${facility.phone})` : "";
+    await this.tellPatient(id, `Go to ${facility.name}${phone}. They are expecting you for the next 24 hours.`);
+    return { id: routing.id };
   }
 
-  /** FR 11.1: during the case, no approval needed. */
+  /** Issues a prescription during the case. No approval is needed. */
   @Post("cases/:id/prescriptions")
-  async prescribe(@Param("id", ParseUUIDPipe) id: string, @Body() body: unknown, @CurrentSession() s: LiveSession, @Req() req: Request) {
-    const c = await this.mine(id, s);
+  async prescribe(
+    @Param("id", ParseUUIDPipe) id: string,
+    @Body() body: unknown,
+    @CurrentSession() session: LiveSession,
+    @Req() request: Request,
+  ) {
+    const handled = await this.mine(id, session);
     const { items } = parse(prescription, body);
-    const p = await this.prescriptions.issue({ patientId: c.patientId, caseId: id, prescriberId: s.staffId!, items, ip: req.ip });
-    await this.system(id, `A prescription was issued: ${p.code}. Show this code at any pharmacy within 7 days. It is also in your records.`);
-    return p;
+    const issued = await this.prescriptions.issue({
+      patientId: handled.patientId,
+      caseId: id,
+      prescriberId: session.staffId!,
+      items,
+      ip: request.ip,
+    });
+    await this.tellPatient(
+      id,
+      `A prescription was issued: ${issued.code}. Show this code at any pharmacy within 7 days. It is also in your records.`,
+    );
+    return issued;
   }
 
-  /** FR 6.16: give the case back; it returns to the front of its queue level. */
+  /** Gives the case back. It returns to the front of its level in the queue. */
   @Post("cases/:id/release")
   @HttpCode(200)
-  async release(@Param("id", ParseUUIDPipe) id: string, @CurrentSession() s: LiveSession, @Req() req: Request) {
-    await this.mine(id, s);
+  async release(@Param("id", ParseUUIDPipe) id: string, @CurrentSession() session: LiveSession, @Req() request: Request) {
+    await this.mine(id, session);
     await this.dispatcher.requeue(id, "Another agent will continue with you.");
-    await this.freeAgent(s.staffId!);
-    await this.audit.record({ type: "staff", id: s.staffId }, "case.released", { caseId: id }, req.ip);
+    await this.freeAgent(session.staffId!);
+    await this.audit.record({ type: "staff", id: session.staffId }, "case.released", { caseId: id }, request.ip);
     return { ok: true };
   }
 
-  /** FR 6.12: after a level 1 alert, pause a Minor or Uncertain case to take the urgent one. */
+  /** After a level 1 alert, pauses a Minor or Uncertain case so the agent can take the waiting urgent one. */
   @Post("cases/:id/pause")
   @HttpCode(200)
-  async pause(@Param("id", ParseUUIDPipe) id: string, @CurrentSession() s: LiveSession, @Req() req: Request) {
-    const c = await this.mine(id, s);
-    if (c.triageLevel === "URGENT") throw new ApiException(409, "CONFLICT", "An Urgent case can't be paused.");
+  async pause(@Param("id", ParseUUIDPipe) id: string, @CurrentSession() session: LiveSession, @Req() request: Request) {
+    const handled = await this.mine(id, session);
+    if (handled.triageLevel === "URGENT") throw new ApiException(409, "CONFLICT", "An Urgent case can't be paused.");
+
     const urgentWaiting = await this.db.client.case.findFirst({
-      where: { status: { in: ["QUEUED", "OFFERED"] }, triageLevel: { in: ["URGENT", "UNCERTAIN"] }, queuedAt: { lt: new Date(Date.now() - LEVEL1_MS) } },
+      where: {
+        status: { in: ["QUEUED", "OFFERED"] },
+        triageLevel: { in: ["URGENT", "UNCERTAIN"] },
+        queuedAt: { lt: new Date(Date.now() - LEVEL1_MS) },
+      },
       orderBy: [{ triageLevel: "asc" }, { queuedAt: "asc" }],
     });
     if (!urgentWaiting) throw new ApiException(409, "CONFLICT", "There is no level 1 alert right now.");
+
     await this.dispatcher.requeue(id, "Your agent was called to an emergency. Another agent will continue.");
-    // Hand the waiting case straight to this agent.
+    // The waiting case goes straight to this agent, without an offer.
     await this.db.client.case.update({
       where: { id: urgentWaiting.id },
-      data: { status: "ASSIGNED", agentId: s.staffId!, assignedAt: new Date(), offeredToId: null, offerExpiresAt: null, frontOfQueue: false },
+      data: {
+        status: "ASSIGNED",
+        agentId: session.staffId!,
+        assignedAt: new Date(),
+        offeredToId: null,
+        offerExpiresAt: null,
+        frontOfQueue: false,
+      },
     });
-    await this.system(urgentWaiting.id, `${s.staff!.name.split(" ")[0]}, a health agent, is now looking at your request.`);
-    await this.audit.record({ type: "staff", id: s.staffId }, "case.paused", { caseId: id, for: urgentWaiting.id }, req.ip);
+    await this.tellPatient(urgentWaiting.id, `${firstName(session.staff!.name)}, a health agent, is now looking at your request.`);
+    await this.audit.record(
+      { type: "staff", id: session.staffId },
+      "case.paused",
+      { caseId: id, for: urgentWaiting.id },
+      request.ip,
+    );
     return { next: urgentWaiting.id };
   }
 
-  /** FR 6.15, 6.9: close with one outcome and a note; the agent's access ends; the patient is asked to rate. */
+  /** Closes the case with one outcome and a note. The agent's access ends and the patient is asked to rate. */
   @Post("cases/:id/close")
   @HttpCode(200)
-  async close(@Param("id", ParseUUIDPipe) id: string, @Body() body: unknown, @CurrentSession() s: LiveSession, @Req() req: Request) {
-    const c = await this.mine(id, s);
+  async close(
+    @Param("id", ParseUUIDPipe) id: string,
+    @Body() body: unknown,
+    @CurrentSession() session: LiveSession,
+    @Req() request: Request,
+  ) {
+    const handled = await this.mine(id, session);
     const { outcome, note } = parse(closeCase, body);
-    if (outcome === "NO_RESPONSE") {
-      // FR 6.9: only a Minor case, and only after 10 minutes without a reply.
-      const last = await this.db.client.chatMessage.findFirst({ where: { caseId: id, sender: "PATIENT" }, orderBy: { createdAt: "desc" } });
-      const since = (last?.createdAt ?? c.assignedAt ?? new Date()).getTime();
-      if (c.triageLevel !== "MINOR" || Date.now() - since < MINOR_SILENCE_MS) {
-        throw new ApiException(409, "CONFLICT", "Only a Minor case with no reply for 10 minutes can close as No response. Urgent and Uncertain cases stay open.");
+
+    if (outcome === "NO_RESPONSE") await this.checkCanCloseAsNoResponse(handled);
+
+    if (outcome === "PRESCRIPTION_ISSUED") {
+      const prescriptions = await this.db.client.prescription.count({ where: { caseId: id, cancelledAt: null } });
+      if (prescriptions === 0) {
+        throw new ApiException(409, "CONFLICT", "Issue the prescription before closing as Prescription issued.");
       }
     }
-    if (outcome === "PRESCRIPTION_ISSUED" && !(await this.db.client.prescription.count({ where: { caseId: id, cancelledAt: null } }))) {
-      throw new ApiException(409, "CONFLICT", "Issue the prescription before closing as Prescription issued.");
-    }
+
     if (outcome === "ROUTED_TO_FACILITY") {
-      const r = await this.db.client.routing.findFirst({ where: { caseId: id, status: "CONFIRMED" } });
-      if (!r) throw new ApiException(409, "CONFLICT", "Confirm a routing before closing as Routed to facility.");
+      const confirmed = await this.db.client.routing.findFirst({ where: { caseId: id, status: "CONFIRMED" } });
+      if (!confirmed) {
+        throw new ApiException(409, "CONFLICT", "Confirm a routing before closing as Routed to facility.");
+      }
     }
-    await this.finish(id, s, outcome, note, req);
+
+    await this.finish(id, session, outcome, note, request);
     return { ok: true };
   }
 
-  // ---------- helpers ----------
-
-  private async mine(id: string, s: LiveSession) {
-    const c = await this.db.client.case.findUnique({ where: { id } });
-    if (!c || c.agentId !== s.staffId || c.status !== "ASSIGNED") {
+  /** The case this agent is handling. Any other case is refused. */
+  private async mine(id: string, session: LiveSession) {
+    const found = await this.db.client.case.findUnique({ where: { id } });
+    const isTheirs = found && found.agentId === session.staffId && found.status === "ASSIGNED";
+    if (!isTheirs) {
       throw new ApiException(403, "FORBIDDEN", "You can only open the case you are handling.");
     }
-    return c;
+    return found;
   }
 
-  private async finish(id: string, s: LiveSession, outcome: string, note: string, req: Request) {
+  /** Only a Minor case, and only after 10 minutes without a reply from the patient, can close as No response. */
+  private async checkCanCloseAsNoResponse(handled: { id: string; triageLevel: string | null; assignedAt: Date | null }) {
+    const lastReply = await this.db.client.chatMessage.findFirst({
+      where: { caseId: handled.id, sender: "PATIENT" },
+      orderBy: { createdAt: "desc" },
+    });
+    const silentSince = (lastReply?.createdAt ?? handled.assignedAt ?? new Date()).getTime();
+    const silentLongEnough = Date.now() - silentSince >= MINOR_SILENCE_MS;
+
+    if (handled.triageLevel !== "MINOR" || !silentLongEnough) {
+      throw new ApiException(
+        409,
+        "CONFLICT",
+        "Only a Minor case with no reply for 10 minutes can close as No response. Urgent and Uncertain cases stay open.",
+      );
+    }
+  }
+
+  private async finish(id: string, session: LiveSession, outcome: string, note: string, request: Request) {
     await this.db.client.case.update({
       where: { id },
       data: { status: "CLOSED", outcome: outcome as never, closingNote: note, closedAt: new Date() },
     });
-    // A confirmed routing stays valid for the patient's arrival; only an unconfirmed suggestion ends here.
-    if (outcome !== "ROUTED_TO_FACILITY") await this.routing.endActive(id, "CANCELLED", "Case closed");
-    await this.freeAgent(s.staffId!);
-    await this.audit.record({ type: "staff", id: s.staffId }, "case.closed", { caseId: id, outcome }, req.ip);
+    // A confirmed routing stays valid for the patient's arrival. Only an unconfirmed suggestion ends here.
+    if (outcome !== "ROUTED_TO_FACILITY") {
+      await this.routing.endActive(id, "CANCELLED", "Case closed");
+    }
+    await this.freeAgent(session.staffId!);
+    await this.audit.record({ type: "staff", id: session.staffId }, "case.closed", { caseId: id, outcome }, request.ip);
     this.events.emit(`case:${id}`, { type: "case", caseId: id });
   }
 
+  /** The agent becomes Available again once they have no case left. */
   private async freeAgent(staffId: string) {
-    const still = await this.db.client.case.count({ where: { agentId: staffId, status: "ASSIGNED" } });
-    if (!still) await this.db.client.staff.update({ where: { id: staffId }, data: { agentStatus: "AVAILABLE", agentStatusSince: new Date() } });
+    const casesLeft = await this.db.client.case.count({ where: { agentId: staffId, status: "ASSIGNED" } });
+    if (casesLeft === 0) {
+      await this.db.client.staff.update({
+        where: { id: staffId },
+        data: { agentStatus: "AVAILABLE", agentStatusSince: new Date() },
+      });
+    }
     this.events.emit("agents", { type: "queue" });
   }
 
-  private async system(caseId: string, text: string) {
-    const m = await this.db.client.chatMessage.create({ data: { caseId, sender: "SYSTEM", text } });
-    this.events.emit(`case:${caseId}`, { type: "message", caseId, message: { id: m.id, sender: "SYSTEM", text, createdAt: m.createdAt.toISOString() } });
+  /** A note from the system in the patient's chat, and a refresh of their screen. */
+  private async tellPatient(caseId: string, text: string) {
+    await this.chat.post(caseId, "SYSTEM", text);
     this.events.emit(`case:${caseId}`, { type: "case", caseId });
   }
 }
 
-/** What an agent sees before accepting: enough to prioritise, no name (FR 9.2). */
-function summary(c: {
+/** A value saved as text in the change history, or null. */
+function textOrNull(value: string | boolean | null | undefined) {
+  return value === null || value === undefined ? null : String(value);
+}
+
+/** What an agent sees in the queue and in an offer: enough to set priorities, and never the patient's name. */
+function queueSummary(c: {
   id: string;
   code: string;
   triageLevel: string | null;

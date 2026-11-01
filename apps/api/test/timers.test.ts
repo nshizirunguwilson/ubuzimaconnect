@@ -88,12 +88,13 @@ describe("routings and beds over time (FR 5.11, 5.7)", () => {
     await db.query(`update "Routing" set "createdAt" = (now() at time zone 'utc') - interval '25 hours' where id = $1`, [routingId]);
     const r = await until(async () => {
       const x = await one(`select r.status, b.status as bed from "Routing" r left join "BedReservation" b on b."routingId" = r.id where r.id = $1`, [routingId]);
-      return x.status === "EXPIRED" && x;
+      // The routing expires first and its bed is released just after: wait for both.
+      return x.status === "EXPIRED" && x.bed === "RELEASED" && x;
     });
     expect(r.bed).toBe("RELEASED");
     expect((await er("/clinician/patients")).body.incoming.find((x: { id: string }) => x.id === routingId)).toBeUndefined();
     expect((await er(`/clinician/incoming/${routingId}/arrive`, {})).status).toBe(404); // no records unlocked
-    expect(await one(`select count(*)::int as n from "AuditEvent" where action = 'routing.expired' and detail->>'routingId' = $1`, [routingId])).toEqual({ n: 1 });
+    await until(async () => (await one(`select count(*)::int as n from "AuditEvent" where action = 'routing.expired' and detail->>'routingId' = $1`, [routingId])).n === 1);
   });
 
   it("releases a held bed after 6 hours, while the routing stays valid", async () => {
@@ -137,10 +138,11 @@ describe("escalation (FR 6.10, 6.11)", () => {
     await db.query(`update "Staff" set "agentStatus" = 'BUSY', "lastSeenAt" = (now() at time zone 'utc') + interval '1 hour' where email = 'agent2@ubuzima.test'`);
     await db.query(`update "Case" set "queuedAt" = (now() at time zone 'utc') - interval '6 minutes' where id = $1`, [id]);
     await until(async () => (await one(`select "escalationLevel" from "Case" where id = $1`, [id])).escalationLevel === 2);
+    // The level is saved first, then the alert, the email and the log entry: wait for the last of them.
+    await until(async () => (await one(`select count(*)::int as n from "AuditEvent" where action = 'case.delay_incident' and detail->>'caseId' = $1`, [id])).n === 1);
     const incident = await one(`select emailed from "Alert" where "caseId" = $1 and kind = 'DELAY_INCIDENT'`, [id]);
     expect(incident.emailed).toBe(true);
     expect((await one(`select subject from "EmailMessage" where "to" = 'admin@ubuzima.test' order by "createdAt" desc limit 1`)).subject).toContain("Delay incident");
-    expect(await one(`select count(*)::int as n from "AuditEvent" where action = 'case.delay_incident' and detail->>'caseId' = $1`, [id])).toEqual({ n: 1 });
     const v = (await b(`/cases/${id}`)).body;
     expect(v).toMatchObject({ delayed: true, noAgent: false });
     expect(v.guidance.facility.name).toBeTruthy();
