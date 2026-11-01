@@ -9,10 +9,12 @@ import { BottomBar } from "@/components/app/bottom-bar";
 import { Logo } from "@/components/app/logo";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/choice";
+import { DateInput } from "@/components/ui/date-input";
 import { Input } from "@/components/ui/field";
 import { Notice } from "@/components/ui/notice";
 import { StepProgress } from "@/components/ui/step-progress";
 import { api, ApiFailure } from "@/lib/api";
+import { EMPTY_DATE, partsToIsoDate } from "@/lib/date-parts";
 import { ButtonLink } from "@/components/ui/button-link";
 import { LuPhone } from "react-icons/lu";
 import { usePending, useOnHide } from "@/lib/pending";
@@ -43,7 +45,7 @@ export function LoginFlow({ ended, other = false }: { ended: boolean; other?: bo
   const { t, tr, time } = useT();
   const [step, setStep] = useState<1 | 2>(1);
   const [id, setId] = useState("");
-  const [dob, setDob] = useState("");
+  const [dob, setDob] = useState(EMPTY_DATE);
   const [name, setName] = useState("");
   const [shared, setShared] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -52,7 +54,7 @@ export function LoginFlow({ ended, other = false }: { ended: boolean; other?: bo
   // Nothing typed here is kept once the screen is left.
   useOnHide(() => {
     setId("");
-    setDob("");
+    setDob(EMPTY_DATE);
     setName("");
     setStep(1);
     setProblem(null);
@@ -70,7 +72,12 @@ export function LoginFlow({ ended, other = false }: { ended: boolean; other?: bo
 
   async function submit(e: FormEvent) {
     e.preventDefault();
-    const result = patientLogin.safeParse({ nationalId: id, dateOfBirth: dob, name, sharedDevice: shared });
+    const result = patientLogin.safeParse({
+      nationalId: id,
+      dateOfBirth: partsToIsoDate(dob),
+      name,
+      sharedDevice: shared,
+    });
     if (!result.success) {
       const f: Record<string, string> = {};
       for (const i of result.error.issues) f[String(i.path[0])] ??= tr(i.message);
@@ -182,14 +189,7 @@ export function LoginFlow({ ended, other = false }: { ended: boolean; other?: bo
               {errors.form}
             </Notice>
           )}
-          <Input
-            label={t.login.dob}
-            type="date"
-            max={new Date().toISOString().slice(0, 10)}
-            value={dob}
-            onChange={(event) => setDob(event.target.value)}
-            error={errors.dateOfBirth}
-          />
+          <DateInput label={t.login.dob} value={dob} onChange={setDob} error={errors.dateOfBirth} />
           <Input
             label={t.login.name}
             hint={t.login.nameHint}

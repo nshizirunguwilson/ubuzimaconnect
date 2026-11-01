@@ -46,7 +46,7 @@ export function Field({ label, hint, error, optional, className, children }: Fie
   );
 }
 
-function controlShell(invalid: boolean, disabled?: boolean) {
+export function controlShell(invalid: boolean, disabled?: boolean) {
   return cn(
     "flex w-full items-center sq-bg-surface",
     invalid ? "sq-border-urgent" : "sq-border-border-strong hover:sq-border-gray-500",
@@ -54,7 +54,7 @@ function controlShell(invalid: boolean, disabled?: boolean) {
   );
 }
 
-const controlText =
+export const controlText =
   "w-full min-w-0 bg-transparent text-body text-fg outline-none placeholder:text-fg-muted disabled:cursor-not-allowed";
 
 type InputProps = Omit<ComponentPropsWithoutRef<"input">, "id"> & {

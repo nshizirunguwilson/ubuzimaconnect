@@ -56,6 +56,9 @@ export const en = {
         ? "1 try left before the ID is locked for 15 minutes."
         : `${n} tries left before the ID is locked for 15 minutes.`,
     dob: "Date of birth",
+    day: "Day",
+    month: "Month",
+    year: "Year",
     name: "One of your names",
     nameHint: "As written on your ID card",
     shared: "This is not my device",
@@ -74,7 +77,7 @@ export const en = {
   home: {
     hello: (name: string) => `Hello, ${name}`,
     notFinished: "Not finished: continue answering",
-    urgent: "Urgent: see where to go",
+    urgent: "Urgent: see what to do now",
     willCall: "An agent will call you",
     willReply: "An agent will reply here",
     yourRequest: "Your request",
