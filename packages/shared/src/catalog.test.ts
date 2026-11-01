@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { currentShift, DISTRICTS, weekStart } from "./catalog";
+import { currentShift, DISTRICTS, shiftHasEnded, shiftHasStarted, weekStart } from "./catalog";
 
 describe("catalog", () => {
   it("has Rwanda's 30 districts in 5 provinces", () => {
@@ -32,5 +32,25 @@ describe("report periods (FR 12.8)", () => {
     expect(oct.from.toISOString()).toBe("2026-09-30T22:00:00.000Z"); // midnight in Kigali
     expect(shiftPeriod("month", "2026-01-31", -1)).toBe("2025-12-01");
     expect(shiftPeriod("week", "2026-10-24", 1)).toBe("2026-10-26");
+  });
+});
+
+describe("shift timing", () => {
+  const dayShiftNow = { date: "2026-11-02", shift: "DAY" as const };
+  const nightShiftNow = { date: "2026-11-02", shift: "NIGHT" as const };
+
+  it("knows when a shift has ended", () => {
+    expect(shiftHasEnded("2026-11-01", "NIGHT", dayShiftNow)).toBe(true);
+    expect(shiftHasEnded("2026-11-02", "DAY", dayShiftNow)).toBe(false); // running now
+    expect(shiftHasEnded("2026-11-02", "DAY", nightShiftNow)).toBe(true);
+    expect(shiftHasEnded("2026-11-02", "NIGHT", nightShiftNow)).toBe(false);
+    expect(shiftHasEnded("2026-11-03", "DAY", nightShiftNow)).toBe(false);
+  });
+
+  it("knows when a shift has started", () => {
+    expect(shiftHasStarted("2026-11-02", "DAY", dayShiftNow)).toBe(true); // running now
+    expect(shiftHasStarted("2026-11-02", "NIGHT", dayShiftNow)).toBe(false);
+    expect(shiftHasStarted("2026-11-02", "NIGHT", nightShiftNow)).toBe(true);
+    expect(shiftHasStarted("2026-11-03", "DAY", nightShiftNow)).toBe(false);
   });
 });

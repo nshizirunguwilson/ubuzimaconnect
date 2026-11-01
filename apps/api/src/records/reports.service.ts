@@ -3,142 +3,283 @@ import { OUTCOME_LABEL, periodRange, SERVICE_LABEL, SHIFTS, type Period, type Se
 import { DbService } from "../common/db.service";
 import { bedUsage } from "../setup/beds";
 
-/** One number at the top of a report. `value` null means "no data in this period", shown as a dash, never 0. */
+/** One number at the top of a report. A null value means "no data in this period": shown as a dash, never as 0. */
 export type Tile = { label: string; value: number | null; unit?: "min" | "%" | "days" | "/5"; hint?: string };
 export type Table = { title: string; columns: string[]; rows: (string | number | null)[][] };
 export type Report = { title: string; period: Period; start: string; end: string; tiles: Tile[]; tables: Table[] };
 
-const MIN = 60_000;
-const median = (xs: number[]) => (xs.length ? [...xs].sort((a, b) => a - b)[Math.floor((xs.length - 1) / 2)] : null);
-const p90 = (xs: number[]) => (xs.length ? [...xs].sort((a, b) => a - b)[Math.ceil(xs.length * 0.9) - 1] : null);
-const avg = (xs: number[]) => (xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : null);
-const round = (v: number | null, digits = 1) => (v === null ? null : Math.round(v * 10 ** digits) / 10 ** digits);
-const minutes = (a: Date | null, b: Date | null) => (a && b ? (b.getTime() - a.getTime()) / MIN : null);
-const present = <T,>(xs: (T | null)[]) => xs.filter((x): x is T => x !== null);
+type Range = ReturnType<typeof periodRange>;
+
+const MINUTE = 60_000;
+const MINUTES_PER_DAY = 60 * 24;
+const TRIAGE_LEVELS = ["URGENT", "UNCERTAIN", "MINOR"] as const;
+
+// Small statistics helpers. Each returns null for an empty list, so "no data" never shows as 0.
+
+/** The middle value (the lower one of the two middle values when the count is even). */
+function median(values: number[]) {
+  if (values.length === 0) return null;
+  const sorted = [...values].sort((a, b) => a - b);
+  return sorted[Math.floor((sorted.length - 1) / 2)];
+}
+
+/** The value 90% of the others are at or below. */
+function percentile90(values: number[]) {
+  if (values.length === 0) return null;
+  const sorted = [...values].sort((a, b) => a - b);
+  return sorted[Math.ceil(sorted.length * 0.9) - 1];
+}
+
+function average(values: number[]) {
+  if (values.length === 0) return null;
+  return values.reduce((sum, value) => sum + value, 0) / values.length;
+}
+
+function round(value: number | null, digits = 1) {
+  if (value === null) return null;
+  const factor = 10 ** digits;
+  return Math.round(value * factor) / factor;
+}
+
+/** Minutes between two times, or null when either is missing. */
+function minutesBetween(start: Date | null, end: Date | null) {
+  if (!start || !end) return null;
+  return (end.getTime() - start.getTime()) / MINUTE;
+}
+
+/** The list without its nulls. */
+function withoutNulls<T>(values: (T | null)[]) {
+  return values.filter((value): value is T => value !== null);
+}
+
+/** The YYYY-MM-DD date in Kigali (UTC+2) of a moment. */
+function kigaliDay(moment: Date) {
+  return new Date(moment.getTime() + 2 * 3_600_000).toISOString().slice(0, 10);
+}
+
+/** The YYYY-MM-DD of a date-only database value. */
+function dayOf(date: Date) {
+  return date.toISOString().slice(0, 10);
+}
+
+/** "URGENT" becomes "Urgent". */
+function capitalised(word: string) {
+  return word[0] + word.slice(1).toLowerCase();
+}
 
 /**
- * FR 12.8: each role's report for one day, week or month. Everything is counted from the records the app
- * already keeps (cases, routings, the audit log), so a report can never disagree with what happened.
+ * Each role's report for one day, week or month. Everything is counted from the records the app already keeps
+ * (cases, routings and the activity log), so a report can never disagree with what happened.
  */
 @Injectable()
 export class ReportsService {
   constructor(private db: DbService) {}
 
   async build(role: string, staffId: string, facilityId: string | null, period: Period, anchor: string): Promise<Report> {
-    const r = periodRange(period, anchor);
-    const base = { period, start: r.start, end: r.end };
-    if (role === "ADMIN") return { ...base, ...(await this.admin(r)) };
-    if (role === "FACILITY_MANAGER") return { ...base, ...(await this.facility(r, facilityId!)) };
-    if (role === "AGENT") return { ...base, ...(await this.agent(r, staffId)) };
-    return { ...base, ...(await this.clinician(r, staffId)) };
+    const range = periodRange(period, anchor);
+    const header = { period, start: range.start, end: range.end };
+
+    if (role === "ADMIN") return { ...header, ...(await this.adminReport(range)) };
+    if (role === "FACILITY_MANAGER") return { ...header, ...(await this.facilityReport(range, facilityId!)) };
+    if (role === "AGENT") return { ...header, ...(await this.agentReport(range, staffId)) };
+    return { ...header, ...(await this.clinicianReport(range, staffId)) };
   }
 
-  /** FR 12.8, administrators. */
-  private async admin(r: ReturnType<typeof periodRange>) {
-    const inPeriod = { gte: r.from, lt: r.to };
+  /** The administrator's view of the whole service. */
+  private async adminReport(range: Range) {
+    const inPeriod = { gte: range.from, lt: range.to };
     const [created, closed, accepted, events] = await Promise.all([
       this.db.client.case.findMany({ where: { createdAt: inPeriod }, select: { triageLevel: true } }),
-      this.db.client.case.findMany({ where: { closedAt: inPeriod }, select: { triageLevel: true, outcome: true, rating: true, agentId: true, assignedAt: true, closedAt: true } }),
-      this.db.client.case.findMany({ where: { assignedAt: inPeriod, queuedAt: { not: null } }, select: { queuedAt: true, assignedAt: true } }),
+      this.db.client.case.findMany({
+        where: { closedAt: inPeriod },
+        select: { triageLevel: true, outcome: true, rating: true, agentId: true, assignedAt: true, closedAt: true },
+      }),
+      this.db.client.case.findMany({
+        where: { assignedAt: inPeriod, queuedAt: { not: null } },
+        select: { queuedAt: true, assignedAt: true },
+      }),
       this.db.client.auditEvent.groupBy({
         by: ["action"],
-        where: { createdAt: inPeriod, action: { in: ["case.delay_incident", "routing.no_beds", "routing.no_match", "routing.expired", "bed.released", "ai.failure"] } },
+        where: {
+          createdAt: inPeriod,
+          action: {
+            in: ["case.delay_incident", "routing.no_beds", "routing.no_match", "routing.expired", "bed.released", "ai.failure"],
+          },
+        },
         _count: true,
       }),
     ]);
-    const count = (a: string) => events.find((e) => e.action === a)?._count ?? 0;
-    const waits = present(accepted.map((c) => minutes(c.queuedAt, c.assignedAt)));
-    const minor = closed.filter((c) => c.triageLevel === "MINOR" && c.outcome !== "CANCELLED_BY_PATIENT");
-    const remote = minor.filter((c) => c.outcome === "ADVISED_REMOTELY" || c.outcome === "PRESCRIPTION_ISSUED");
-    const ratings = present(closed.map((c) => c.rating));
 
-    const agents = await this.db.client.staff.findMany({ where: { role: "AGENT" }, select: { id: true, name: true }, orderBy: { name: "asc" } });
-    const agentRows = agents.map((a) => {
-      const mine = closed.filter((c) => c.agentId === a.id);
-      return [a.name, mine.length, round(median(present(mine.map((c) => minutes(c.assignedAt, c.closedAt))))), round(avg(present(mine.map((c) => c.rating))))];
-    });
+    const eventCount = (action: string) => events.find((event) => event.action === action)?._count ?? 0;
+    const waits = withoutNulls(accepted.map((found) => minutesBetween(found.queuedAt, found.assignedAt)));
+    const ratings = withoutNulls(closed.map((found) => found.rating));
 
-    // Scheduled versus online, per day: scheduled = had a shift that day; online = changed status or took a case that day.
-    const [shifts, seen] = await Promise.all([
-      this.db.client.shiftAssignment.findMany({ where: { date: { gte: new Date(`${r.start}T00:00:00Z`), lt: new Date(`${r.end}T00:00:00Z`) }, staff: { role: "AGENT" }, unavailable: false }, select: { staffId: true, date: true } }),
-      this.db.client.auditEvent.findMany({ where: { createdAt: inPeriod, action: { in: ["agent.status", "case.accepted"] }, actorType: "staff" }, select: { actorId: true, createdAt: true } }),
-    ]);
-    const kigaliDay = (d: Date) => new Date(d.getTime() + 2 * 3_600_000).toISOString().slice(0, 10);
-    const staffing = r.days.map((day) => {
-      const scheduled = new Set(shifts.filter((s) => s.date.toISOString().slice(0, 10) === day).map((s) => s.staffId));
-      const online = new Set(seen.filter((e) => kigaliDay(e.createdAt) === day).map((e) => e.actorId));
-      return [day, scheduled.size, [...scheduled].filter((id) => online.has(id)).length];
-    });
+    // Minor cases closed without the patient having to travel.
+    const minorClosed = closed.filter((found) => found.triageLevel === "MINOR" && found.outcome !== "CANCELLED_BY_PATIENT");
+    const minorHandledRemotely = minorClosed.filter(
+      (found) => found.outcome === "ADVISED_REMOTELY" || found.outcome === "PRESCRIPTION_ISSUED",
+    );
+    const remotePercent = minorClosed.length
+      ? Math.round((minorHandledRemotely.length / minorClosed.length) * 100)
+      : null;
 
-    const levels = ["URGENT", "UNCERTAIN", "MINOR"] as const;
     return {
       title: "Service report",
       tiles: [
         { label: "Requests", value: created.length },
-        { label: "Median wait for an agent", value: round(median(waits)), unit: "min" as const, hint: waits.length ? `90% within ${round(p90(waits))} min` : undefined },
-        { label: "Delay incidents", value: count("case.delay_incident"), hint: "Waited more than 5 minutes" },
-        { label: "Minor cases closed without travel", value: minor.length ? Math.round((remote.length / minor.length) * 100) : null, unit: "%" as const },
-        { label: "Average rating", value: round(avg(ratings)), unit: "/5" as const, hint: ratings.length ? `${ratings.length} ratings` : undefined },
-        { label: "AI failures", value: count("ai.failure") },
+        {
+          label: "Median wait for an agent",
+          value: round(median(waits)),
+          unit: "min" as const,
+          hint: waits.length ? `90% within ${round(percentile90(waits))} min` : undefined,
+        },
+        { label: "Delay incidents", value: eventCount("case.delay_incident"), hint: "Waited more than 5 minutes" },
+        { label: "Minor cases closed without travel", value: remotePercent, unit: "%" as const },
+        {
+          label: "Average rating",
+          value: round(average(ratings)),
+          unit: "/5" as const,
+          hint: ratings.length ? `${ratings.length} ratings` : undefined,
+        },
+        { label: "AI failures", value: eventCount("ai.failure") },
       ],
       tables: [
-        { title: "Requests by triage level", columns: ["Level", "Requests"], rows: [...levels.map((l) => [l[0] + l.slice(1).toLowerCase(), created.filter((c) => c.triageLevel === l).length]), ["Not finished", created.filter((c) => !c.triageLevel).length]] },
+        {
+          title: "Requests by triage level",
+          columns: ["Level", "Requests"],
+          rows: [
+            ...TRIAGE_LEVELS.map((level) => [capitalised(level), created.filter((found) => found.triageLevel === level).length]),
+            ["Not finished", created.filter((found) => !found.triageLevel).length],
+          ],
+        },
         {
           title: "Closed requests by outcome",
           columns: ["Outcome", "Requests"],
-          rows: Object.entries(OUTCOME_LABEL).map(([k, label]) => [label, closed.filter((c) => c.outcome === k).length]),
+          rows: Object.entries(OUTCOME_LABEL).map(([outcome, label]) => [
+            label,
+            closed.filter((found) => found.outcome === outcome).length,
+          ]),
         },
         {
           title: "Capacity and timers",
           columns: ["Event", "Count"],
           rows: [
-            ["No free bed nearby", count("routing.no_beds")],
-            ["No facility could take the case", count("routing.no_match")],
-            ["Routings expired (no arrival in 24 h)", count("routing.expired")],
-            ["Bed reservations released", count("bed.released")],
+            ["No free bed nearby", eventCount("routing.no_beds")],
+            ["No facility could take the case", eventCount("routing.no_match")],
+            ["Routings expired (no arrival in 24 h)", eventCount("routing.expired")],
+            ["Bed reservations released", eventCount("bed.released")],
           ],
         },
-        { title: "Agent performance", columns: ["Agent", "Cases closed", "Median handling (min)", "Average rating"], rows: agentRows },
-        { title: "Scheduled and online agents", columns: ["Day", "Scheduled", "Of them online"], rows: staffing },
+        {
+          title: "Agent performance",
+          columns: ["Agent", "Cases closed", "Median handling (min)", "Average rating"],
+          rows: await this.agentPerformanceRows(closed),
+        },
+        {
+          title: "Scheduled and online agents",
+          columns: ["Day", "Scheduled", "Of them online"],
+          rows: await this.agentStaffingRows(range),
+        },
       ],
     };
   }
 
-  /** FR 12.8, facility managers: their own facility only (FR 9.4). */
-  private async facility(r: ReturnType<typeof periodRange>, facilityId: string) {
-    const inPeriod = { gte: r.from, lt: r.to };
-    const [f, sent, arrived, ended, expired] = await Promise.all([
+  private async agentPerformanceRows(
+    closed: { agentId: string | null; assignedAt: Date | null; closedAt: Date | null; rating: number | null }[],
+  ) {
+    const agents = await this.db.client.staff.findMany({
+      where: { role: "AGENT" },
+      select: { id: true, name: true },
+      orderBy: { name: "asc" },
+    });
+    return agents.map((agent) => {
+      const theirs = closed.filter((found) => found.agentId === agent.id);
+      const handlingTimes = withoutNulls(theirs.map((found) => minutesBetween(found.assignedAt, found.closedAt)));
+      const ratings = withoutNulls(theirs.map((found) => found.rating));
+      return [agent.name, theirs.length, round(median(handlingTimes)), round(average(ratings))];
+    });
+  }
+
+  /**
+   * Scheduled against online agents, per day. Scheduled: had a shift that day.
+   * Online: changed their status or accepted a case that day.
+   */
+  private async agentStaffingRows(range: Range) {
+    const [shifts, activity] = await Promise.all([
+      this.db.client.shiftAssignment.findMany({
+        where: {
+          date: { gte: new Date(`${range.start}T00:00:00Z`), lt: new Date(`${range.end}T00:00:00Z`) },
+          staff: { role: "AGENT" },
+          unavailable: false,
+        },
+        select: { staffId: true, date: true },
+      }),
+      this.db.client.auditEvent.findMany({
+        where: {
+          createdAt: { gte: range.from, lt: range.to },
+          action: { in: ["agent.status", "case.accepted"] },
+          actorType: "staff",
+        },
+        select: { actorId: true, createdAt: true },
+      }),
+    ]);
+
+    return range.days.map((day) => {
+      const scheduled = new Set(shifts.filter((shift) => dayOf(shift.date) === day).map((shift) => shift.staffId));
+      const online = new Set(activity.filter((event) => kigaliDay(event.createdAt) === day).map((event) => event.actorId));
+      const scheduledAndOnline = [...scheduled].filter((staffId) => online.has(staffId)).length;
+      return [day, scheduled.size, scheduledAndOnline];
+    });
+  }
+
+  /** A facility manager's report: their own facility only. */
+  private async facilityReport(range: Range, facilityId: string) {
+    const inPeriod = { gte: range.from, lt: range.to };
+    const [facility, sent, arrived, ended, expired] = await Promise.all([
       this.db.client.facility.findUniqueOrThrow({ where: { id: facilityId } }),
-      this.db.client.routing.findMany({ where: { facilityId, createdAt: inPeriod, status: { notIn: ["CHANGED", "CANCELLED"] } }, select: { caseId: true } }),
-      this.db.client.routing.findMany({ where: { facilityId, arrivedAt: inPeriod }, select: { reservation: { select: { status: true } } } }),
-      this.db.client.routing.findMany({ where: { facilityId, endedAt: inPeriod, arrivedAt: { not: null } }, select: { status: true, arrivedAt: true, endedAt: true } }),
+      this.db.client.routing.findMany({
+        where: { facilityId, createdAt: inPeriod, status: { notIn: ["CHANGED", "CANCELLED"] } },
+        select: { caseId: true },
+      }),
+      this.db.client.routing.findMany({
+        where: { facilityId, arrivedAt: inPeriod },
+        select: { reservation: { select: { status: true } } },
+      }),
+      this.db.client.routing.findMany({
+        where: { facilityId, endedAt: inPeriod, arrivedAt: { not: null } },
+        select: { status: true, arrivedAt: true, endedAt: true },
+      }),
       this.db.client.routing.count({ where: { facilityId, status: "EXPIRED", endedAt: inPeriod } }),
     ]);
-    const u = await bedUsage(this.db.client, facilityId);
-    const stays = present(ended.filter((e) => e.status !== "TRANSFERRED").map((e) => minutes(e.arrivedAt, e.endedAt)));
 
-    // Shift coverage: every shift in the period where a service the facility offers had no clinician on duty (FR 8.4).
-    const clinicians = await this.db.client.staff.findMany({ where: { facilityId, role: "CLINICIAN", status: { not: "DEACTIVATED" } }, select: { id: true, specialty: true } });
-    const shifts = await this.db.client.shiftAssignment.findMany({
-      where: { staffId: { in: clinicians.map((c) => c.id) }, date: { gte: new Date(`${r.start}T00:00:00Z`), lt: new Date(`${r.end}T00:00:00Z`) }, unavailable: false },
-      select: { staffId: true, date: true, shift: true },
-    });
-    const gaps = r.days.flatMap((day) =>
-      SHIFTS.flatMap((shift) => {
-        const on = shifts.filter((s) => s.date.toISOString().slice(0, 10) === day && s.shift === shift).map((s) => clinicians.find((c) => c.id === s.staffId)?.specialty);
-        const missing = (f.services as Service[]).filter((svc) => !on.includes(svc));
-        return missing.length ? [[day, shift === "DAY" ? "Day" : "Night", missing.map((m) => SERVICE_LABEL[m]).join(", ")]] : [];
-      }),
+    const beds = await bedUsage(this.db.client, facilityId);
+    const bedsInUsePercent = facility.totalBeds
+      ? Math.round(((beds.occupied + beds.reserved) / facility.totalBeds) * 100)
+      : null;
+
+    const stayMinutes = withoutNulls(
+      ended.filter((visit) => visit.status !== "TRANSFERRED").map((visit) => minutesBetween(visit.arrivedAt, visit.endedAt)),
     );
+    const averageStay = average(stayMinutes);
+    const averageStayDays = round(averageStay === null ? null : averageStay / MINUTES_PER_DAY, 1);
+
+    const gaps = await this.shiftGaps(range, facilityId, facility.services as Service[]);
+    const hadBed = (visit: { reservation: { status: string } | null }) => visit.reservation?.status === "USED";
+    const endedAs = (status: string) => ended.filter((visit) => visit.status === status).length;
 
     return {
-      title: `${f.name}: facility report`,
+      title: `${facility.name}: facility report`,
       tiles: [
-        { label: "Patients sent here", value: new Set(sent.map((s) => s.caseId)).size },
+        { label: "Patients sent here", value: new Set(sent.map((routing) => routing.caseId)).size },
         { label: "Arrived", value: arrived.length },
         { label: "Did not come", value: expired, hint: "Routing expired after 24 hours" },
-        { label: "Beds in use now", value: f.totalBeds ? Math.round(((u.occupied + u.reserved) / f.totalBeds) * 100) : null, unit: "%" as const, hint: `${u.occupied} occupied, ${u.reserved} held, of ${f.totalBeds}` },
-        { label: "Average length of stay", value: round(avg(stays) === null ? null : avg(stays)! / (60 * 24), 1), unit: "days" as const },
+        {
+          label: "Beds in use now",
+          value: bedsInUsePercent,
+          unit: "%" as const,
+          hint: `${beds.occupied} occupied, ${beds.reserved} held, of ${facility.totalBeds}`,
+        },
+        { label: "Average length of stay", value: averageStayDays, unit: "days" as const },
         { label: "Shifts with a gap", value: gaps.length, hint: "A service offered with no clinician on duty" },
       ],
       tables: [
@@ -146,11 +287,11 @@ export class ReportsService {
           title: "Movements",
           columns: ["", "Patients"],
           rows: [
-            ["Admitted (given a bed)", arrived.filter((a) => a.reservation?.status === "USED").length],
-            ["Seen without a bed", arrived.filter((a) => a.reservation?.status !== "USED").length],
-            ["Discharged", ended.filter((e) => e.status === "DISCHARGED").length],
-            ["Visits completed", ended.filter((e) => e.status === "COMPLETED").length],
-            ["Transferred out", ended.filter((e) => e.status === "TRANSFERRED").length],
+            ["Admitted (given a bed)", arrived.filter(hadBed).length],
+            ["Seen without a bed", arrived.filter((visit) => !hadBed(visit)).length],
+            ["Discharged", endedAs("DISCHARGED")],
+            ["Visits completed", endedAs("COMPLETED")],
+            ["Transferred out", endedAs("TRANSFERRED")],
           ],
         },
         { title: "Shift coverage gaps", columns: ["Day", "Shift", "Missing"], rows: gaps },
@@ -158,44 +299,97 @@ export class ReportsService {
     };
   }
 
-  /** FR 12.8, agents: their own work. */
-  private async agent(r: ReturnType<typeof periodRange>, staffId: string) {
-    const closed = await this.db.client.case.findMany({ where: { agentId: staffId, closedAt: { gte: r.from, lt: r.to } }, select: { outcome: true, rating: true, assignedAt: true, closedAt: true } });
-    const handling = present(closed.map((c) => minutes(c.assignedAt, c.closedAt)));
-    const ratings = present(closed.map((c) => c.rating));
+  /** Every shift in the period where a service the facility offers had no clinician on duty. */
+  private async shiftGaps(range: Range, facilityId: string, servicesOffered: Service[]) {
+    const clinicians = await this.db.client.staff.findMany({
+      where: { facilityId, role: "CLINICIAN", status: { not: "DEACTIVATED" } },
+      select: { id: true, specialty: true },
+    });
+    const shifts = await this.db.client.shiftAssignment.findMany({
+      where: {
+        staffId: { in: clinicians.map((clinician) => clinician.id) },
+        date: { gte: new Date(`${range.start}T00:00:00Z`), lt: new Date(`${range.end}T00:00:00Z`) },
+        unavailable: false,
+      },
+      select: { staffId: true, date: true, shift: true },
+    });
+    const specialtyOf = (staffId: string) => clinicians.find((clinician) => clinician.id === staffId)?.specialty;
+
+    const gaps: string[][] = [];
+    for (const day of range.days) {
+      for (const shift of SHIFTS) {
+        const specialtiesOnDuty = shifts
+          .filter((assignment) => dayOf(assignment.date) === day && assignment.shift === shift)
+          .map((assignment) => specialtyOf(assignment.staffId));
+        const missing = servicesOffered.filter((service) => !specialtiesOnDuty.includes(service));
+        if (missing.length > 0) {
+          const shiftName = shift === "DAY" ? "Day" : "Night";
+          gaps.push([day, shiftName, missing.map((service) => SERVICE_LABEL[service]).join(", ")]);
+        }
+      }
+    }
+    return gaps;
+  }
+
+  /** An agent's report on their own work. */
+  private async agentReport(range: Range, staffId: string) {
+    const closed = await this.db.client.case.findMany({
+      where: { agentId: staffId, closedAt: { gte: range.from, lt: range.to } },
+      select: { outcome: true, rating: true, assignedAt: true, closedAt: true },
+    });
+    const handlingTimes = withoutNulls(closed.map((found) => minutesBetween(found.assignedAt, found.closedAt)));
+    const ratings = withoutNulls(closed.map((found) => found.rating));
+
     return {
       title: "My work",
       tiles: [
         { label: "Cases closed", value: closed.length },
-        { label: "Median handling time", value: round(median(handling)), unit: "min" as const },
-        { label: "Average rating", value: round(avg(ratings)), unit: "/5" as const, hint: ratings.length ? `${ratings.length} ratings` : undefined },
+        { label: "Median handling time", value: round(median(handlingTimes)), unit: "min" as const },
+        {
+          label: "Average rating",
+          value: round(average(ratings)),
+          unit: "/5" as const,
+          hint: ratings.length ? `${ratings.length} ratings` : undefined,
+        },
       ],
       tables: [
         {
           title: "Outcomes",
           columns: ["Outcome", "Cases"],
           rows: Object.entries(OUTCOME_LABEL)
-            .filter(([k]) => k !== "CANCELLED_BY_PATIENT")
-            .map(([k, label]) => [label, closed.filter((c) => c.outcome === k).length]),
+            .filter(([outcome]) => outcome !== "CANCELLED_BY_PATIENT")
+            .map(([outcome, label]) => [label, closed.filter((found) => found.outcome === outcome).length]),
         },
-        { title: "Ratings", columns: ["Stars", "Cases"], rows: [5, 4, 3, 2, 1].map((n) => [`${n}`, ratings.filter((x) => x === n).length]) },
+        {
+          title: "Ratings",
+          columns: ["Stars", "Cases"],
+          rows: [5, 4, 3, 2, 1].map((stars) => [`${stars}`, ratings.filter((rating) => rating === stars).length]),
+        },
       ],
     };
   }
 
-  /** FR 12.8, clinicians: their own patients, visits and prescriptions. */
-  private async clinician(r: ReturnType<typeof periodRange>, staffId: string) {
-    const inPeriod = { gte: r.from, lt: r.to };
+  /** A clinician's report on their own patients, visits and prescriptions. */
+  private async clinicianReport(range: Range, staffId: string) {
+    const inPeriod = { gte: range.from, lt: range.to };
     const [arrived, ended, prescriptions, entries] = await Promise.all([
-      this.db.client.routing.findMany({ where: { arrivedAt: inPeriod, OR: [{ clinicianId: staffId }, { arrivedById: staffId }] }, select: { case: { select: { patientId: true } } } }),
-      this.db.client.routing.findMany({ where: { endedAt: inPeriod, clinicianId: staffId, arrivedAt: { not: null } }, select: { status: true } }),
+      this.db.client.routing.findMany({
+        where: { arrivedAt: inPeriod, OR: [{ clinicianId: staffId }, { arrivedById: staffId }] },
+        select: { case: { select: { patientId: true } } },
+      }),
+      this.db.client.routing.findMany({
+        where: { endedAt: inPeriod, clinicianId: staffId, arrivedAt: { not: null } },
+        select: { status: true },
+      }),
       this.db.client.prescription.count({ where: { prescriberId: staffId, createdAt: inPeriod } }),
       this.db.client.clinicalEntry.count({ where: { authorId: staffId, createdAt: inPeriod } }),
     ]);
+    const endedAs = (status: string) => ended.filter((visit) => visit.status === status).length;
+
     return {
       title: "My patients",
       tiles: [
-        { label: "Patients seen", value: new Set(arrived.map((a) => a.case.patientId)).size },
+        { label: "Patients seen", value: new Set(arrived.map((visit) => visit.case.patientId)).size },
         { label: "Visits ended", value: ended.length },
         { label: "Prescriptions issued", value: prescriptions },
         { label: "Record entries written", value: entries },
@@ -205,9 +399,9 @@ export class ReportsService {
           title: "How visits ended",
           columns: ["", "Visits"],
           rows: [
-            ["Discharged", ended.filter((e) => e.status === "DISCHARGED").length],
-            ["Completed", ended.filter((e) => e.status === "COMPLETED").length],
-            ["Transferred", ended.filter((e) => e.status === "TRANSFERRED").length],
+            ["Discharged", endedAs("DISCHARGED")],
+            ["Completed", endedAs("COMPLETED")],
+            ["Transferred", endedAs("TRANSFERRED")],
           ],
         },
       ],
@@ -215,14 +409,28 @@ export class ReportsService {
   }
 }
 
-/** FR 12.8 "downloaded": the same report as CSV, one row per number or table line. */
-export function reportCsv(rep: Report) {
-  const cell = (v: unknown) => (v === null || v === undefined ? "" : `"${String(v).replace(/"/g, '""')}"`);
-  const lines = [[`${rep.title}, ${rep.start} to ${rep.end} (end not included)`], [], ["Measure", "Value", "Unit", "Note"]];
-  for (const t of rep.tiles) lines.push([t.label, t.value === null ? "" : String(t.value), t.unit ?? "", t.hint ?? ""]);
-  for (const t of rep.tables) {
-    lines.push([], [t.title], t.columns);
-    for (const row of t.rows) lines.push(row.map((v) => (v === null ? "" : String(v))));
+/** The same report as a CSV file to download: one row per number or table line. */
+export function reportCsv(report: Report) {
+  const cell = (value: unknown) => {
+    if (value === null || value === undefined) return "";
+    return `"${String(value).replace(/"/g, '""')}"`; // quotes inside a value are doubled
+  };
+  const asText = (value: string | number | null) => (value === null ? "" : String(value));
+
+  const lines: string[][] = [
+    [`${report.title}, ${report.start} to ${report.end} (end not included)`],
+    [],
+    ["Measure", "Value", "Unit", "Note"],
+  ];
+  for (const tile of report.tiles) {
+    lines.push([tile.label, asText(tile.value), tile.unit ?? "", tile.hint ?? ""]);
   }
-  return "﻿" + lines.map((l) => l.map(cell).join(",")).join("\n") + "\n";
+  for (const table of report.tables) {
+    lines.push([], [table.title], table.columns);
+    for (const row of table.rows) lines.push(row.map(asText));
+  }
+
+  // The byte order mark at the start makes Excel read the file as UTF-8.
+  const byteOrderMark = "﻿";
+  return byteOrderMark + lines.map((line) => line.map(cell).join(",")).join("\n") + "\n";
 }
