@@ -4,18 +4,33 @@ import { AuditService } from "../common/audit.service";
 import { DbService } from "../common/db.service";
 import { EventsService } from "../live/events.service";
 
-const OFFER_MS = Number(process.env.OFFER_MS ?? 30_000); // FR 6.3 (shorter only in tests)
-const LOST_MS = 60_000; // FR 6.14
+/** How long an agent has to accept an offer (shorter only in tests). */
+const OFFER_MS = Number(process.env.OFFER_MS ?? 30_000);
+/** An agent with no live connection for this long counts as gone. */
+const LOST_MS = 60_000;
+/** Waiting cases are offered in this order of triage level. */
 const LEVEL_ORDER: Record<TriageLevel, number> = { URGENT: 0, UNCERTAIN: 1, MINOR: 2 };
-/** Any number; the same on every instance, so only one instance dispatches at a time. */
+/** Any number, as long as every API server uses the same one: only the server holding this lock dispatches. */
 const LOCK_KEY = 61_801;
 
+type WaitingCase = { triageLevel: TriageLevel | null; frontOfQueue: boolean; queuedAt: Date | null };
+
+/** Urgent first, then Uncertain, then Minor. Within a level, cases put back at the front first, then the oldest. */
+function byQueueOrder(a: WaitingCase, b: WaitingCase) {
+  const levelDifference = LEVEL_ORDER[a.triageLevel!] - LEVEL_ORDER[b.triageLevel!];
+  if (levelDifference !== 0) return levelDifference;
+
+  if (a.frontOfQueue !== b.frontOfQueue) return a.frontOfQueue ? -1 : 1;
+
+  return (a.queuedAt?.getTime() ?? 0) - (b.queuedAt?.getTime() ?? 0);
+}
+
 /**
- * Runs every few seconds (DISPATCH_MS, default 2000):
- * 1. Agents with no live connection for 60 s become Offline; their case goes back to the front (FR 6.14).
- * 2. Offers not accepted in 30 s go to the next Available agent (FR 6.3).
- * 3. Waiting cases are offered: Urgent, then Uncertain, then Minor, oldest first (FR 6.2), each to the
- *    Available agent free the longest, one active case per agent (FR 6.3, 6.4).
+ * Hands waiting cases to agents. Runs every few seconds (DISPATCH_MS, 2000 by default):
+ * 1. Agents with no live connection for 60 seconds become Offline, and their case goes back to the front.
+ * 2. Offers not accepted within 30 seconds go back to the queue, to be offered to someone else.
+ * 3. Waiting cases are offered in queue order, each to the Available agent who has been free the longest.
+ *    An agent has one case at a time.
  * Escalations and the other timers run in TimersService.
  */
 @Injectable()
@@ -40,16 +55,19 @@ export class DispatcherService implements OnModuleInit, OnModuleDestroy {
   }
 
   async tick() {
-    if (this.running) return;
+    if (this.running) return; // the last run hasn't finished yet
     this.running = true;
     try {
       await this.db.client.$transaction(
-        async (tx) => {
-          const [{ locked }] = await tx.$queryRaw<{ locked: boolean }[]>`select pg_try_advisory_xact_lock(${LOCK_KEY}) as locked`;
-          if (!locked) return;
-          await this.lostAgents();
-          await this.expiredOffers();
-          await this.offer();
+        async (transaction) => {
+          // The lock is released when the transaction ends, even if this server crashes.
+          const [{ locked }] = await transaction.$queryRaw<{ locked: boolean }[]>`
+            select pg_try_advisory_xact_lock(${LOCK_KEY}) as locked`;
+          if (!locked) return; // another server is dispatching
+
+          await this.markLostAgentsOffline();
+          await this.returnExpiredOffers();
+          await this.offerWaitingCases();
         },
         { timeout: 15_000 },
       );
@@ -60,83 +78,154 @@ export class DispatcherService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
-  /** Puts a case back at the front of its level with a message for the patient. Used by pause, release and lost connection. */
+  /**
+   * Puts a case back at the front of its level, with an optional message for the patient.
+   * Used when an agent pauses or releases a case, and when their connection is lost.
+   */
   async requeue(caseId: string, patientMessage: string | null) {
     await this.db.client.case.update({
       where: { id: caseId },
-      // Waiting starts again now, so the escalation clock does too (FR 6.10).
-      data: { status: "QUEUED", agentId: null, offeredToId: null, offerExpiresAt: null, assignedAt: null, frontOfQueue: true, queuedAt: new Date(), escalationLevel: 0, escalatedAt: null },
+      data: {
+        status: "QUEUED",
+        agentId: null,
+        offeredToId: null,
+        offerExpiresAt: null,
+        assignedAt: null,
+        frontOfQueue: true,
+        // The wait starts again now, so the escalation clock does too.
+        queuedAt: new Date(),
+        escalationLevel: 0,
+        escalatedAt: null,
+      },
     });
+
     if (patientMessage) {
-      const m = await this.db.client.chatMessage.create({ data: { caseId, sender: "SYSTEM", text: patientMessage } });
-      this.events.emit(`case:${caseId}`, { type: "message", caseId, message: { id: m.id, sender: "SYSTEM", text: m.text, createdAt: m.createdAt.toISOString() } });
+      const message = await this.db.client.chatMessage.create({ data: { caseId, sender: "SYSTEM", text: patientMessage } });
+      this.events.emit(`case:${caseId}`, {
+        type: "message",
+        caseId,
+        message: { id: message.id, sender: "SYSTEM", text: message.text, createdAt: message.createdAt.toISOString() },
+      });
     }
     this.events.emit(`case:${caseId}`, { type: "case", caseId });
     this.events.emit("agents", { type: "queue" });
   }
 
-  private async lostAgents() {
+  /** Agents not seen for 60 seconds go Offline. Their active case is requeued and their offer withdrawn. */
+  private async markLostAgentsOffline() {
     const cutoff = new Date(Date.now() - LOST_MS);
-    const lost = await this.db.client.staff.findMany({
-      where: { role: "AGENT", agentStatus: { not: "OFFLINE" }, OR: [{ lastSeenAt: null }, { lastSeenAt: { lt: cutoff } }] },
+    const lostAgents = await this.db.client.staff.findMany({
+      where: {
+        role: "AGENT",
+        agentStatus: { not: "OFFLINE" },
+        OR: [{ lastSeenAt: null }, { lastSeenAt: { lt: cutoff } }],
+      },
       select: { id: true },
     });
-    for (const a of lost) {
-      await this.db.client.staff.update({ where: { id: a.id }, data: { agentStatus: "OFFLINE", agentStatusSince: new Date() } });
-      const active = await this.db.client.case.findMany({ where: { agentId: a.id, status: "ASSIGNED" }, select: { id: true } });
-      for (const c of active) await this.requeue(c.id, "Another agent will continue with you.");
-      await this.db.client.case.updateMany({ where: { offeredToId: a.id, status: "OFFERED" }, data: { status: "QUEUED", offeredToId: null, offerExpiresAt: null } });
-      await this.audit.record({ type: "system" }, "agent.lost_connection", { staffId: a.id, casesReturned: active.length });
-    }
-  }
 
-  private async expiredOffers() {
-    const expired = await this.db.client.case.findMany({ where: { status: "OFFERED", offerExpiresAt: { lt: new Date() } } });
-    for (const c of expired) {
-      await this.db.client.case.update({
-        where: { id: c.id },
-        data: { status: "QUEUED", offeredToId: null, offerExpiresAt: null, offerSkipped: c.offeredToId ? { push: c.offeredToId } : undefined },
+    for (const agent of lostAgents) {
+      await this.db.client.staff.update({
+        where: { id: agent.id },
+        data: { agentStatus: "OFFLINE", agentStatusSince: new Date() },
       });
-      if (c.offeredToId) this.events.emit(`agent:${c.offeredToId}`, { type: "offer-ended", caseId: c.id });
+
+      const activeCases = await this.db.client.case.findMany({
+        where: { agentId: agent.id, status: "ASSIGNED" },
+        select: { id: true },
+      });
+      for (const activeCase of activeCases) {
+        await this.requeue(activeCase.id, "Another agent will continue with you.");
+      }
+
+      await this.db.client.case.updateMany({
+        where: { offeredToId: agent.id, status: "OFFERED" },
+        data: { status: "QUEUED", offeredToId: null, offerExpiresAt: null },
+      });
+      await this.audit.record({ type: "system" }, "agent.lost_connection", {
+        staffId: agent.id,
+        casesReturned: activeCases.length,
+      });
     }
   }
 
-  private async offer() {
-    const fresh = new Date(Date.now() - LOST_MS);
-    const busy = await this.db.client.case.findMany({
+  /** Offers nobody accepted in time go back to the queue, remembering who let them pass. */
+  private async returnExpiredOffers() {
+    const expired = await this.db.client.case.findMany({
+      where: { status: "OFFERED", offerExpiresAt: { lt: new Date() } },
+    });
+
+    for (const expiredCase of expired) {
+      const agentId = expiredCase.offeredToId;
+      await this.db.client.case.update({
+        where: { id: expiredCase.id },
+        data: {
+          status: "QUEUED",
+          offeredToId: null,
+          offerExpiresAt: null,
+          offerSkipped: agentId ? { push: agentId } : undefined,
+        },
+      });
+      if (agentId) {
+        this.events.emit(`agent:${agentId}`, { type: "offer-ended", caseId: expiredCase.id });
+      }
+    }
+  }
+
+  private async offerWaitingCases() {
+    const freeAgents = await this.freeAgents();
+    if (freeAgents.length === 0) return;
+
+    const waiting = await this.db.client.case.findMany({ where: { status: "QUEUED", triageLevel: { not: null } } });
+    waiting.sort(byQueueOrder);
+
+    for (const waitingCase of waiting) {
+      if (freeAgents.length === 0) break;
+
+      // Prefer an agent who hasn't let this case pass yet. When everyone has, start the round again
+      // with the first agent, rather than leave the case unoffered.
+      const skippedBy = waitingCase.offerSkipped;
+      const preferredIndex = freeAgents.findIndex((agent) => !skippedBy.includes(agent.id));
+      const everyoneHasSkipped = preferredIndex === -1;
+      const [agent] = freeAgents.splice(everyoneHasSkipped ? 0 : preferredIndex, 1);
+
+      const expiresAt = new Date(Date.now() + OFFER_MS);
+      await this.db.client.case.update({
+        where: { id: waitingCase.id },
+        data: {
+          status: "OFFERED",
+          offeredToId: agent.id,
+          offerExpiresAt: expiresAt,
+          offerSkipped: everyoneHasSkipped ? [] : undefined,
+        },
+      });
+      this.events.emit(`agent:${agent.id}`, { type: "offer", caseId: waitingCase.id, expiresAt: expiresAt.toISOString() });
+    }
+
+    this.events.emit("agents", { type: "queue" });
+  }
+
+  /**
+   * Available agents with a live connection and no case, the one free the longest first.
+   * An agent with an active case, or with an offer waiting, isn't free.
+   */
+  private async freeAgents() {
+    const connectedSince = new Date(Date.now() - LOST_MS);
+
+    const casesInHand = await this.db.client.case.findMany({
       where: { OR: [{ status: "ASSIGNED" }, { status: "OFFERED" }] },
       select: { agentId: true, offeredToId: true },
     });
-    const taken = new Set(busy.flatMap((b) => [b.agentId, b.offeredToId]).filter(Boolean) as string[]);
-    const agents = (
-      await this.db.client.staff.findMany({
-        where: { role: "AGENT", status: "ACTIVE", agentStatus: "AVAILABLE", lastSeenAt: { gte: fresh } },
-        orderBy: { agentStatusSince: "asc" }, // free the longest first
-        select: { id: true },
-      })
-    ).filter((a) => !taken.has(a.id));
-    if (agents.length === 0) return;
-
-    const waiting = (await this.db.client.case.findMany({ where: { status: "QUEUED", triageLevel: { not: null } } })).sort(
-      (a, b) =>
-        LEVEL_ORDER[a.triageLevel!] - LEVEL_ORDER[b.triageLevel!] ||
-        Number(b.frontOfQueue) - Number(a.frontOfQueue) ||
-        (a.queuedAt?.getTime() ?? 0) - (b.queuedAt?.getTime() ?? 0),
-    );
-
-    for (const c of waiting) {
-      if (agents.length === 0) break;
-      let i = agents.findIndex((a) => !c.offerSkipped.includes(a.id));
-      // Everyone has let it pass once: start the round again rather than leave it unoffered.
-      if (i === -1) i = 0;
-      const agent = agents.splice(i, 1)[0];
-      const expiresAt = new Date(Date.now() + OFFER_MS);
-      await this.db.client.case.update({
-        where: { id: c.id },
-        data: { status: "OFFERED", offeredToId: agent.id, offerExpiresAt: expiresAt, offerSkipped: i === 0 && c.offerSkipped.includes(agent.id) ? [] : undefined },
-      });
-      this.events.emit(`agent:${agent.id}`, { type: "offer", caseId: c.id, expiresAt: expiresAt.toISOString() });
+    const agentsWithCase = new Set<string>();
+    for (const busyCase of casesInHand) {
+      if (busyCase.agentId) agentsWithCase.add(busyCase.agentId);
+      if (busyCase.offeredToId) agentsWithCase.add(busyCase.offeredToId);
     }
-    this.events.emit("agents", { type: "queue" });
+
+    const available = await this.db.client.staff.findMany({
+      where: { role: "AGENT", status: "ACTIVE", agentStatus: "AVAILABLE", lastSeenAt: { gte: connectedSince } },
+      orderBy: { agentStatusSince: "asc" },
+      select: { id: true },
+    });
+    return available.filter((agent) => !agentsWithCase.has(agent.id));
   }
 }
