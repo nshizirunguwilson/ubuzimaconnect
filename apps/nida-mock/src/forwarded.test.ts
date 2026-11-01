@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { withoutPorts } from "./forwarded";
 
-describe("X-Forwarded-For behind Azure (D67)", () => {
+describe("X-Forwarded-For behind Azure ", () => {
   it("drops the port Azure's front end adds", () => {
     expect(withoutPorts("102.22.168.228:54321")).toBe("102.22.168.228");
     expect(withoutPorts("41.186.1.2, 20.244.77.107:1234")).toBe("41.186.1.2, 20.244.77.107");

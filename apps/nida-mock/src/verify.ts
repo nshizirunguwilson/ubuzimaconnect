@@ -1,12 +1,14 @@
 import type { Citizen } from "./citizens";
 import { byNationalId, byRef, childrenOf } from "./store";
 
-const fold = (s: string) =>
-  s
+/** A name compared without accents, case or spaces around it: "Ingabire " matches "ingabire". */
+function folded(name: string) {
+  return name
     .normalize("NFD")
     .replace(/\p{Diacritic}/gu, "")
     .toLowerCase()
     .trim();
+}
 
 export type PersonOut = {
   ref: string;
@@ -17,28 +19,32 @@ export type PersonOut = {
   district: string;
 };
 
-function out(c: Citizen): PersonOut {
+/** A person as the identity service returns them. */
+function personOut(citizen: Citizen): PersonOut {
   return {
-    ref: c.ref,
-    fullName: c.names.join(" "),
-    firstName: c.names[0],
-    dateOfBirth: c.dateOfBirth,
-    sex: c.sex,
-    district: c.district,
+    ref: citizen.ref,
+    fullName: citizen.names.join(" "),
+    firstName: citizen.names[0],
+    dateOfBirth: citizen.dateOfBirth,
+    sex: citizen.sex,
+    district: citizen.district,
   };
 }
 
 /**
- * FR 1.1 and 1.2: the ID must exist, and the date of birth and one of the person's names must match.
- * A mismatch returns the same answer as an unknown ID, so the response never reveals which part was wrong.
+ * Checks a login: the ID must exist, and the date of birth and one of the person's names must match.
+ * A mismatch gets the same answer as an unknown ID, so the answer never reveals which part was wrong.
  */
 export async function verify(nationalId: string, dateOfBirth: string, name: string) {
-  const c = await byNationalId(nationalId);
-  const ok =
-    !!c && c.dateOfBirth === dateOfBirth && name.split(/\s+/).some((n) => c.names.map(fold).includes(fold(n)));
-  if (!c || !ok) return { match: false as const };
-  const children = (await childrenOf(c.ref)).map(out);
-  return { match: true as const, person: out(c), children };
+  const citizen = await byNationalId(nationalId);
+  if (!citizen) return { match: false as const };
+
+  const theirNames = citizen.names.map(folded);
+  const oneNameMatches = name.split(/\s+/).some((typed) => theirNames.includes(folded(typed)));
+  if (citizen.dateOfBirth !== dateOfBirth || !oneNameMatches) return { match: false as const };
+
+  const children = (await childrenOf(citizen.ref)).map(personOut);
+  return { match: true as const, person: personOut(citizen), children };
 }
 
 export function findByRef(ref: string) {

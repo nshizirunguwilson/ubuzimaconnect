@@ -5,7 +5,7 @@
  * Names follow Rwandan custom: each person has their own Kinyarwanda name, so children rarely share a
  * parent's surname, and the given names match the generation (Esperance in 1960, Aline in 1992, Keza in 2026).
  * Children under 16 have no ID of their own and are reached through a parent. A child of 16 or older
- * has their own ID and sees only their own records, while the parent still sees theirs (FR 1.3).
+ * has their own ID and sees only their own records, while the parent still sees theirs.
  */
 export type Citizen = {
   ref: string;
@@ -76,7 +76,7 @@ export const citizens: Citizen[] = [
     parentRefs: ["NIDA-0004"],
   },
   {
-    // FR 4.2: a baby under 8 days old is Urgent without questions.
+    // A baby under 8 days old is Urgent without questions.
     ref: "NIDA-0010",
     nationalId: null,
     names: ["Keza", "Irakoze"],

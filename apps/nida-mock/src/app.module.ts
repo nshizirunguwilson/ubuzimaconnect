@@ -18,14 +18,13 @@ import {
   UnauthorizedException,
   UseGuards,
 } from "@nestjs/common";
-import type { Request } from "express";
 import { nidaPersonInput, photoType } from "@ubuzima/shared";
-import type { Response } from "express";
-import { findByRef, verify } from "./verify";
-import { add, everyone, NidaInputError } from "./store";
+import type { Request, Response } from "express";
 import { photoSvg } from "./photo";
+import { add, everyone, NidaInputError } from "./store";
+import { findByRef, verify } from "./verify";
 
-/** Outage switch for FR 1.5 ("verification unavailable"); also set with NIDA_OUTAGE=1. */
+/** A switch to pretend the service is down, so the "verification unavailable" path can be tested. Also NIDA_OUTAGE=1. */
 const state = { outage: process.env.NIDA_OUTAGE === "1" };
 
 /**
@@ -34,25 +33,36 @@ const state = { outage: process.env.NIDA_OUTAGE === "1" };
  * In Azure the same list is also set as App Service access restrictions, so other traffic
  * never reaches the app at all.
  */
-const allowed = new Set(
+const allowedAddresses = new Set(
   (process.env.NIDA_ALLOWED_IPS ?? "127.0.0.1,::1")
     .split(",")
-    .map((ip) => ip.trim())
+    .map((address) => address.trim())
     .filter(Boolean),
 );
-const clean = (ip = "") => ip.replace(/^::ffff:/, "");
 
+/** "::ffff:1.2.3.4" (an IPv4 address written as IPv6) becomes "1.2.3.4". */
+function plainAddress(address = "") {
+  return address.replace(/^::ffff:/, "");
+}
+
+/** Every /v1 call must come from an allowed address, with the right API key. */
 @Injectable()
 class ApiKeyGuard implements CanActivate {
-  canActivate(ctx: ExecutionContext) {
-    const req = ctx.switchToHttp().getRequest<Request>();
-    if (!allowed.has(clean(req.ip))) {
-      console.warn(`Refused a caller not on NIDA_ALLOWED_IPS: ${req.ip}`);
+  canActivate(context: ExecutionContext) {
+    const request = context.switchToHttp().getRequest<Request>();
+
+    if (!allowedAddresses.has(plainAddress(request.ip))) {
+      console.warn(`Refused a caller not on NIDA_ALLOWED_IPS: ${request.ip}`);
       throw new ForbiddenException();
     }
-    const key = process.env.NIDA_API_KEY ?? "dev-nida-key";
-    if (req.header("x-api-key") !== key) throw new UnauthorizedException();
-    if (state.outage && !req.path.endsWith("/outage")) throw new ServiceUnavailableException("Identity service is down");
+
+    const apiKey = process.env.NIDA_API_KEY ?? "dev-nida-key";
+    if (request.header("x-api-key") !== apiKey) throw new UnauthorizedException();
+
+    // While the outage switch is on, everything fails except the switch itself.
+    if (state.outage && !request.path.endsWith("/outage")) {
+      throw new ServiceUnavailableException("Identity service is down");
+    }
     return true;
   }
 }
@@ -74,57 +84,70 @@ class NidaController {
     return verify(String(body.nationalId ?? ""), String(body.dateOfBirth ?? ""), String(body.name ?? ""));
   }
 
-  /** FR 1.10: the uploaded photo for people added through the form (D73), a silhouette for everyone else. */
+  /** The uploaded photo for people added through the form, or a silhouette for everyone else. */
   @Get("photos/:ref")
-  async photo(@Param("ref") ref: string, @Res() res: Response) {
-    const c = await findByRef(ref);
-    if (!c) throw new NotFoundException();
-    res.setHeader("Cache-Control", "private, max-age=86400");
-    if (c.photo && c.photoType) return res.type(c.photoType).send(c.photo);
-    return res.type("image/svg+xml").send(photoSvg(c));
+  async photo(@Param("ref") ref: string, @Res() response: Response) {
+    const citizen = await findByRef(ref);
+    if (!citizen) throw new NotFoundException();
+
+    response.setHeader("Cache-Control", "private, max-age=86400");
+    if (citizen.photo && citizen.photoType) return response.type(citizen.photoType).send(citizen.photo);
+    return response.type("image/svg+xml").send(photoSvg(citizen));
   }
 
-  /** D73: everyone in the records, newest additions first, for the administrator's list and the choice of a parent. */
+  /** Everyone in the records, newest additions first, for the administrator's list and the choice of a parent. */
   @Get("people")
   async people() {
-    return (await everyone()).map((c) => ({
-      ref: c.ref,
-      nationalId: c.nationalId,
-      names: c.names,
-      dateOfBirth: c.dateOfBirth,
-      sex: c.sex,
-      district: c.district,
-      parentRefs: c.parentRefs,
-      hasPhoto: !!c.photo,
-      addedAt: c.addedAt,
+    const citizens = await everyone();
+    return citizens.map((citizen) => ({
+      ref: citizen.ref,
+      nationalId: citizen.nationalId,
+      names: citizen.names,
+      dateOfBirth: citizen.dateOfBirth,
+      sex: citizen.sex,
+      district: citizen.district,
+      parentRefs: citizen.parentRefs,
+      hasPhoto: Boolean(citizen.photo),
+      addedAt: citizen.addedAt,
     }));
   }
 
-  /** D73: a new made-up person. The rules are checked again here, whoever calls. */
+  /** Adds a made-up person. The rules are checked again here, whoever calls. */
   @Post("people")
   async addPerson(@Body() body: unknown) {
-    const r = nidaPersonInput.safeParse(body);
-    if (!r.success) throw new BadRequestException(r.error.issues[0]?.message ?? "Check the details");
+    const parsed = nidaPersonInput.safeParse(body);
+    if (!parsed.success) throw new BadRequestException(parsed.error.issues[0]?.message ?? "Check the details");
+    const input = parsed.data;
+
     let photo: { bytes: Buffer; type: "image/jpeg" | "image/png" } | null = null;
-    if (r.data.photo) {
-      const bytes = Buffer.from(r.data.photo.slice(r.data.photo.indexOf(",") + 1), "base64");
+    if (input.photo) {
+      const bytes = Buffer.from(input.photo.slice(input.photo.indexOf(",") + 1), "base64");
       const type = photoType(bytes);
       if (!type) throw new BadRequestException("The photo isn't a real JPG or PNG file");
       photo = { bytes, type };
     }
+
     try {
-      const c = await add(r.data, photo);
-      return { ref: c.ref, nationalId: c.nationalId, names: c.names, dateOfBirth: c.dateOfBirth, sex: c.sex, district: c.district, parentRefs: c.parentRefs };
-    } catch (e) {
-      if (e instanceof NidaInputError) throw new BadRequestException(e.message);
-      throw e;
+      const citizen = await add(input, photo);
+      return {
+        ref: citizen.ref,
+        nationalId: citizen.nationalId,
+        names: citizen.names,
+        dateOfBirth: citizen.dateOfBirth,
+        sex: citizen.sex,
+        district: citizen.district,
+        parentRefs: citizen.parentRefs,
+      };
+    } catch (error) {
+      if (error instanceof NidaInputError) throw new BadRequestException(error.message);
+      throw error;
     }
   }
 
   @Post("outage")
   @HttpCode(200)
   outage(@Body() body: { on?: boolean }) {
-    state.outage = !!body.on;
+    state.outage = Boolean(body.on);
     return { outage: state.outage };
   }
 }
