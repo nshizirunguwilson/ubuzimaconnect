@@ -32,39 +32,39 @@ beforeAll(async () => {
     stdio: "ignore",
   });
   for (
-    let i = 0;
-    i < 60 &&
+    let attempt = 0;
+    attempt < 60 &&
     !(await fetch(`${B}/health`)
-      .then((r) => r.ok)
+      .then((response) => response.ok)
       .catch(() => false));
-    i++
+    attempt++
   )
-    await new Promise((r) => setTimeout(r, 250));
+    await new Promise((resolve) => setTimeout(resolve, 250));
 });
 afterAll(() => second?.kill());
 
 /** Reads a live stream until it contains `text`, or gives up after `ms`. */
-async function streamUntil(url: string, cookie: string, text: string, act: () => Promise<unknown>, ms = 3000) {
-  const ctrl = new AbortController();
-  const res = await fetch(url, { headers: { cookie }, signal: ctrl.signal });
-  const reader = res.body!.getReader();
-  await new Promise((r) => setTimeout(r, 300)); // the stream is subscribed before the event is sent
+async function streamUntil(url: string, cookie: string, text: string, send: () => Promise<unknown>, ms = 3000) {
+  const controller = new AbortController();
+  const response = await fetch(url, { headers: { cookie }, signal: controller.signal });
+  const reader = response.body!.getReader();
+  await new Promise((resolve) => setTimeout(resolve, 300)); // the stream is subscribed before the event is sent
   const sentAt = Date.now();
-  await act();
-  let got = "";
-  const timer = setTimeout(() => ctrl.abort(), ms);
+  await send();
+  let received = "";
+  const timer = setTimeout(() => controller.abort(), ms);
   try {
-    while (!got.includes(text)) {
+    while (!received.includes(text)) {
       const { value, done } = await reader.read();
       if (done) break;
-      got += new TextDecoder().decode(value);
+      received += new TextDecoder().decode(value);
     }
   } catch {
     /* timed out */
   }
   clearTimeout(timer);
-  ctrl.abort();
-  return { found: got.includes(text), ms: Date.now() - sentAt };
+  controller.abort();
+  return { found: received.includes(text), ms: Date.now() - sentAt };
 }
 
 describe("two API instances (NFR 5)", () => {
@@ -77,9 +77,9 @@ describe("two API instances (NFR 5)", () => {
     const agent = await staffLogin("agent@ubuzima.test");
     await agent("/agent/status", { status: "AVAILABLE" }, "PUT");
     let offer;
-    for (let i = 0; i < 40 && !offer; i++) {
+    for (let attempt = 0; attempt < 40 && !offer; attempt++) {
       offer = (await agent("/agent/state")).body.offer;
-      if (!offer) await new Promise((r) => setTimeout(r, 250));
+      if (!offer) await new Promise((resolve) => setTimeout(resolve, 250));
     }
     expect((await agent(`/agent/offers/${offer.id}/accept`, {})).status).toBe(200);
 

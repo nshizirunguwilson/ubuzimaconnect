@@ -8,7 +8,7 @@ export function startFakeGemini(port = 4299) {
   const calls: string[] = [];
   const server: Server = createServer((req, res) => {
     let body = "";
-    req.on("data", (c) => (body += c));
+    req.on("data", (chunk) => (body += chunk));
     req.on("end", () => {
       calls.push(body);
       const text = body.toLowerCase();
@@ -31,5 +31,5 @@ export function startFakeGemini(port = 4299) {
     });
   });
   server.listen(port, "127.0.0.1");
-  return { calls, close: () => new Promise<void>((r) => server.close(() => r())) };
+  return { calls, close: () => new Promise<void>((resolve) => server.close(() => resolve())) };
 }

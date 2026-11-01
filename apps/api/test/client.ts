@@ -10,23 +10,23 @@ export const db = new pg.Pool({
 export function browser() {
   let cookie = "";
   return async function call(path: string, body?: unknown, method?: "PUT" | "DELETE") {
-    const res = await fetch(API + path, {
+    const response = await fetch(API + path, {
       method: method ?? (body === undefined ? "GET" : "POST"),
       headers: { "content-type": "application/json", cookie },
       body: body === undefined ? undefined : JSON.stringify(body),
     });
-    const set = res.headers.get("set-cookie");
-    if (set) cookie = set.split(";")[0];
-    return { status: res.status, body: await res.json().catch(() => null) };
+    const setCookie = response.headers.get("set-cookie");
+    if (setCookie) cookie = setCookie.split(";")[0];
+    return { status: response.status, body: await response.json().catch(() => null) };
   };
 }
 
 export async function latestEmail(to: string) {
-  const r = await db.query(
+  const found = await db.query(
     `select subject, text from "EmailMessage" where "to" = $1 order by "createdAt" desc limit 1`,
     [to],
   );
-  return r.rows[0] as { subject: string; text: string };
+  return found.rows[0] as { subject: string; text: string };
 }
 
 export const codeIn = (text: string) =>
@@ -42,8 +42,8 @@ export const expireLocks = () =>
 
 /** Logs a seeded staff member in through password + emailed code. */
 export async function staffLogin(email: string, password = "Ubuzima-demo-2026") {
-  const b = browser();
-  await b("/auth/staff/login", { email, password });
-  await b("/auth/staff/code", { code: codeIn((await latestEmail(email)).subject) });
-  return b;
+  const staff = browser();
+  await staff("/auth/staff/login", { email, password });
+  await staff("/auth/staff/code", { code: codeIn((await latestEmail(email)).subject) });
+  return staff;
 }

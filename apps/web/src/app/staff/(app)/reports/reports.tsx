@@ -38,7 +38,7 @@ function periodName(period: Period, anchor: string) {
 
 /** Stat tile (dataviz contract): label, then the value in proportional figures; a dash when the period has no data. */
 function value(tile: Tile) {
-  if (tile.value === null) return "–";
+  if (tile.value === null) return "-";
   const formatted = tile.value.toLocaleString("en-GB");
   if (tile.unit === "%") return `${formatted}%`;
   if (tile.unit === "/5") return `${formatted} / 5`;
@@ -154,7 +154,7 @@ export function Reports() {
                               key={index}
                               className={cn("py-2 pr-3", index === 0 ? "text-fg" : "text-right text-fg tabular-nums")}
                             >
-                              {value ?? "–"}
+                              {value ?? "-"}
                             </td>
                           ))}
                         </tr>

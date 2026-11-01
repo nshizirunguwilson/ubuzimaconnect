@@ -3,9 +3,9 @@ import { verify } from "./verify";
 
 describe("verify", () => {
   it("matches with the date of birth and any one name, ignoring case and accents", async () => {
-    const r = await verify("1199270045823116", "1992-03-14", "UWASÉ");
-    expect(r.match).toBe(true);
-    if (r.match) expect(r.children.map((c) => c.firstName)).toEqual(["Kevin", "Grace"]);
+    const result = await verify("1199270045823116", "1992-03-14", "UWASÉ");
+    expect(result.match).toBe(true);
+    if (result.match) expect(result.children.map((child) => child.firstName)).toEqual(["Kevin", "Grace"]);
   });
 
   it("gives the same answer for a wrong date of birth, a wrong name and an unknown ID", async () => {

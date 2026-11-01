@@ -29,12 +29,12 @@ export function longDay(isoDate: string) {
   return formatCalendarDate(isoDate, { weekday: "long", day: "numeric", month: "short" });
 }
 
-/** The week starting on this Monday, as the schedules show it: "26 Oct – 1 Nov 2026". */
+/** The week starting on this Monday, as the schedules show it: "26 Oct - 1 Nov 2026". */
 export function weekRange(monday: string) {
   const sunday = addDays(monday, 6);
   const from = formatCalendarDate(monday, { day: "numeric", month: "short" });
   const to = formatCalendarDate(sunday, { day: "numeric", month: "short", year: "numeric" });
-  return `${from} – ${to}`;
+  return `${from} - ${to}`;
 }
 
 /** A length of time as minutes and seconds: 65,000 ms is "1:05". */

@@ -13,13 +13,13 @@ const ESPERANCE = { nationalId: "1 1960 7 0012689 2 41", dateOfBirth: "1960-12-2
 const NYARUGENGE = { source: "GPS", latitude: -1.9441, longitude: 30.0619 };
 
 let gemini: ReturnType<typeof startFakeGemini>;
-const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
-async function until<T>(fn: () => Promise<T | null | undefined | false>, ms = 6000): Promise<T> {
-  const end = Date.now() + ms;
+const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+async function until<T>(check: () => Promise<T | null | undefined | false>, ms = 6000): Promise<T> {
+  const deadline = Date.now() + ms;
   for (;;) {
-    const v = await fn();
-    if (v) return v;
-    if (Date.now() > end) throw new Error("timed out");
+    const result = await check();
+    if (result) return result;
+    if (Date.now() > deadline) throw new Error("timed out");
     await wait(150);
   }
 }
@@ -46,19 +46,19 @@ describe("the full flow (phase 2)", () => {
     expect((await patient("/auth/patient/login", ESPERANCE)).status).toBe(200);
     const me = (await patient("/auth/me")).body;
     const caseId = (await patient("/cases", { subjectId: me.id, location: NYARUGENGE })).body.id as string;
-    let v = (await patient(`/cases/${caseId}`)).body;
-    while (v.stage === "RED_FLAGS")
-      v = (await patient(`/cases/${caseId}/answers`, { questionId: v.question.id, answer: false })).body;
+    let step = (await patient(`/cases/${caseId}`)).body;
+    while (step.stage === "RED_FLAGS")
+      step = (await patient(`/cases/${caseId}/answers`, { questionId: step.question.id, answer: false })).body;
 
     // 2. The AI sorts it (Minor, or Uncertain if the AI is unavailable); either way it waits for an agent (FR 4).
-    v = (
+    step = (
       await patient(`/cases/${caseId}/symptoms`, {
         description: "Cough for two weeks, now short of breath when walking and a fever at night",
         duration: "MORE_THAN_A_WEEK",
         severity: 7,
       })
     ).body;
-    expect(v.stage).toBe("WAITING");
+    expect(step.stage).toBe("WAITING");
 
     // 3. An agent takes it from the queue, chats, judges it Urgent with a bed, and routes her (FR 6, 5.3 to 5.12).
     const agent = await staffLogin("agent@ubuzima.test");
@@ -71,7 +71,7 @@ describe("the full flow (phase 2)", () => {
     });
     await patient(`/cases/${caseId}/messages`, { text: "No" });
     const view = (await agent(`/agent/cases/${caseId}`)).body;
-    expect(view.messages.map((m: { text: string }) => m.text)).toContain("No");
+    expect(view.messages.map((message: { text: string }) => message.text)).toContain("No");
     await agent(
       `/agent/cases/${caseId}/triage`,
       { triageLevel: "URGENT", category: "RESPIRATORY", neededService: "INTERNAL_MEDICINE", bedNeeded: true },
@@ -105,7 +105,7 @@ describe("the full flow (phase 2)", () => {
     const email = (await db.query(`select email from "Staff" where id = $1`, [suggested.clinicianId])).rows[0].email;
     const clinician = await staffLogin(email);
     const incoming = (await clinician("/clinician/patients")).body.incoming;
-    expect(incoming.map((x: { id: string }) => x.id)).toContain(suggested.id);
+    expect(incoming.map((routing: { id: string }) => routing.id)).toContain(suggested.id);
     expect((await clinician(`/clinician/incoming/${suggested.id}/arrive`, {})).body).toEqual({ attending: true });
 
     // 5. The visit: a record entry, a prescription, then discharge, which frees the bed (FR 7.7, 11.1, 7.10).
@@ -145,7 +145,7 @@ describe("the full flow (phase 2)", () => {
 
     // 8. And every step is on her activity list, oldest to newest, with who did it (FR 10.1, 10.2).
     const actions = ((await patient(`/records/${me.id}/activity`)).body.rows as { action: string }[])
-      .map((r) => r.action)
+      .map((event) => event.action)
       .reverse();
     const order = [
       "case.started",
@@ -162,11 +162,11 @@ describe("the full flow (phase 2)", () => {
       "prescription.checked",
       "case.rated",
     ];
-    const positions = order.map((a) => actions.indexOf(a));
+    const positions = order.map((action) => actions.indexOf(action));
     expect(
-      positions.every((p) => p >= 0),
-      `missing: ${order.filter((a, i) => positions[i] < 0).join(", ")}`,
+      positions.every((position) => position >= 0),
+      `missing: ${order.filter((action, index) => positions[index] < 0).join(", ")}`,
     ).toBe(true);
-    expect([...positions].sort((a, b) => a - b)).toEqual(positions);
+    expect([...positions].sort((earlier, later) => earlier - later)).toEqual(positions);
   });
 });

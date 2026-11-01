@@ -8,18 +8,18 @@ const DB = process.env.TEST_DATABASE_URL ?? `postgresql://${process.env.USER}@lo
 export const API = "http://127.0.0.1:4099";
 const NIDA = "http://127.0.0.1:4199";
 
-const procs: ChildProcess[] = [];
+const servers: ChildProcess[] = [];
 const vapid = webpush.generateVAPIDKeys();
 
 async function waitFor(url: string) {
-  for (let i = 0; i < 60; i++) {
+  for (let attempt = 0; attempt < 60; attempt++) {
     if (
       await fetch(url)
-        .then((r) => r.ok)
+        .then((response) => response.ok)
         .catch(() => false)
     )
       return;
-    await new Promise((r) => setTimeout(r, 250));
+    await new Promise((resolve) => setTimeout(resolve, 250));
   }
   throw new Error(`${url} did not start`);
 }
@@ -33,14 +33,14 @@ export async function setup() {
   await resetDatabase();
   execSync("pnpm --filter @ubuzima/api --filter @ubuzima/nida-mock build", { cwd: root, stdio: "ignore" });
 
-  procs.push(
+  servers.push(
     spawn("node", ["apps/nida-mock/dist/main.js"], {
       cwd: root,
       env: { ...env, PORT: "4199", NIDA_DATABASE_URL: DB },
       stdio: "ignore",
     }),
   );
-  procs.push(
+  servers.push(
     spawn("node", ["apps/api/dist/main.js"], {
       cwd: root,
       env: {
@@ -75,7 +75,7 @@ export async function resetDatabase() {
   const { rows } = await client.query(
     `select tablename from pg_tables where schemaname = 'public' and tablename <> '_prisma_migrations'`,
   );
-  await client.query(`truncate ${rows.map((r) => `"${r.tablename}"`).join(", ")} cascade`);
+  await client.query(`truncate ${rows.map((table) => `"${table.tablename}"`).join(", ")} cascade`);
   // People added to the mock NIDA (D73) live in its own schema.
   await client.query(`do $$ begin if to_regclass('nida.person') is not null then truncate nida.person; end if; end $$`);
   await client.end();
@@ -87,5 +87,5 @@ export async function resetDatabase() {
 }
 
 export async function teardown() {
-  procs.forEach((p) => p.kill());
+  servers.forEach((server) => server.kill());
 }

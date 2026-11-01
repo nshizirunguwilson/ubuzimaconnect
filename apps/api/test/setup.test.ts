@@ -51,10 +51,10 @@ describe("facilities (FR 8.1, 8.3, 12.1)", () => {
     expect((await manager("/facilities/mine/beds", { totalBeds: -1 }, "PUT")).status).toBe(400);
     expect((await manager("/facilities/mine/beds", { totalBeds: 90 }, "PUT")).status).toBe(200);
     expect((await manager("/facilities/mine")).body).toMatchObject({ totalBeds: 90, availableBeds: 90 });
-    const n = await db.query(
+    const logged = await db.query(
       `select action from "AuditEvent" where action in ('facility.profile.updated', 'facility.beds.updated')`,
     );
-    expect(n.rows.length).toBe(2);
+    expect(logged.rows.length).toBe(2);
   });
 
   it("never routes to an inactive facility: the flag is saved (FR 8.1)", async () => {
@@ -77,8 +77,12 @@ describe("facilities (FR 8.1, 8.3, 12.1)", () => {
 describe("clinician accounts (FR 8.2)", () => {
   it("lets a manager invite clinicians only to their own facility, with a specialty and licence", async () => {
     const manager = await staffLogin("manager@ubuzima.test");
-    const bad = await manager("/clinicians", { name: "No Specialty", email: "ns@ubuzima.test", licenceNumber: "X-1" });
-    expect(bad.body.fields).toHaveProperty("specialty");
+    const refused = await manager("/clinicians", {
+      name: "No Specialty",
+      email: "ns@ubuzima.test",
+      licenceNumber: "X-1",
+    });
+    expect(refused.body.fields).toHaveProperty("specialty");
     const ok = await manager("/clinicians", {
       name: "Test Nurse",
       email: "nurse@ubuzima.test",
@@ -87,8 +91,8 @@ describe("clinician accounts (FR 8.2)", () => {
     });
     expect(ok.status).toBe(201);
     const list = (await manager("/clinicians")).body as { email: string }[];
-    expect(list.some((c) => c.email === "nurse@ubuzima.test")).toBe(true);
-    expect(list.some((c) => c.email === "kib.er@ubuzima.test")).toBe(false);
+    expect(list.some((clinician) => clinician.email === "nurse@ubuzima.test")).toBe(true);
+    expect(list.some((clinician) => clinician.email === "kib.er@ubuzima.test")).toBe(false);
 
     // Another facility's clinician can't be touched.
     const other = await db.query(`select id from "Staff" where email = 'kib.er@ubuzima.test'`);
@@ -112,7 +116,7 @@ describe("schedules (FR 8.4, 8.5, 12.4)", () => {
     const week = await manager(`/schedule?week=${weekStart(currentShift().date)}`);
     expect(week.body.days).toHaveLength(7);
     expect(week.body.gaps).toHaveLength(14);
-    expect(week.body.people.every((p: { specialty: string }) => p.specialty)).toBe(true);
+    expect(week.body.people.every((person: { specialty: string }) => person.specialty)).toBe(true);
   });
 
   it("shows the administrator every shift with no agent on it (NFR 12)", async () => {
@@ -124,41 +128,45 @@ describe("schedules (FR 8.4, 8.5, 12.4)", () => {
     );
     const week = (await admin(`/schedule?week=${monday}`)).body;
     expect(
-      week.gaps.find((g: { date: string; shift: string }) => g.date === monday && g.shift === "NIGHT").missing,
+      week.gaps.find((gap: { date: string; shift: string }) => gap.date === monday && gap.shift === "NIGHT").missing,
     ).toEqual(["AGENT"]);
   });
 
   it("shows the administrator the agents, not clinicians", async () => {
     const admin = await staffLogin("admin@ubuzima.test");
     const week = await admin("/schedule");
-    expect(week.body.people.map((p: { name: string }) => p.name).sort()).toEqual(["Diane Umutoni", "Eric Habineza"]);
+    expect(week.body.people.map((person: { name: string }) => person.name).sort()).toEqual([
+      "Diane Umutoni",
+      "Eric Habineza",
+    ]);
   });
 
   it("lets a clinician mark a current or future shift unavailable, which counts as a gap", async () => {
-    const c = await staffLogin("clinician@ubuzima.test");
+    const clinician = await staffLogin("clinician@ubuzima.test");
     const manager = await staffLogin("manager@ubuzima.test");
-    const mine = await c("/me/shifts");
+    const mine = await clinician("/me/shifts");
     const now = mine.body.now;
     // Tomorrow, so the test also works on a Sunday, when no later day is left in this week.
     const tomorrow = new Date(Date.parse(`${now.date}T00:00:00Z`) + 86_400_000).toISOString().slice(0, 10);
-    const me = (await c("/auth/me")).body;
+    const me = (await clinician("/auth/me")).body;
     await manager("/schedule", { staffId: me.id, date: tomorrow, shift: "DAY", assigned: true }, "PUT");
     const week = weekStart(tomorrow);
-    const upcoming = (await c(`/me/shifts?week=${week}`)).body.shifts.find(
-      (s: { date: string }) => s.date === tomorrow,
+    const upcoming = (await clinician(`/me/shifts?week=${week}`)).body.shifts.find(
+      (shift: { date: string }) => shift.date === tomorrow,
     );
     expect(upcoming).toBeDefined();
-    expect((await c(`/me/shifts/${upcoming.id}/unavailable`, { unavailable: true, reason: "Training" })).status).toBe(
-      200,
-    );
+    expect(
+      (await clinician(`/me/shifts/${upcoming.id}/unavailable`, { unavailable: true, reason: "Training" })).status,
+    ).toBe(200);
     const sched = await manager(`/schedule?week=${week}`);
     const gap = sched.body.gaps.find(
-      (g: { date: string; shift: string }) => g.date === upcoming.date && g.shift === upcoming.shift,
+      (shiftGap: { date: string; shift: string }) =>
+        shiftGap.date === upcoming.date && shiftGap.shift === upcoming.shift,
     );
     expect(gap.missing).toContain("EMERGENCY_CARE");
 
-    const past = mine.body.shifts.find((s: { date: string }) => s.date < now.date);
-    if (past) expect((await c(`/me/shifts/${past.id}/unavailable`, { unavailable: true })).status).toBe(400);
+    const past = mine.body.shifts.find((shift: { date: string }) => shift.date < now.date);
+    if (past) expect((await clinician(`/me/shifts/${past.id}/unavailable`, { unavailable: true })).status).toBe(400);
   });
 });
 
@@ -171,9 +179,9 @@ describe("copying last week (D77)", () => {
     const thisWeek = (await manager(`/schedule?week=${weekStart(currentShift().date)}`)).body.assignments.length;
     // Start from an empty next week: on a Sunday, shifts other tests add for "tomorrow" are already in it.
     await db.query(`delete from "ShiftAssignment" where date >= $1::date and date < $1::date + 7`, [next]);
-    const r = await manager("/schedule/copy", { week: next });
-    expect(r.status).toBe(200);
-    expect(r.body.added).toBe(thisWeek);
+    const copied = await manager("/schedule/copy", { week: next });
+    expect(copied.status).toBe(200);
+    expect(copied.body.added).toBe(thisWeek);
     expect((await manager(`/schedule?week=${next}`)).body.assignments.length).toBe(thisWeek);
     expect((await manager("/schedule/copy", { week: next })).body.added).toBe(0); // nothing twice
     const clinician = await staffLogin("clinician@ubuzima.test");
@@ -186,7 +194,7 @@ describe("red flags and the AI switch (FR 12.6, 4.8)", () => {
     const admin = await staffLogin("admin@ubuzima.test");
     const list = (await admin("/red-flags")).body as { code: string }[];
     expect(list).toHaveLength(23);
-    expect(list.map((q) => q.code)).toContain("P4");
+    expect(list.map((question) => question.code)).toContain("P4");
     const added = await admin("/red-flags", {
       group: "A",
       textEn: "Is the sick person bleeding from the ears after a fall?",
@@ -212,19 +220,25 @@ describe("red flags and the AI switch (FR 12.6, 4.8)", () => {
 
   it("edits and removes questions; removed ones are kept for old cases", async () => {
     const admin = await staffLogin("admin@ubuzima.test");
-    const q = ((await admin("/red-flags")).body as { id: string; code: string }[]).find((x) => x.code === "A7")!;
+    const question = ((await admin("/red-flags")).body as { id: string; code: string }[]).find(
+      (question) => question.code === "A7",
+    )!;
     expect(
       (
         await admin(
-          `/red-flags/${q.id}`,
+          `/red-flags/${question.id}`,
           { group: "A", textEn: "Was the sick person bitten by a snake or a dog?", service: "EMERGENCY_CARE" },
           "PUT",
         )
       ).status,
     ).toBe(200);
-    expect((await admin(`/red-flags/${q.id}`, undefined, "DELETE")).status).toBe(200);
-    expect(((await admin("/red-flags")).body as { code: string }[]).some((x) => x.code === "A7")).toBe(false);
-    expect((await db.query(`select active from "RedFlagQuestion" where id = $1`, [q.id])).rows[0].active).toBe(false);
+    expect((await admin(`/red-flags/${question.id}`, undefined, "DELETE")).status).toBe(200);
+    expect(((await admin("/red-flags")).body as { code: string }[]).some((question) => question.code === "A7")).toBe(
+      false,
+    );
+    expect((await db.query(`select active from "RedFlagQuestion" where id = $1`, [question.id])).rows[0].active).toBe(
+      false,
+    );
   });
 });
 

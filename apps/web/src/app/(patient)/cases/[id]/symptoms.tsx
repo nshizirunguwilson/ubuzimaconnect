@@ -93,24 +93,24 @@ export function Symptoms({
           <legend className="mb-1 text-small font-medium text-fg">{t.case.howBad}</legend>
           <p className="text-small text-fg-secondary">{t.case.howBadHint}</p>
           <div role="radiogroup" aria-label={t.case.howBadAria} className="grid grid-cols-5 gap-2 sm:flex">
-            {Array.from({ length: 10 }, (_, i) => i + 1).map((n) => (
+            {Array.from({ length: 10 }, (_, index) => index + 1).map((score) => (
               <Squircle
-                key={n}
+                key={score}
                 as="button"
                 type="button"
                 role="radio"
-                aria-checked={severity === n}
+                aria-checked={severity === score}
                 radius="md"
                 focus="self"
-                onClick={() => setSeverity(n)}
+                onClick={() => setSeverity(score)}
                 className={cn(
                   "flex h-12 cursor-pointer items-center justify-center text-body font-medium tabular-nums sm:w-12",
-                  severity === n
+                  severity === score
                     ? "sq-bg-accent-soft sq-border-primary text-info-fg"
                     : "sq-bg-surface sq-border-border-strong text-fg hover:sq-bg-gray-50",
                 )}
               >
-                {n}
+                {score}
               </Squircle>
             ))}
           </div>

@@ -8,7 +8,7 @@ describe("contrast", () => {
     expect(contrast("#FFFFFF", "#FFFFFF")).toBeCloseTo(1, 5);
   });
 
-  it.each(pairs)("%s passes (%s on %s, needs %d:1)", (_, fg, bg, min) => {
-    expect(contrast(palette[fg], palette[bg])).toBeGreaterThanOrEqual(min);
+  it.each(pairs)("%s passes (%s on %s, needs %d:1)", (_, foreground, background, minimum) => {
+    expect(contrast(palette[foreground], palette[background])).toBeGreaterThanOrEqual(minimum);
   });
 });
