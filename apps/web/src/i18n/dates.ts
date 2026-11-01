@@ -17,6 +17,24 @@ const RW_MONTHS = [
   "Ugushyingo",
   "Ukuboza",
 ];
+const EN_MONTHS = [
+  "January",
+  "February",
+  "March",
+  "April",
+  "May",
+  "June",
+  "July",
+  "August",
+  "September",
+  "October",
+  "November",
+  "December",
+];
+
+/** The twelve month names, January first. */
+export const monthNames = (lang: Lang) => (lang === "rw" ? RW_MONTHS : EN_MONTHS);
+
 const kigali = (iso: string | Date) => new TZDate(new Date(iso), "Africa/Kigali");
 
 /** "24 Oct 2026" / "24 Ukwakira 2026", always in Rwanda time. */

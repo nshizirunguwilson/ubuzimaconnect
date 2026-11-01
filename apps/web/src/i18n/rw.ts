@@ -61,6 +61,9 @@ export const rw: Messages = {
         ? "Usigaje igerageza 1 mbere y'uko indangamuntu ifungwa iminota 15."
         : `Usigaje amagerageza ${count} mbere y'uko indangamuntu ifungwa iminota 15.`,
     dob: "Itariki y'amavuko",
+    day: "Umunsi",
+    month: "Ukwezi",
+    year: "Umwaka",
     name: "Rimwe mu mazina yawe",
     nameHint: "Nk'uko ryanditse ku ndangamuntu",
     shared: "Iki gikoresho si icyanjye",
@@ -79,7 +82,7 @@ export const rw: Messages = {
   home: {
     hello: (name) => `Muraho, ${name}`,
     notFinished: "Ntibirarangira: komeza usubiza",
-    urgent: "Byihutirwa: reba aho ujya",
+    urgent: "Byihutirwa: reba icyo ukora nonaha",
     willCall: "Umukozi w'ubuzima azaguhamagara",
     willReply: "Umukozi w'ubuzima azagusubiza hano",
     yourRequest: "Ubusabe bwawe",
