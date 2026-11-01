@@ -19,23 +19,35 @@ export class FacilityDataService {
       },
       select: { staff: { select: { facilityId: true, specialty: true } } },
     });
-    // Bed counts for every facility in two grouped queries, not two per facility (measured: docs/PERFORMANCE.md).
-    const [held, used] = await Promise.all([
+    // Bed counts for every facility in two grouped queries, rather than two queries per facility.
+    const [heldBeds, usedBeds] = await Promise.all([
       this.db.client.bedReservation.groupBy({ by: ["facilityId"], where: { status: "HELD" }, _count: true }),
-      this.db.client.bedReservation.groupBy({ by: ["facilityId"], where: { status: "USED", routing: { status: "ARRIVED" } }, _count: true }),
+      this.db.client.bedReservation.groupBy({
+        by: ["facilityId"],
+        where: { status: "USED", routing: { status: "ARRIVED" } },
+        _count: true,
+      }),
     ]);
-    const n = (rows: { facilityId: string; _count: number }[], id: string) => rows.find((r) => r.facilityId === id)?._count ?? 0;
-    return facilities.map((f) => ({
-      id: f.id,
-      name: f.name,
-      active: f.active,
-      services: f.services as Service[],
-      latitude: f.latitude,
-      longitude: f.longitude,
-      phone: f.phone,
-      // FR 8.3, the same rule as setup/beds.ts: free = total − occupied − reserved
-      freeBeds: f.totalBeds - n(used, f.id) - n(held, f.id),
-      onDuty: [...new Set(onShift.filter((s) => s.staff.facilityId === f.id).map((s) => s.staff.specialty as Service))],
-    }));
+    const countFor = (rows: { facilityId: string; _count: number }[], facilityId: string) =>
+      rows.find((row) => row.facilityId === facilityId)?._count ?? 0;
+
+    return facilities.map((facility) => {
+      const specialtiesOnDuty = onShift
+        .filter((assignment) => assignment.staff.facilityId === facility.id)
+        .map((assignment) => assignment.staff.specialty as Service);
+
+      return {
+        id: facility.id,
+        name: facility.name,
+        active: facility.active,
+        services: facility.services as Service[],
+        latitude: facility.latitude,
+        longitude: facility.longitude,
+        phone: facility.phone,
+        // The same rule as setup/beds.ts: free beds = total, minus occupied, minus held for someone on the way.
+        freeBeds: facility.totalBeds - countFor(usedBeds, facility.id) - countFor(heldBeds, facility.id),
+        onDuty: [...new Set(specialtiesOnDuty)],
+      };
+    });
   }
 }

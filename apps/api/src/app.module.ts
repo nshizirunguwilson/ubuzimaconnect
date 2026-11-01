@@ -29,7 +29,10 @@ import { PushService } from "./push/push.service";
 import { OnDutyController, StaffActivityController } from "./records/staff-activity.controller";
 import { DispatcherService } from "./agent/dispatcher.service";
 import { AiService } from "./cases/ai.service";
+import { CaseFlowService } from "./cases/case-flow.service";
+import { PatientViewService } from "./cases/patient-view";
 import { RoutingService } from "./cases/routing.service";
+import { ChatService } from "./live/chat.service";
 import { EventsController } from "./live/events.controller";
 import { EventsService } from "./live/events.service";
 import { CasesController } from "./cases/cases.controller";
@@ -93,7 +96,10 @@ class HealthController {
     AiService,
     FacilityDataService,
     EventsService,
+    ChatService,
     RoutingService,
+    CaseFlowService,
+    PatientViewService,
     DispatcherService,
     PrescriptionsService,
     AlertsService,
