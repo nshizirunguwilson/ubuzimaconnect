@@ -23,7 +23,9 @@ async function bootstrap() {
   app.use("/staff/nida/people", (req: Request, res: Response, next: NextFunction) => largeBody(req, res, next));
   // A voice note of up to 2 minutes, at most 2.5 MB, is up to about 3.4 MB once base64-encoded.
   const voiceBody = json({ limit: "3.5mb" });
-  app.use(/^\/(agent\/)?cases\/[^/]+\/voice$/, (req: Request, res: Response, next: NextFunction) => voiceBody(req, res, next));
+  app.use(/^\/(agent\/)?cases\/[^/]+\/voice$/, (req: Request, res: Response, next: NextFunction) =>
+    voiceBody(req, res, next),
+  );
   app.enableCors({ origin: env.webUrl, credentials: true });
   app.enableShutdownHooks();
   await app.listen(env.port);

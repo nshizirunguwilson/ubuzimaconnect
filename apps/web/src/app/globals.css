@@ -10,7 +10,7 @@
   --shadow-*: initial;
   --font-*: initial;
 
-  /* Palette (DESIGN.md §2) */
+  /* Palette */
   --color-transparent: transparent;
   --color-white: #ffffff;
   --color-blue-50: #eaf4ff;
@@ -73,7 +73,7 @@
   --color-info-fg: var(--color-blue-700);
   --color-info-soft: var(--color-blue-50);
 
-  /* Type (DESIGN.md §3). Sizes in rem so text zoom works. */
+  /* Type. Sizes in rem so text zoom works. */
   --font-heading: var(--font-outfit), ui-sans-serif, system-ui, sans-serif;
   --font-sans: var(--font-google-sans-flex), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-google-sans-code), ui-monospace, monospace;
@@ -93,7 +93,7 @@
   --text-caption: 0.75rem;
   --text-caption--line-height: 1rem;
 
-  /* Elevation (DESIGN.md §6): one level, overlays only */
+  /* Elevation: one level, for overlays only */
   --shadow-overlay: 0 8px 24px rgb(28 43 51 / 0.12);
 
   /* Only true circles may use rounded-full; everything else goes through .sq */
@@ -143,10 +143,10 @@
 }
 
 /*
- * Squircle primitive (DESIGN.md §5, RESEARCH.md §2.4). Used only through <Squircle>.
+ * Squircle primitive (smooth, iOS-style corners). Used only through <Squircle>.
  * 1. Before the mode script runs: plain rounded corners at the base radius.
  * 2. html[data-sq="native"]: CSS corner-shape. A superellipse corner reads smaller
- *    than the Figma-style corner, so the radius is scaled by --sq-k (see DECISIONS.md D3).
+ *    than the Figma-style corner, so the radius is scaled by --sq-k.
  * 3. html[data-sq="fallback"]: the element's own paint is hidden and an SVG path
  *    drawn by <Squircle> paints fill, border, focus ring and shadow.
  */
@@ -229,7 +229,9 @@
     fill: var(--sq-bg);
     stroke: var(--sq-border);
     stroke-width: 1;
-    transition: fill 150ms var(--ease-out), stroke 150ms var(--ease-out);
+    transition:
+      fill 150ms var(--ease-out),
+      stroke 150ms var(--ease-out);
   }
   .sq-layer .sq-gap {
     fill: none;
@@ -276,7 +278,7 @@
   }
 }
 
-/* D77: FullCalendar in the design tokens. Its own stylesheet is injected by the library; this only re-colours it. */
+/* FullCalendar in the design tokens. Its own stylesheet is injected by the library; this only re-colours it. */
 .uc-calendar .fc {
   --fc-border-color: var(--color-border);
   --fc-page-bg-color: var(--color-surface);
@@ -295,22 +297,75 @@
   border-radius: 16px;
   background: var(--color-surface);
 }
-.uc-calendar .fc-scrollgrid { border: 0; }
+.uc-calendar .fc-scrollgrid {
+  border: 0;
+}
 .uc-calendar .fc-timeline-slot-cushion,
-.uc-calendar .fc-datagrid-cell-cushion { font-size: var(--text-caption); color: var(--color-fg-muted); font-weight: 500; }
-.uc-calendar .fc-timeline-header-row:first-child .fc-timeline-slot-cushion { color: var(--color-fg); }
-.uc-calendar .fc-datagrid-cell-cushion { padding: 8px 12px; }
-.uc-calendar .fc-timeline-lane:not(.fc-day-past) .fc-timeline-slot-lane { cursor: pointer; }
-.uc-calendar .fc-day-past.fc-timeline-slot-lane { background: var(--color-gray-50); }
-.uc-calendar .fc-timeline-event { margin: 4px 3px; border-radius: 6px; padding: 0; }
-.uc-calendar .fc-timeline-event-harness { top: 0 !important; }
-.uc-calendar .uc-ev-on { background: var(--color-accent-soft); color: var(--color-info-fg); box-shadow: inset 3px 0 0 var(--color-primary); }
-.uc-calendar .uc-ev-off { background: var(--color-warning-soft); color: var(--color-warning-fg); box-shadow: inset 3px 0 0 var(--color-warning); }
-.uc-calendar .uc-ev-gap { background: var(--color-warning-soft); color: var(--color-warning-fg); cursor: help; }
-.uc-calendar .uc-ev-covered { background: transparent; color: var(--color-success); cursor: default; }
-.uc-calendar .uc-ev-past { opacity: 0.55; cursor: default; }
-.uc-calendar .fc-event-main { color: inherit; }
-.uc-calendar .fc-resource-group, .uc-calendar tr:last-child .fc-datagrid-cell { background: var(--color-gray-50); }
-.uc-calendar .fc-timegrid-slot { height: 2.25rem; }
-.uc-calendar .fc-timegrid-slot-label-cushion, .uc-calendar .fc-col-header-cell-cushion { font-size: var(--text-caption); color: var(--color-fg-muted); font-weight: 500; }
-.uc-calendar .fc-timegrid-event { border-radius: 6px; }
+.uc-calendar .fc-datagrid-cell-cushion {
+  font-size: var(--text-caption);
+  color: var(--color-fg-muted);
+  font-weight: 500;
+}
+.uc-calendar .fc-timeline-header-row:first-child .fc-timeline-slot-cushion {
+  color: var(--color-fg);
+}
+.uc-calendar .fc-datagrid-cell-cushion {
+  padding: 8px 12px;
+}
+.uc-calendar .fc-timeline-lane:not(.fc-day-past) .fc-timeline-slot-lane {
+  cursor: pointer;
+}
+.uc-calendar .fc-day-past.fc-timeline-slot-lane {
+  background: var(--color-gray-50);
+}
+.uc-calendar .fc-timeline-event {
+  margin: 4px 3px;
+  border-radius: 6px;
+  padding: 0;
+}
+.uc-calendar .fc-timeline-event-harness {
+  top: 0 !important;
+}
+.uc-calendar .uc-ev-on {
+  background: var(--color-accent-soft);
+  color: var(--color-info-fg);
+  box-shadow: inset 3px 0 0 var(--color-primary);
+}
+.uc-calendar .uc-ev-off {
+  background: var(--color-warning-soft);
+  color: var(--color-warning-fg);
+  box-shadow: inset 3px 0 0 var(--color-warning);
+}
+.uc-calendar .uc-ev-gap {
+  background: var(--color-warning-soft);
+  color: var(--color-warning-fg);
+  cursor: help;
+}
+.uc-calendar .uc-ev-covered {
+  background: transparent;
+  color: var(--color-success);
+  cursor: default;
+}
+.uc-calendar .uc-ev-past {
+  opacity: 0.55;
+  cursor: default;
+}
+.uc-calendar .fc-event-main {
+  color: inherit;
+}
+.uc-calendar .fc-resource-group,
+.uc-calendar tr:last-child .fc-datagrid-cell {
+  background: var(--color-gray-50);
+}
+.uc-calendar .fc-timegrid-slot {
+  height: 2.25rem;
+}
+.uc-calendar .fc-timegrid-slot-label-cushion,
+.uc-calendar .fc-col-header-cell-cushion {
+  font-size: var(--text-caption);
+  color: var(--color-fg-muted);
+  font-weight: 500;
+}
+.uc-calendar .fc-timegrid-event {
+  border-radius: 6px;
+}

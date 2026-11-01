@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * From ElevenLabs UI (https://ui.elevenlabs.io, MIT licence, Copyright (c) 2025 Eleven Labs Inc.), DECISIONS.md D78.
+ * From ElevenLabs UI (https://ui.elevenlabs.io, MIT licence, Copyright (c) 2025 Eleven Labs Inc.).
  * One hidden <audio> for a whole chat, so starting a voice note pauses the one playing. Changed here: our Button and
  * icons; the speed menu and sample tracks are left out; the progress bar and time follow one item, and take the
  * length we already know, as a recording from the browser often reports no duration until it has played through.
@@ -95,10 +95,10 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
         else audio.src = item.src;
         audio.load();
       }
-      const p = audio.play();
-      playPromiseRef.current = p;
+      const playing = audio.play();
+      playPromiseRef.current = playing;
       setPaused(false); // starts the frame loop below
-      return p;
+      return playing;
     },
     [activeItem],
   );
@@ -119,17 +119,20 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
   const isItemActive = useCallback((id: string | number | null) => activeItem?.id === id, [activeItem]);
 
   // Only while a note plays: an idle chat doesn't redraw every frame. The loop stops itself when the audio pauses or ends.
-  useAnimationFrame(() => {
-    const audio = audioRef.current;
-    if (!audio) return;
-    setActiveItem(itemRef.current);
-    setReadyState(audio.readyState);
-    setNetworkState(audio.networkState);
-    setTime(audio.currentTime);
-    setDuration(audio.duration);
-    setPaused(audio.paused);
-    setError(audio.error);
-  }, activeItem !== null && !paused);
+  useAnimationFrame(
+    () => {
+      const audio = audioRef.current;
+      if (!audio) return;
+      setActiveItem(itemRef.current);
+      setReadyState(audio.readyState);
+      setNetworkState(audio.networkState);
+      setTime(audio.currentTime);
+      setDuration(audio.duration);
+      setPaused(audio.paused);
+      setError(audio.error);
+    },
+    activeItem !== null && !paused,
+  );
 
   const isPlaying = !paused;
   const isBuffering = readyState < ReadyState.HAVE_FUTURE_DATA && networkState === NetworkState.NETWORK_LOADING;
@@ -146,9 +149,9 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
           ref={audioRef}
           className="hidden"
           preload="none"
-          onEnded={(e) => {
+          onEnded={(event) => {
             // Back to the start when a note finishes, ready to play again.
-            e.currentTarget.currentTime = 0;
+            event.currentTarget.currentTime = 0;
             setTime(0);
             setPaused(true);
           }}
@@ -165,7 +168,10 @@ export function AudioPlayerProgress({
   duration: known,
   className,
   ...rest
-}: Omit<ComponentProps<typeof SliderPrimitive.Root>, "min" | "max" | "value"> & { item: AudioPlayerItem; duration: number }) {
+}: Omit<ComponentProps<typeof SliderPrimitive.Root>, "min" | "max" | "value"> & {
+  item: AudioPlayerItem;
+  duration: number;
+}) {
   const player = useAudioPlayer();
   const time = useAudioPlayerTime();
   const active = player.isItemActive(item.id);
@@ -189,9 +195,9 @@ export function AudioPlayerProgress({
       onPointerUp={() => {
         if (wasPlaying.current) void player.play();
       }}
-      onKeyDown={(e) => {
-        if (e.key !== " ") return;
-        e.preventDefault();
+      onKeyDown={(event) => {
+        if (event.key !== " ") return;
+        event.preventDefault();
         if (active && player.isPlaying) player.pause();
         else void player.play(item);
       }}
@@ -210,18 +216,33 @@ export function AudioPlayerProgress({
 }
 
 /** Time played of this item, or its length while it isn't playing. */
-export function AudioPlayerTime({ item, duration, className }: { item: AudioPlayerItem; duration: number; className?: string }) {
+export function AudioPlayerTime({
+  item,
+  duration,
+  className,
+}: {
+  item: AudioPlayerItem;
+  duration: number;
+  className?: string;
+}) {
   const player = useAudioPlayer();
   const time = useAudioPlayerTime();
   const active = player.isItemActive(item.id) && (player.isPlaying || time > 0);
-  return <span className={cn("text-caption text-fg-secondary tabular-nums", className)}>{formatTime(active ? time : duration)}</span>;
+  return (
+    <span className={cn("text-caption text-fg-secondary tabular-nums", className)}>
+      {formatTime(active ? time : duration)}
+    </span>
+  );
 }
 
 export function AudioPlayerButton({
   item,
   labels = { play: "Play", pause: "Pause" },
   ...rest
-}: Omit<ComponentProps<typeof Button>, "onClick" | "children"> & { item: AudioPlayerItem; labels?: { play: string; pause: string } }) {
+}: Omit<ComponentProps<typeof Button>, "onClick" | "children"> & {
+  item: AudioPlayerItem;
+  labels?: { play: string; pause: string };
+}) {
   const player = useAudioPlayer();
   const playing = player.isItemActive(item.id) && player.isPlaying;
   return (

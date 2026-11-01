@@ -25,9 +25,7 @@ const MIN_TOKEN_LENGTH = 20;
 
 export type SessionState = "live" | "unfinished" | "unfinished-expired" | "ended" | "revoked" | "none";
 
-type NewSession =
-  | { patientId: string; sharedDevice: boolean }
-  | { staffId: string; verified: boolean; ttlMs?: number };
+type NewSession = { patientId: string; sharedDevice: boolean } | { staffId: string; verified: boolean; ttlMs?: number };
 
 /**
  * Which app a request comes from, for the routes both apps call. The web app says so in the x-uc-app header,

@@ -27,4 +27,8 @@ export const clinicalEntry = z
 export const handover = z.object({ clinicianId: z.string().uuid("Choose a colleague") });
 
 /** What ended a visit. */
-export const VISIT_END_LABEL = { DISCHARGED: "Discharged", COMPLETED: "Completed", TRANSFERRED: "Transferred" } as const;
+export const VISIT_END_LABEL = {
+  DISCHARGED: "Discharged",
+  COMPLETED: "Completed",
+  TRANSFERRED: "Transferred",
+} as const;

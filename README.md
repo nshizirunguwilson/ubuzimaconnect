@@ -154,6 +154,8 @@ pnpm test
 - **Web:** checks the contrast of every colour pair, the offline queue, and that every Kinyarwanda text exists.
 - **Shared and mock NIDA:** check the validation and identity rules.
 
+Code style: `pnpm format` lays out every TypeScript file with Prettier (120 characters wide).
+
 ## Troubleshooting
 
 - **A style change doesn't show up in the browser:** stop the web dev server, delete `apps/web/.next`, and start it again. Turbopack sometimes keeps old Tailwind CSS.

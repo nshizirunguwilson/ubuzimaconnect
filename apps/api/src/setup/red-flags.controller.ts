@@ -44,7 +44,12 @@ export class RedFlagsController {
         sortOrder: (last._max.sortOrder ?? 0) + 1,
       },
     });
-    await this.audit.record({ type: "staff", id: session.staffId }, "redflag.added", { code: created.code }, request.ip);
+    await this.audit.record(
+      { type: "staff", id: session.staffId },
+      "redflag.added",
+      { code: created.code },
+      request.ip,
+    );
     return { id: created.id };
   }
 
@@ -73,10 +78,19 @@ export class RedFlagsController {
   /** Removing hides the question from new cases. It is kept, so older cases still show it. */
   @Delete(":id")
   @HttpCode(200)
-  async remove(@Param("id", ParseUUIDPipe) id: string, @CurrentSession() session: LiveSession, @Req() request: Request) {
+  async remove(
+    @Param("id", ParseUUIDPipe) id: string,
+    @CurrentSession() session: LiveSession,
+    @Req() request: Request,
+  ) {
     const question = await this.find(id);
     await this.db.client.redFlagQuestion.update({ where: { id }, data: { active: false } });
-    await this.audit.record({ type: "staff", id: session.staffId }, "redflag.removed", { code: question.code }, request.ip);
+    await this.audit.record(
+      { type: "staff", id: session.staffId },
+      "redflag.removed",
+      { code: question.code },
+      request.ip,
+    );
     return { ok: true };
   }
 

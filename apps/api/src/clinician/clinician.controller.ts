@@ -114,15 +114,26 @@ export class ClinicianController {
 
     return {
       ...incomingSummary(routing),
-      attending: routing.clinician ? { name: routing.clinician.name, me: routing.clinician.id === session.staffId } : null,
-      issues: issues.map((issue) => ({ id: issue.id, note: issue.note, by: issue.clinician.name, at: issue.createdAt })),
+      attending: routing.clinician
+        ? { name: routing.clinician.name, me: routing.clinician.id === session.staffId }
+        : null,
+      issues: issues.map((issue) => ({
+        id: issue.id,
+        note: issue.note,
+        by: issue.clinician.name,
+        at: issue.createdAt,
+      })),
     };
   }
 
   /** The person matches their photo. The visit starts, and a held bed becomes the patient's. */
   @Post("incoming/:id/arrive")
   @HttpCode(200)
-  async arrive(@Param("id", ParseUUIDPipe) routingId: string, @CurrentSession() session: LiveSession, @Req() request: Request) {
+  async arrive(
+    @Param("id", ParseUUIDPipe) routingId: string,
+    @CurrentSession() session: LiveSession,
+    @Req() request: Request,
+  ) {
     const routing = await this.incomingHere(routingId, session);
     const staffId = session.staffId!;
     const attendingId = routing.clinicianId ?? staffId;
@@ -177,7 +188,9 @@ export class ClinicianController {
   ) {
     const routing = await this.incomingHere(routingId, session);
     const { note } = parse(arrivalIssue, body);
-    const recorded = await this.db.client.arrivalIssue.create({ data: { routingId, clinicianId: session.staffId!, note } });
+    const recorded = await this.db.client.arrivalIssue.create({
+      data: { routingId, clinicianId: session.staffId!, note },
+    });
     await this.audit.record(
       { type: "staff", id: session.staffId },
       "arrival.mismatch",
@@ -189,7 +202,11 @@ export class ClinicianController {
 
   /** The full record, from every facility the patient has been to, for the attending clinician during the visit. */
   @Get("visits/:id")
-  async visit(@Param("id", ParseUUIDPipe) routingId: string, @CurrentSession() session: LiveSession, @Req() request: Request) {
+  async visit(
+    @Param("id", ParseUUIDPipe) routingId: string,
+    @CurrentSession() session: LiveSession,
+    @Req() request: Request,
+  ) {
     const visit = await this.myVisit(routingId, session);
     await this.markNoticesRead(session.staffId!, routingId);
 
@@ -382,9 +399,14 @@ export class ClinicianController {
   /** Gives the patient a free bed when none was held. With none free, the answer is a transfer. */
   @Post("visits/:id/bed")
   @HttpCode(200)
-  async assignBed(@Param("id", ParseUUIDPipe) routingId: string, @CurrentSession() session: LiveSession, @Req() request: Request) {
+  async assignBed(
+    @Param("id", ParseUUIDPipe) routingId: string,
+    @CurrentSession() session: LiveSession,
+    @Req() request: Request,
+  ) {
     const visit = await this.myVisit(routingId, session);
-    if (visit.reservation?.status === "USED") throw new ApiException(409, "CONFLICT", "This patient already has a bed.");
+    if (visit.reservation?.status === "USED")
+      throw new ApiException(409, "CONFLICT", "This patient already has a bed.");
 
     if ((await freeBeds(this.db.client, visit.facility)) <= 0) {
       await this.audit.record(
@@ -469,7 +491,9 @@ export class ClinicianController {
     const colleague = onDuty.find((clinician) => clinician.id === clinicianId && clinician.id !== session.staffId);
     if (!colleague) {
       const message = "Choose a colleague on duty at this facility.";
-      throw new ApiException(400, "VALIDATION", message, { fields: { clinicianId: "Choose a colleague on duty at this facility" } });
+      throw new ApiException(400, "VALIDATION", message, {
+        fields: { clinicianId: "Choose a colleague on duty at this facility" },
+      });
     }
 
     await this.db.client.routing.update({ where: { id: routingId }, data: { clinicianId } });
@@ -486,7 +510,11 @@ export class ClinicianController {
   /** Ends the visit: Discharged when the patient had a bed (which is freed), Completed when not. Full access ends. */
   @Post("visits/:id/finish")
   @HttpCode(200)
-  async finish(@Param("id", ParseUUIDPipe) routingId: string, @CurrentSession() session: LiveSession, @Req() request: Request) {
+  async finish(
+    @Param("id", ParseUUIDPipe) routingId: string,
+    @CurrentSession() session: LiveSession,
+    @Req() request: Request,
+  ) {
     const visit = await this.myVisit(routingId, session);
     const hadBed = visit.reservation?.status === "USED";
     const status = hadBed ? "DISCHARGED" : "COMPLETED";

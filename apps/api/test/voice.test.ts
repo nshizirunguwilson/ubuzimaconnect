@@ -34,9 +34,15 @@ describe("voice notes in the chat (D74)", () => {
     expect(r.status).toBe(201);
     const msg = (await agent(`/agent/cases/${caseId}`)).body.messages.find((m: { id: string }) => m.id === r.body.id);
     expect(msg).toMatchObject({ sender: "PATIENT", audioMs: 4200 });
-    const audio = await fetch(`${API}/agent/cases/${caseId}/voice/${r.body.id}`, { headers: { cookie: await agentCookie() } });
+    const audio = await fetch(`${API}/agent/cases/${caseId}/voice/${r.body.id}`, {
+      headers: { cookie: await agentCookie() },
+    });
     expect(audio.headers.get("content-type")).toContain("audio/webm");
-    expect(Buffer.from(await audio.arrayBuffer()).subarray(0, 4).toString("hex")).toBe("1a45dfa3");
+    expect(
+      Buffer.from(await audio.arrayBuffer())
+        .subarray(0, 4)
+        .toString("hex"),
+    ).toBe("1a45dfa3");
   });
 
   it("lets the agent send one, which the patient sees and can play", async () => {
@@ -51,7 +57,9 @@ describe("voice notes in the chat (D74)", () => {
   it("refuses something that isn't audio, a note over 2 minutes, and other people", async () => {
     expect((await patient(`/cases/${caseId}/voice`, { audio: FAKE, durationMs: 3000 })).status).toBe(400);
     expect((await patient(`/cases/${caseId}/voice`, { audio: WEBM, durationMs: 150_000 })).status).toBe(400);
-    expect((await patient(`/cases/${caseId}/voice`, { audio: "data:image/png;base64,AAAA", durationMs: 3000 })).status).toBe(400);
+    expect(
+      (await patient(`/cases/${caseId}/voice`, { audio: "data:image/png;base64,AAAA", durationMs: 3000 })).status,
+    ).toBe(400);
     const stranger = browser();
     await stranger("/auth/patient/login", ALINE);
     const any = (await db.query(`select "messageId" from "ChatAudio" limit 1`)).rows[0].messageId;
@@ -69,6 +77,10 @@ async function agentCookie() {
   });
   const cookie = login.headers.get("set-cookie")!.split(";")[0];
   const code = codeIn((await latestEmail("agent@ubuzima.test")).subject);
-  await fetch(`${API}/auth/staff/code`, { method: "POST", headers: { "content-type": "application/json", cookie }, body: JSON.stringify({ code }) });
+  await fetch(`${API}/auth/staff/code`, {
+    method: "POST",
+    headers: { "content-type": "application/json", cookie },
+    body: JSON.stringify({ code }),
+  });
   return cookie;
 }

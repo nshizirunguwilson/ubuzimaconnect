@@ -1,6 +1,6 @@
 /**
- * NFR 7: every text a patient or a pharmacy sees, in English. The Kinyarwanda in rw.ts has the same shape,
- * so a missing translation is a type error. Staff screens stay in English (DECISIONS.md D62).
+ * Every text a patient or a pharmacy sees, in English. The Kinyarwanda in rw.ts has the same shape,
+ * so a missing translation is a type error. Staff screens stay in English.
  * Texts with a value in them are small functions.
  */
 const years = (n: number) => (n === 1 ? "1 year" : `${n} years`);
@@ -51,7 +51,10 @@ export const en = {
     confirmIntro: "We check these with the national ID record for",
     noMatch: "Those details don't match",
     checkDetails: "Check the date of birth and the name, and try again.",
-    triesLeft: (n: number) => (n === 1 ? "1 try left before the ID is locked for 15 minutes." : `${n} tries left before the ID is locked for 15 minutes.`),
+    triesLeft: (n: number) =>
+      n === 1
+        ? "1 try left before the ID is locked for 15 minutes."
+        : `${n} tries left before the ID is locked for 15 minutes.`,
     dob: "Date of birth",
     name: "One of your names",
     nameHint: "As written on your ID card",
@@ -112,8 +115,10 @@ export const en = {
   },
   offline: {
     notSent: "Not sent yet: waiting for connection",
-    startsByItself: "Your request starts by itself when the connection comes back; keep this page open. If it's an emergency, don't wait.",
-    savedAnswers: "Your answers are saved on this device. They will be sent by themselves when the connection comes back; keep this page open.",
+    startsByItself:
+      "Your request starts by itself when the connection comes back; keep this page open. If it's an emergency, don't wait.",
+    savedAnswers:
+      "Your answers are saved on this device. They will be sent by themselves when the connection comes back; keep this page open.",
     goNow: "Call 912 and go to the nearest health facility",
     notSentShort: "Not sent yet: waiting for connection. Your answers will be sent when it comes back.",
     noConnection: "No connection",
@@ -143,7 +148,12 @@ export const en = {
     checklistYou: "Do you have any of these signs right now?",
     checklistThem: (name: string) => `Does ${name} have any of these signs right now?`,
     checklistHint: "Tap the sign that fits, even if you're not sure. If none fits, tap None of these at the end.",
-    checklistGroups: { A: "Danger signs", C: "Signs in children", N: "Signs in young babies", P: "Signs in pregnancy" } as Record<string, string>,
+    checklistGroups: {
+      A: "Danger signs",
+      C: "Signs in children",
+      N: "Signs in young babies",
+      P: "Signs in pregnancy",
+    } as Record<string, string>,
     noneOfThese: "None of these",
     whatsWrong: "What's wrong?",
     noDangerSigns: "No danger signs. Tell us more so an agent can help.",
@@ -151,7 +161,12 @@ export const en = {
     describeYou: "Describe it in your own words",
     describeHint: "Kinyarwanda or English. For example: when it started and what makes it worse.",
     howLong: "How long has it lasted?",
-    durations: { TODAY: "Since today", ONE_TO_THREE_DAYS: "1 to 3 days", FOUR_TO_SEVEN_DAYS: "4 to 7 days", MORE_THAN_A_WEEK: "More than a week" },
+    durations: {
+      TODAY: "Since today",
+      ONE_TO_THREE_DAYS: "1 to 3 days",
+      FOUR_TO_SEVEN_DAYS: "4 to 7 days",
+      MORE_THAN_A_WEEK: "More than a week",
+    },
     howBad: "How bad is it?",
     howBadHint: "1 is barely noticeable, 10 is the worst ever.",
     howBadAria: "How bad is it, from 1 to 10",
@@ -175,11 +190,14 @@ export const en = {
     helping: "A health agent is helping you",
     noAgent: "No agent is online right now",
     willReply: "An agent will reply here",
-    noAgentBody: "Your request is saved and an agent will reply here as soon as one is online. If you get worse, tap Emergency.",
-    delayedBody: "All agents are busy. If you can, go to the nearest place that can help; your request stays open here.",
+    noAgentBody:
+      "Your request is saved and an agent will reply here as soon as one is online. If you get worse, tap Emergency.",
+    delayedBody:
+      "All agents are busy. If you can, go to the nearest place that can help; your request stays open here.",
     helpingBody: "They will write to you here. You can close the app; the conversation stays here.",
     waitingYou: "Your request is waiting for a health agent. You can close the app; it's saved.",
-    waitingThem: (name: string) => `${name}'s request is waiting for a health agent. You can close the app; it's saved.`,
+    waitingThem: (name: string) =>
+      `${name}'s request is waiting for a health agent. You can close the app; it's saved.`,
     sentYouTo: "Your agent sent you to",
     sent: "Request sent",
     agentHasIt: "A health agent has your request",
@@ -218,7 +236,14 @@ export const en = {
     play: "Play the voice note",
     pause: "Pause",
     micBlocked: "Allow the microphone in your browser to send a voice note.",
-    quick: { Yes: "Yes", No: "No", Better: "Better", Worse: "Worse", Same: "Same", "I don't know": "I don't know" } as Record<string, string>,
+    quick: {
+      Yes: "Yes",
+      No: "No",
+      Better: "Better",
+      Worse: "Worse",
+      Same: "Same",
+      "I don't know": "I don't know",
+    } as Record<string, string>,
   },
   notify: {
     why: "Get a notification when the agent replies, even with the app closed.",
@@ -244,7 +269,11 @@ export const en = {
   records: {
     title: "Records",
     sexAge: (female: boolean, age: string, born: string) => `${female ? "Female" : "Male"} · ${age} · born ${born}`,
-    age: (a: { years: number; months: number; days: number }) => (a.years >= 1 ? years(a.years) : a.months >= 1 ? `${a.months} months` : `${a.days} days`),
+    age: (age: { years: number; months: number; days: number }) => {
+      if (age.years >= 1) return years(age.years);
+      if (age.months >= 1) return `${age.months} months`;
+      return `${age.days} days`;
+    },
     sex: (female: boolean): string => (female ? "Female" : "Male"),
     activity: "Activity",
     print: "Print summary",
@@ -255,7 +284,12 @@ export const en = {
     noVisits: "No visits to a facility through UbuzimaConnect yet.",
     arrived: (date: string) => `Arrived ${date}`,
     ended: (date: string) => `ended ${date}`,
-    visitStatus: { ARRIVED: "In care now", DISCHARGED: "Discharged", COMPLETED: "Visit completed", TRANSFERRED: "Transferred" } as Record<string, string>,
+    visitStatus: {
+      ARRIVED: "In care now",
+      DISCHARGED: "Discharged",
+      COMPLETED: "Visit completed",
+      TRANSFERRED: "Transferred",
+    } as Record<string, string>,
     nothingWritten: "Nothing written yet.",
     diagnosis: "Diagnosis",
     treatment: "Treatment",
@@ -277,7 +311,8 @@ export const en = {
     expired: "Expired",
     cancelled: "Cancelled",
     cancelledBecause: (why: string) => `Cancelled: ${why}`,
-    dose: (dose: string, often: string, days: number) => `${dose}, ${often}, for ${days === 1 ? "1 day" : `${days} days`}`,
+    dose: (dose: string, often: string, days: number) =>
+      `${dose}, ${often}, for ${days === 1 ? "1 day" : `${days} days`}`,
     qr: (code: string) => `QR code for prescription ${code}`,
     copy: "Copy code",
     copied: (code: string) => `${code} copied`,

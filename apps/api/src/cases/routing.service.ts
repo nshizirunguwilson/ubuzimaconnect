@@ -139,7 +139,10 @@ export class RoutingService {
 
     // Confirming a suggestion at the same facility keeps the same routing and its bed. Anything else replaces it.
     const confirmingSuggestion =
-      current && current.facilityId === request.facilityId && current.status === "SUGGESTED" && request.status === "CONFIRMED";
+      current &&
+      current.facilityId === request.facilityId &&
+      current.status === "SUGGESTED" &&
+      request.status === "CONFIRMED";
 
     if (confirmingSuggestion) {
       const updated = await this.db.client.routing.update({
@@ -158,7 +161,13 @@ export class RoutingService {
       // The bed this routing already holds counts as free for itself.
       const ownHeldBed = current.reservation?.status === "HELD" ? 1 : 0;
       await this.syncBed(updated.id, request.facilityId, request.bedNeeded, chosen.freeBeds + ownHeldBed);
-      await this.afterRouting(found.id, updated.id, request.byStaffId, "routing.confirmed", clinician?.id ?? updated.clinicianId);
+      await this.afterRouting(
+        found.id,
+        updated.id,
+        request.byStaffId,
+        "routing.confirmed",
+        clinician?.id ?? updated.clinicianId,
+      );
       return updated;
     }
 
@@ -188,7 +197,10 @@ export class RoutingService {
     await this.afterRouting(found.id, routing.id, request.byStaffId, action, clinician?.id ?? null);
 
     if (!clinician) {
-      await this.audit.record({ type: "system" }, "routing.no_clinician", { caseId: found.id, facilityId: request.facilityId });
+      await this.audit.record({ type: "system" }, "routing.no_clinician", {
+        caseId: found.id,
+        facilityId: request.facilityId,
+      });
     }
     return routing;
   }
@@ -261,10 +273,15 @@ export class RoutingService {
    * the current facility. The current facility is left out: it has no free bed, which is why they are moving.
    */
   async transferTarget(routingId: string) {
-    const routing = await this.db.client.routing.findUniqueOrThrow({ where: { id: routingId }, include: { facility: true } });
+    const routing = await this.db.client.routing.findUniqueOrThrow({
+      where: { id: routingId },
+      include: { facility: true },
+    });
     const service = routing.service as Service;
 
-    const otherFacilities = (await this.facilities.forMatching()).filter((facility) => facility.id !== routing.facilityId);
+    const otherFacilities = (await this.facilities.forMatching()).filter(
+      (facility) => facility.id !== routing.facilityId,
+    );
     const from = { lat: routing.facility.latitude, lng: routing.facility.longitude };
     const match = matchFacilities(otherFacilities, from, service, true);
     if (match.kind !== "SUITABLE") return null;
@@ -287,7 +304,10 @@ export class RoutingService {
       );
     }
 
-    const from = await this.db.client.routing.findUniqueOrThrow({ where: { id: routingId }, include: { facility: true } });
+    const from = await this.db.client.routing.findUniqueOrThrow({
+      where: { id: routingId },
+      include: { facility: true },
+    });
     const next = await this.db.client.routing.create({
       data: {
         caseId: from.caseId,
@@ -304,7 +324,10 @@ export class RoutingService {
       },
     });
     await this.syncBed(next.id, target.facility.id, true, target.facility.freeBeds);
-    await this.db.client.routing.update({ where: { id: routingId }, data: { status: "TRANSFERRED", endedAt: new Date() } });
+    await this.db.client.routing.update({
+      where: { id: routingId },
+      data: { status: "TRANSFERRED", endedAt: new Date() },
+    });
 
     await this.audit.record({ type: "staff", id: byStaffId }, "patient.transferred", {
       caseId: from.caseId,
@@ -331,7 +354,9 @@ export class RoutingService {
 
     for (const routing of routings) {
       const colleagues = await this.clinicians(routing.facilityId, routing.service as Service);
-      const colleague = colleagues.find((candidate) => candidate.id !== clinicianId && candidate.specialty === routing.service);
+      const colleague = colleagues.find(
+        (candidate) => candidate.id !== clinicianId && candidate.specialty === routing.service,
+      );
 
       await this.db.client.routing.update({
         where: { id: routing.id },
@@ -350,7 +375,11 @@ export class RoutingService {
         continue;
       }
 
-      await this.audit.record({ type: "system" }, "routing.no_clinician", { routingId: routing.id, from: clinicianId, why });
+      await this.audit.record({ type: "system" }, "routing.no_clinician", {
+        routingId: routing.id,
+        from: clinicianId,
+        why,
+      });
 
       const agentStillHasCase = routing.case.status === "ASSIGNED" && routing.case.agentId;
       if (agentStillHasCase) {

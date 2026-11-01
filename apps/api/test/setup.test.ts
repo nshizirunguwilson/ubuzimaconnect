@@ -38,19 +38,37 @@ describe("facilities (FR 8.1, 8.3, 12.1)", () => {
   it("updates the profile and beds, refuses a negative total, and logs both", async () => {
     const manager = await staffLogin("manager@ubuzima.test");
     const mine = (await manager("/facilities/mine")).body;
-    const update = { ...profile, name: mine.name, level: mine.level, services: mine.services, district: mine.district, latitude: mine.latitude, longitude: mine.longitude };
+    const update = {
+      ...profile,
+      name: mine.name,
+      level: mine.level,
+      services: mine.services,
+      district: mine.district,
+      latitude: mine.latitude,
+      longitude: mine.longitude,
+    };
     expect((await manager("/facilities/mine", update, "PUT")).status).toBe(200);
     expect((await manager("/facilities/mine/beds", { totalBeds: -1 }, "PUT")).status).toBe(400);
     expect((await manager("/facilities/mine/beds", { totalBeds: 90 }, "PUT")).status).toBe(200);
     expect((await manager("/facilities/mine")).body).toMatchObject({ totalBeds: 90, availableBeds: 90 });
-    const n = await db.query(`select action from "AuditEvent" where action in ('facility.profile.updated', 'facility.beds.updated')`);
+    const n = await db.query(
+      `select action from "AuditEvent" where action in ('facility.profile.updated', 'facility.beds.updated')`,
+    );
     expect(n.rows.length).toBe(2);
   });
 
   it("never routes to an inactive facility: the flag is saved (FR 8.1)", async () => {
     const manager = await staffLogin("manager2@ubuzima.test");
     const mine = (await manager("/facilities/mine")).body;
-    const body = { name: mine.name, level: mine.level, services: mine.services, district: mine.district, latitude: mine.latitude, longitude: mine.longitude, active: false };
+    const body = {
+      name: mine.name,
+      level: mine.level,
+      services: mine.services,
+      district: mine.district,
+      latitude: mine.latitude,
+      longitude: mine.longitude,
+      active: false,
+    };
     expect((await manager("/facilities/mine", body, "PUT")).status).toBe(200);
     expect((await manager("/facilities/mine")).body.active).toBe(false);
   });
@@ -61,7 +79,12 @@ describe("clinician accounts (FR 8.2)", () => {
     const manager = await staffLogin("manager@ubuzima.test");
     const bad = await manager("/clinicians", { name: "No Specialty", email: "ns@ubuzima.test", licenceNumber: "X-1" });
     expect(bad.body.fields).toHaveProperty("specialty");
-    const ok = await manager("/clinicians", { name: "Test Nurse", email: "nurse@ubuzima.test", specialty: "MATERNITY", licenceNumber: "RNMC-1" });
+    const ok = await manager("/clinicians", {
+      name: "Test Nurse",
+      email: "nurse@ubuzima.test",
+      specialty: "MATERNITY",
+      licenceNumber: "RNMC-1",
+    });
     expect(ok.status).toBe(201);
     const list = (await manager("/clinicians")).body as { email: string }[];
     expect(list.some((c) => c.email === "nurse@ubuzima.test")).toBe(true);
@@ -95,9 +118,14 @@ describe("schedules (FR 8.4, 8.5, 12.4)", () => {
   it("shows the administrator every shift with no agent on it (NFR 12)", async () => {
     const admin = await staffLogin("admin@ubuzima.test");
     const monday = weekStart(currentShift().date);
-    await db.query(`delete from "ShiftAssignment" a using "Staff" s where s.id = a."staffId" and s.role = 'AGENT' and a.date = $1::date and a.shift = 'NIGHT'`, [monday]);
+    await db.query(
+      `delete from "ShiftAssignment" a using "Staff" s where s.id = a."staffId" and s.role = 'AGENT' and a.date = $1::date and a.shift = 'NIGHT'`,
+      [monday],
+    );
     const week = (await admin(`/schedule?week=${monday}`)).body;
-    expect(week.gaps.find((g: { date: string; shift: string }) => g.date === monday && g.shift === "NIGHT").missing).toEqual(["AGENT"]);
+    expect(
+      week.gaps.find((g: { date: string; shift: string }) => g.date === monday && g.shift === "NIGHT").missing,
+    ).toEqual(["AGENT"]);
   });
 
   it("shows the administrator the agents, not clinicians", async () => {
@@ -116,11 +144,17 @@ describe("schedules (FR 8.4, 8.5, 12.4)", () => {
     const me = (await c("/auth/me")).body;
     await manager("/schedule", { staffId: me.id, date: tomorrow, shift: "DAY", assigned: true }, "PUT");
     const week = weekStart(tomorrow);
-    const upcoming = (await c(`/me/shifts?week=${week}`)).body.shifts.find((s: { date: string }) => s.date === tomorrow);
+    const upcoming = (await c(`/me/shifts?week=${week}`)).body.shifts.find(
+      (s: { date: string }) => s.date === tomorrow,
+    );
     expect(upcoming).toBeDefined();
-    expect((await c(`/me/shifts/${upcoming.id}/unavailable`, { unavailable: true, reason: "Training" })).status).toBe(200);
+    expect((await c(`/me/shifts/${upcoming.id}/unavailable`, { unavailable: true, reason: "Training" })).status).toBe(
+      200,
+    );
     const sched = await manager(`/schedule?week=${week}`);
-    const gap = sched.body.gaps.find((g: { date: string; shift: string }) => g.date === upcoming.date && g.shift === upcoming.shift);
+    const gap = sched.body.gaps.find(
+      (g: { date: string; shift: string }) => g.date === upcoming.date && g.shift === upcoming.shift,
+    );
     expect(gap.missing).toContain("EMERGENCY_CARE");
 
     const past = mine.body.shifts.find((s: { date: string }) => s.date < now.date);
@@ -131,7 +165,9 @@ describe("schedules (FR 8.4, 8.5, 12.4)", () => {
 describe("copying last week (D77)", () => {
   it("copies the week before into a coming week, keeps what is there, and is for managers only", async () => {
     const manager = await staffLogin("manager@ubuzima.test");
-    const next = weekStart(new Date(Date.parse(`${currentShift().date}T00:00:00Z`) + 7 * 86_400_000).toISOString().slice(0, 10));
+    const next = weekStart(
+      new Date(Date.parse(`${currentShift().date}T00:00:00Z`) + 7 * 86_400_000).toISOString().slice(0, 10),
+    );
     const thisWeek = (await manager(`/schedule?week=${weekStart(currentShift().date)}`)).body.assignments.length;
     // Start from an empty next week: on a Sunday, shifts other tests add for "tomorrow" are already in it.
     await db.query(`delete from "ShiftAssignment" where date >= $1::date and date < $1::date + 7`, [next]);
@@ -151,7 +187,11 @@ describe("red flags and the AI switch (FR 12.6, 4.8)", () => {
     const list = (await admin("/red-flags")).body as { code: string }[];
     expect(list).toHaveLength(23);
     expect(list.map((q) => q.code)).toContain("P4");
-    const added = await admin("/red-flags", { group: "A", textEn: "Is the sick person bleeding from the ears after a fall?", service: "SURGERY" });
+    const added = await admin("/red-flags", {
+      group: "A",
+      textEn: "Is the sick person bleeding from the ears after a fall?",
+      service: "SURGERY",
+    });
     expect(added.status).toBe(201);
     const agent = await staffLogin("agent@ubuzima.test");
     expect((await agent("/red-flags")).status).toBe(403);
@@ -173,7 +213,15 @@ describe("red flags and the AI switch (FR 12.6, 4.8)", () => {
   it("edits and removes questions; removed ones are kept for old cases", async () => {
     const admin = await staffLogin("admin@ubuzima.test");
     const q = ((await admin("/red-flags")).body as { id: string; code: string }[]).find((x) => x.code === "A7")!;
-    expect((await admin(`/red-flags/${q.id}`, { group: "A", textEn: "Was the sick person bitten by a snake or a dog?", service: "EMERGENCY_CARE" }, "PUT")).status).toBe(200);
+    expect(
+      (
+        await admin(
+          `/red-flags/${q.id}`,
+          { group: "A", textEn: "Was the sick person bitten by a snake or a dog?", service: "EMERGENCY_CARE" },
+          "PUT",
+        )
+      ).status,
+    ).toBe(200);
     expect((await admin(`/red-flags/${q.id}`, undefined, "DELETE")).status).toBe(200);
     expect(((await admin("/red-flags")).body as { code: string }[]).some((x) => x.code === "A7")).toBe(false);
     expect((await db.query(`select active from "RedFlagQuestion" where id = $1`, [q.id])).rows[0].active).toBe(false);

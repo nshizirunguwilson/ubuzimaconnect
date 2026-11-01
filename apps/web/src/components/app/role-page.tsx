@@ -2,7 +2,7 @@ import type { StaffMe, StaffRole } from "@ubuzima/shared";
 import { Suspense, type ReactNode } from "react";
 import { requireRole } from "@/lib/session";
 
-/** Wraps a client screen so only the listed roles can open it (checked on the server, FR 9). */
+/** Wraps a client screen so only the listed roles can open it. Checked on the server. */
 export function RolePage({ roles, children }: { roles: StaffRole[]; children: (me: StaffMe) => ReactNode }) {
   return (
     <Suspense>

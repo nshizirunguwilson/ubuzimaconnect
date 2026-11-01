@@ -8,13 +8,7 @@ import {
   nidaAge,
   nidaPersonInput,
 } from "@ubuzima/shared";
-import {
-  useCallback,
-  useEffect,
-  useState,
-  type ChangeEvent,
-  type FormEvent,
-} from "react";
+import { useCallback, useEffect, useState, type ChangeEvent, type FormEvent } from "react";
 import { LuCircleCheck, LuIdCard, LuImagePlus, LuX } from "react-icons/lu";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -45,11 +39,11 @@ const blank = {
   parentRef: "",
 };
 const districts = Object.entries(DISTRICTS).flatMap(([province, list]) =>
-  list.map((d) => ({ value: d, label: `${d} (${province})` })),
+  list.map((district) => ({ value: district, label: `${district} (${province})` })),
 );
 
 /**
- * D73: the administrator adds a made-up person to the mock NIDA, so a facilitator can log in as their own patient.
+ * The administrator adds a made-up person to the mock NIDA, so a facilitator can log in as their own patient.
  * The same rules are checked here, in the API and in the mock NIDA.
  */
 export function MockNida() {
@@ -59,42 +53,32 @@ export function MockNida() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [pending, setPending] = useState(false);
   const [added, setAdded] = useState<Person | null>(null);
-  const load = useCallback(
-    () =>
-      api<Person[]>("/staff/nida/people").then(setPeople, () => setPeople([])),
-    [],
-  );
+  const load = useCallback(() => api<Person[]>("/staff/nida/people").then(setPeople, () => setPeople([])), []);
   useEffect(() => {
     void load();
   }, [load]);
 
-  const set =
-    (k: keyof typeof blank) =>
-    (e: ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
-      setForm((f) => ({ ...f, [k]: e.target.value }));
+  const set = (k: keyof typeof blank) => (e: ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
+    setForm((previous) => ({ ...previous, [k]: e.target.value }));
   const child =
-    !!form.dateOfBirth &&
-    !Number.isNaN(Date.parse(form.dateOfBirth)) &&
-    nidaAge(form.dateOfBirth) < NIDA_ID_AGE;
-  const parents = (people ?? []).filter((p) => nidaAge(p.dateOfBirth) >= 18);
+    !!form.dateOfBirth && !Number.isNaN(Date.parse(form.dateOfBirth)) && nidaAge(form.dateOfBirth) < NIDA_ID_AGE;
+  const parents = (people ?? []).filter((person) => nidaAge(person.dateOfBirth) >= 18);
 
   function pickPhoto(e: ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     e.target.value = "";
     if (!file) return;
     if (!["image/jpeg", "image/png"].includes(file.type))
-      return setErrors((x) => ({ ...x, photo: "Use a JPG or PNG photo" }));
+      return setErrors((previous) => ({ ...previous, photo: "Use a JPG or PNG photo" }));
     if (file.size > NIDA_PHOTO_MAX_BYTES)
-      return setErrors((x) => ({
-        ...x,
+      return setErrors((previous) => ({
+        ...previous,
         photo: "The photo must be under 1 MB",
       }));
     const reader = new FileReader();
     reader.onload = () => {
       setPhoto(String(reader.result));
-      setErrors((x) =>
-        Object.fromEntries(Object.entries(x).filter(([k]) => k !== "photo")),
-      );
+      setErrors((previous) => Object.fromEntries(Object.entries(previous).filter(([k]) => k !== "photo")));
     };
     reader.readAsDataURL(file);
   }
@@ -106,8 +90,8 @@ export function MockNida() {
       parentRef: child ? form.parentRef : "",
       photo: photo ?? undefined,
     };
-    const r = check(nidaPersonInput, value);
-    if (r.errors) return setErrors(r.errors);
+    const result = check(nidaPersonInput, value);
+    if (result.errors) return setErrors(result.errors);
     setErrors({});
     setPending(true);
     try {
@@ -118,8 +102,7 @@ export function MockNida() {
       toast.success(`${person.names.join(" ")} added to the mock NIDA`);
       await load();
     } catch (err) {
-      if (err instanceof ApiFailure)
-        setErrors(err.error.fields ?? { form: err.error.message });
+      if (err instanceof ApiFailure) setErrors(err.error.fields ?? { form: err.error.message });
       else setErrors({ form: "Couldn't add the person. Try again." });
     } finally {
       setPending(false);
@@ -131,29 +114,21 @@ export function MockNida() {
       <div className="flex flex-col gap-2">
         <h1 className="text-h1 text-fg">Mock NIDA</h1>
         <p className="max-w-2xl text-body text-fg-secondary">
-          Add a made-up person to the practice identity records, then log in as
-          them on the patient app with their ID, date of birth and one name.
-          This is demo data only; the real NIDA is never touched.
+          Add a made-up person to the practice identity records, then log in as them on the patient app with their ID,
+          date of birth and one name. This is demo data only; the real NIDA is never touched.
         </p>
       </div>
 
       {added && (
-        <Notice
-          tone="success"
-          title={`${added.names.join(" ")} can log in now`}
-        >
+        <Notice tone="success" title={`${added.names.join(" ")} can log in now`}>
           {added.nationalId ? (
             <>
-              National ID{" "}
-              <span className="font-mono font-semibold">
-                {formatNationalId(added.nationalId)}
-              </span>
-              , born {formatDate(added.dateOfBirth)}, any one of their names.
+              National ID <span className="font-mono font-semibold">{formatNationalId(added.nationalId)}</span>, born{" "}
+              {formatDate(added.dateOfBirth)}, any one of their names.
             </>
           ) : (
             <>
-              A child has no ID card of their own: log in as the parent and
-              choose them under &quot;Who is sick?&quot;.
+              A child has no ID card of their own: log in as the parent and choose them under &quot;Who is sick?&quot;.
             </>
           )}
         </Notice>
@@ -182,13 +157,7 @@ export function MockNida() {
                     checked={form.sex === "FEMALE"}
                     onChange={set("sex")}
                   />
-                  <ChoiceRow
-                    name="sex"
-                    value="MALE"
-                    label="Male"
-                    checked={form.sex === "MALE"}
-                    onChange={set("sex")}
-                  />
+                  <ChoiceRow name="sex" value="MALE" label="Male" checked={form.sex === "MALE"} onChange={set("sex")} />
                 </div>
               )}
             </Field>
@@ -222,9 +191,9 @@ export function MockNida() {
                 label="Parent"
                 hint={`Under ${NIDA_ID_AGE}: no ID card of their own, reached through a parent`}
                 placeholder="Choose a parent"
-                options={parents.map((p) => ({
-                  value: p.ref,
-                  label: `${p.names.join(" ")} · born ${formatDate(p.dateOfBirth)}`,
+                options={parents.map((parent) => ({
+                  value: parent.ref,
+                  label: `${parent.names.join(" ")} · born ${formatDate(parent.dateOfBirth)}`,
                 }))}
                 value={form.parentRef}
                 onChange={set("parentRef")}
@@ -242,11 +211,7 @@ export function MockNida() {
                   {photo ? (
                     // A data URL preview of the chosen file; nothing is uploaded until the form is sent.
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={photo}
-                      alt="Chosen photo"
-                      className="size-20 rounded-lg object-cover"
-                    />
+                    <img src={photo} alt="Chosen photo" className="size-20 rounded-lg object-cover" />
                   ) : (
                     <span className="flex size-20 items-center justify-center rounded-lg bg-sunken text-fg-muted">
                       <LuIdCard className="size-8" aria-hidden />
@@ -259,13 +224,7 @@ export function MockNida() {
                     <LuImagePlus className="size-5" aria-hidden />
                     {photo ? "Choose another" : "Choose a photo"}
                   </label>
-                  <input
-                    id={id}
-                    type="file"
-                    accept="image/jpeg,image/png"
-                    className="sr-only"
-                    onChange={pickPhoto}
-                  />
+                  <input id={id} type="file" accept="image/jpeg,image/png" className="sr-only" onChange={pickPhoto} />
                   {photo && (
                     <Button
                       type="button"
@@ -280,13 +239,7 @@ export function MockNida() {
                 </div>
               )}
             </Field>
-            <Button
-              type="submit"
-              variant="primary"
-              loading={pending}
-              icon={<LuCircleCheck />}
-              className="self-start"
-            >
+            <Button type="submit" variant="primary" loading={pending} icon={<LuCircleCheck />} className="self-start">
               Add to the mock NIDA
             </Button>
           </form>
@@ -294,32 +247,23 @@ export function MockNida() {
 
         <Card className="flex flex-col gap-3">
           <h2 className="text-h3 text-fg">People in the mock NIDA</h2>
-          <p className="text-small text-fg-secondary">
-            Newest additions first, then the built-in demo people.
-          </p>
+          <p className="text-small text-fg-secondary">Newest additions first, then the built-in demo people.</p>
           <ul className="divide-y divide-border text-small">
             {people === null && <li className="h-24" aria-busy />}
-            {people?.map((p) => (
-              <li
-                key={p.ref}
-                className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 py-2.5"
-              >
+            {people?.map((citizen) => (
+              <li key={citizen.ref} className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 py-2.5">
                 <span className="flex flex-col">
-                  <span className="font-medium text-fg">
-                    {p.names.join(" ")}
-                  </span>
+                  <span className="font-medium text-fg">{citizen.names.join(" ")}</span>
                   <span className="text-caption text-fg-secondary">
-                    Born {formatDate(p.dateOfBirth)} ·{" "}
-                    {p.sex === "FEMALE" ? "Female" : "Male"} · {p.district}
-                    {p.parentRefs.length
-                      ? ` · child of ${people.find((x) => x.ref === p.parentRefs[0])?.names.join(" ") ?? p.parentRefs[0]}`
+                    Born {formatDate(citizen.dateOfBirth)} · {citizen.sex === "FEMALE" ? "Female" : "Male"} ·{" "}
+                    {citizen.district}
+                    {citizen.parentRefs.length
+                      ? ` · child of ${people.find((person) => person.ref === citizen.parentRefs[0])?.names.join(" ") ?? citizen.parentRefs[0]}`
                       : ""}
                   </span>
                 </span>
                 <span className="font-mono text-caption text-fg-secondary">
-                  {p.nationalId
-                    ? formatNationalId(p.nationalId)
-                    : "No ID (child)"}
+                  {citizen.nationalId ? formatNationalId(citizen.nationalId) : "No ID (child)"}
                 </span>
               </li>
             ))}

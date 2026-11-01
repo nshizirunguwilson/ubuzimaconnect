@@ -26,7 +26,15 @@ export class CliniciansController {
     return this.db.client.staff.findMany({
       where: { role: "CLINICIAN", facilityId: this.facilityId(session) },
       orderBy: [{ status: "asc" }, { name: "asc" }],
-      select: { id: true, name: true, email: true, specialty: true, licenceNumber: true, status: true, lastLoginAt: true },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        specialty: true,
+        licenceNumber: true,
+        status: true,
+        lastLoginAt: true,
+      },
     });
   }
 
@@ -74,14 +82,23 @@ export class CliniciansController {
   /** Deactivated accounts are kept, never deleted. Their sessions end at once. */
   @Post(":id/deactivate")
   @HttpCode(200)
-  async deactivate(@Param("id", ParseUUIDPipe) id: string, @CurrentSession() session: LiveSession, @Req() request: Request) {
+  async deactivate(
+    @Param("id", ParseUUIDPipe) id: string,
+    @CurrentSession() session: LiveSession,
+    @Req() request: Request,
+  ) {
     const clinician = await this.own(id, session);
     await this.db.client.staff.update({ where: { id: clinician.id }, data: { status: "DEACTIVATED" } });
     await this.db.client.session.updateMany({
       where: { staffId: clinician.id, revokedAt: null },
       data: { revokedAt: new Date() },
     });
-    await this.audit.record({ type: "staff", id: session.staffId }, "clinician.deactivated", { staffId: clinician.id }, request.ip);
+    await this.audit.record(
+      { type: "staff", id: session.staffId },
+      "clinician.deactivated",
+      { staffId: clinician.id },
+      request.ip,
+    );
     // Patients on their way to this clinician go to a colleague.
     await this.routing.reassignFrom(clinician.id, "Account deactivated");
     return { ok: true };
@@ -90,9 +107,14 @@ export class CliniciansController {
   /** Sends a new invitation when the first one wasn't used. */
   @Post(":id/invitation")
   @HttpCode(200)
-  async resend(@Param("id", ParseUUIDPipe) id: string, @CurrentSession() session: LiveSession, @Req() request: Request) {
+  async resend(
+    @Param("id", ParseUUIDPipe) id: string,
+    @CurrentSession() session: LiveSession,
+    @Req() request: Request,
+  ) {
     const clinician = await this.own(id, session);
-    if (clinician.status !== "INVITED") throw new ApiException(409, "CONFLICT", "This person has already set a password.");
+    if (clinician.status !== "INVITED")
+      throw new ApiException(409, "CONFLICT", "This person has already set a password.");
     await this.codes.sendLink(clinician, "INVITATION", session.staff!.name);
     await this.audit.record(
       { type: "staff", id: session.staffId },
@@ -104,7 +126,8 @@ export class CliniciansController {
   }
 
   private facilityId(session: LiveSession) {
-    if (!session.staff?.facilityId) throw new ApiException(404, "NOT_FOUND", "Your account isn't linked to a facility.");
+    if (!session.staff?.facilityId)
+      throw new ApiException(404, "NOT_FOUND", "Your account isn't linked to a facility.");
     return session.staff.facilityId;
   }
 

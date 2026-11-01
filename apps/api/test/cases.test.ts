@@ -64,8 +64,17 @@ describe("starting a case (FR 3.1 to 3.5)", () => {
   it("uses the centre of the chosen sector when GPS isn't available (FR 3.4)", async () => {
     const { b, me } = await patient(ALINE);
     const r = await b("/cases", { subjectId: me.id, location: { source: "MANUAL", sectorCode: "RW1101" } });
-    const row = (await db.query(`select latitude, longitude, "locationSource", "sectorCode" from "Case" where id = $1`, [r.body.id])).rows[0];
-    expect(row).toMatchObject({ latitude: -1.95342, longitude: 30.05507, locationSource: "MANUAL", sectorCode: "RW1101" });
+    const row = (
+      await db.query(`select latitude, longitude, "locationSource", "sectorCode" from "Case" where id = $1`, [
+        r.body.id,
+      ])
+    ).rows[0];
+    expect(row).toMatchObject({
+      latitude: -1.95342,
+      longitude: 30.05507,
+      locationSource: "MANUAL",
+      sectorCode: "RW1101",
+    });
     await b(`/cases/${r.body.id}/cancel`, {});
   });
 
@@ -118,7 +127,9 @@ describe("red flags (FR 3.6, 4.1, 4.2, Appendix C)", () => {
     view = (await b(`/cases/${id}/answers`, { questionId: view.question.id, answer: true })).body; // A2 Yes
     expect(view).toMatchObject({ stage: "WAITING", urgent: true, redFlagsAnswered: 2 });
     expect(view.guidance.facility.name).toBeTruthy();
-    const row = (await db.query(`select "triageLevel", "neededService", "bedNeeded", status from "Case" where id = $1`, [id])).rows[0];
+    const row = (
+      await db.query(`select "triageLevel", "neededService", "bedNeeded", status from "Case" where id = $1`, [id])
+    ).rows[0];
     expect(row).toEqual({ triageLevel: "URGENT", neededService: "EMERGENCY_CARE", bedNeeded: true, status: "QUEUED" });
     expect(gemini.calls.length).toBe(0); // red flags never use the AI
   });
@@ -145,7 +156,9 @@ describe("red flags (FR 3.6, 4.1, 4.2, Appendix C)", () => {
     const shown = (await b(`/cases/${id}`)).body.question.total;
     const view = (await b(`/cases/${id}/checklist`, { yes: null })).body;
     expect(view).toMatchObject({ stage: "SYMPTOMS", urgent: false, redFlagsAnswered: shown });
-    const no = (await db.query(`select count(*)::int as n from "RedFlagAnswer" where "caseId" = $1 and answer = false`, [id])).rows[0].n;
+    const no = (
+      await db.query(`select count(*)::int as n from "RedFlagAnswer" where "caseId" = $1 and answer = false`, [id])
+    ).rows[0].n;
     expect(no).toBe(shown);
     await b(`/cases/${id}/cancel`, {});
   });
@@ -170,7 +183,9 @@ describe("symptoms and AI triage (FR 3.7, 4.3 to 4.8)", () => {
     const id = (await b("/cases", { subjectId: me.id, location: KIGALI })).body.id;
     await answerAllNo(b, id);
     const view = (await b(`/cases/${id}/symptoms`, { description, duration: "ONE_TO_THREE_DAYS", severity: 4 })).body;
-    const row = (await db.query(`select "triageLevel", "triageReason", "neededService", status from "Case" where id = $1`, [id])).rows[0];
+    const row = (
+      await db.query(`select "triageLevel", "triageReason", "neededService", status from "Case" where id = $1`, [id])
+    ).rows[0];
     return { view, row, id };
   }
 
@@ -227,10 +242,23 @@ describe("symptoms and AI triage (FR 3.7, 4.3 to 4.8)", () => {
 describe("prefer a call, cancel, access (FR 3.8, 3.9, 3.11, 9.1)", () => {
   it("creates a 'Call requested' case from the home screen, Uncertain, with a valid Rwandan number", async () => {
     const { b, me } = await patient(ERIC);
-    expect((await b("/cases/call", { subjectId: me.id, number: "12345", owner: "MINE" })).body.fields).toHaveProperty("number");
+    expect((await b("/cases/call", { subjectId: me.id, number: "12345", owner: "MINE" })).body.fields).toHaveProperty(
+      "number",
+    );
     const r = await b("/cases/call", { subjectId: me.id, number: "0788 123 456", owner: "FAMILY_MEMBER" });
-    const row = (await db.query(`select "callRequested", "callNumber", "callNumberOwner", "triageLevel", status from "Case" where id = $1`, [r.body.id])).rows[0];
-    expect(row).toEqual({ callRequested: true, callNumber: "0788123456", callNumberOwner: "FAMILY_MEMBER", triageLevel: "UNCERTAIN", status: "QUEUED" });
+    const row = (
+      await db.query(
+        `select "callRequested", "callNumber", "callNumberOwner", "triageLevel", status from "Case" where id = $1`,
+        [r.body.id],
+      )
+    ).rows[0];
+    expect(row).toEqual({
+      callRequested: true,
+      callNumber: "0788123456",
+      callNumberOwner: "FAMILY_MEMBER",
+      triageLevel: "UNCERTAIN",
+      status: "QUEUED",
+    });
   });
 
   it("lets the patient cancel, closing the case as 'Cancelled by patient'", async () => {
@@ -242,7 +270,11 @@ describe("prefer a call, cancel, access (FR 3.8, 3.9, 3.11, 9.1)", () => {
 
   it("hides a case from anyone outside the family", async () => {
     const { b: aline } = await patient(ALINE);
-    const someone = (await db.query(`select c.id from "Case" c join "Patient" p on p.id = c."patientId" where p."firstName" = 'Claudine' limit 1`)).rows[0];
+    const someone = (
+      await db.query(
+        `select c.id from "Case" c join "Patient" p on p.id = c."patientId" where p."firstName" = 'Claudine' limit 1`,
+      )
+    ).rows[0];
     expect((await aline(`/cases/${someone.id}`)).status).toBe(404);
     expect((await browser()(`/cases/${someone.id}`)).status).toBe(401);
   });

@@ -118,7 +118,11 @@ export class AgentController {
   /** Accepts an offer. Only one agent can: the update succeeds only while the offer is still theirs and unexpired. */
   @Post("offers/:id/accept")
   @HttpCode(200)
-  async accept(@Param("id", ParseUUIDPipe) caseId: string, @CurrentSession() session: LiveSession, @Req() request: Request) {
+  async accept(
+    @Param("id", ParseUUIDPipe) caseId: string,
+    @CurrentSession() session: LiveSession,
+    @Req() request: Request,
+  ) {
     const staffId = session.staffId!;
     const taken = await this.db.client.case.updateMany({
       where: { id: caseId, status: "OFFERED", offeredToId: staffId, offerExpiresAt: { gt: new Date() } },
@@ -134,8 +138,14 @@ export class AgentController {
     });
     if (taken.count === 0) throw new ApiException(409, "CONFLICT", "This offer has ended.");
 
-    await this.db.client.staff.update({ where: { id: staffId }, data: { agentStatus: "BUSY", agentStatusSince: new Date() } });
-    await this.tellPatient(caseId, `${firstName(session.staff!.name)}, a health agent, is now looking at your request.`);
+    await this.db.client.staff.update({
+      where: { id: staffId },
+      data: { agentStatus: "BUSY", agentStatusSince: new Date() },
+    });
+    await this.tellPatient(
+      caseId,
+      `${firstName(session.staff!.name)}, a health agent, is now looking at your request.`,
+    );
     await this.audit.record({ type: "staff", id: staffId }, "case.accepted", { caseId }, request.ip);
     this.events.emit("agents", { type: "queue" });
     return { ok: true };
@@ -146,7 +156,9 @@ export class AgentController {
   @HttpCode(200)
   async decline(@Param("id", ParseUUIDPipe) caseId: string, @CurrentSession() session: LiveSession) {
     const staffId = session.staffId!;
-    const offered = await this.db.client.case.findFirst({ where: { id: caseId, status: "OFFERED", offeredToId: staffId } });
+    const offered = await this.db.client.case.findFirst({
+      where: { id: caseId, status: "OFFERED", offeredToId: staffId },
+    });
     if (offered) {
       await this.db.client.case.update({
         where: { id: caseId },
@@ -172,7 +184,11 @@ export class AgentController {
         changes: { orderBy: { createdAt: "asc" } },
         routings: {
           orderBy: { createdAt: "desc" },
-          include: { facility: true, clinician: { select: { id: true, name: true, specialty: true } }, reservation: true },
+          include: {
+            facility: true,
+            clinician: { select: { id: true, name: true, specialty: true } },
+            reservation: true,
+          },
         },
       },
     });
@@ -180,7 +196,15 @@ export class AgentController {
       where: { patientId: handled.patientId, id: { not: id } },
       orderBy: { createdAt: "desc" },
       take: 10,
-      select: { id: true, code: true, createdAt: true, triageLevel: true, category: true, outcome: true, closingNote: true },
+      select: {
+        id: true,
+        code: true,
+        createdAt: true,
+        triageLevel: true,
+        category: true,
+        outcome: true,
+        closingNote: true,
+      },
     });
     await this.audit.viewed(
       { type: "staff", id: session.staffId },
@@ -347,7 +371,12 @@ export class AgentController {
     }
 
     await this.db.client.callNote.create({ data: { caseId: id, staffId: session.staffId!, ...input } });
-    await this.audit.record({ type: "staff", id: session.staffId }, "case.call", { caseId: id, answered: input.answered }, request.ip);
+    await this.audit.record(
+      { type: "staff", id: session.staffId },
+      "case.call",
+      { caseId: id, answered: input.answered },
+      request.ip,
+    );
     if (input.answered) return { closed: false };
 
     const missedCalls = await this.db.client.callNote.count({
@@ -359,7 +388,13 @@ export class AgentController {
       id,
       "We tried to call you 3 times without an answer. Tap “Prefer a call” again when you can talk, or call 912 in an emergency.",
     );
-    await this.finish(id, session, "NO_RESPONSE", "Closed automatically after 3 unanswered calls within 10 minutes.", request);
+    await this.finish(
+      id,
+      session,
+      "NO_RESPONSE",
+      "Closed automatically after 3 unanswered calls within 10 minutes.",
+      request,
+    );
     return { closed: true };
   }
 
@@ -445,7 +480,11 @@ export class AgentController {
   /** Gives the case back. It returns to the front of its level in the queue. */
   @Post("cases/:id/release")
   @HttpCode(200)
-  async release(@Param("id", ParseUUIDPipe) id: string, @CurrentSession() session: LiveSession, @Req() request: Request) {
+  async release(
+    @Param("id", ParseUUIDPipe) id: string,
+    @CurrentSession() session: LiveSession,
+    @Req() request: Request,
+  ) {
     await this.mine(id, session);
     await this.dispatcher.requeue(id, "Another agent will continue with you.");
     await this.freeAgent(session.staffId!);
@@ -483,7 +522,10 @@ export class AgentController {
         frontOfQueue: false,
       },
     });
-    await this.tellPatient(urgentWaiting.id, `${firstName(session.staff!.name)}, a health agent, is now looking at your request.`);
+    await this.tellPatient(
+      urgentWaiting.id,
+      `${firstName(session.staff!.name)}, a health agent, is now looking at your request.`,
+    );
     await this.audit.record(
       { type: "staff", id: session.staffId },
       "case.paused",
@@ -536,7 +578,11 @@ export class AgentController {
   }
 
   /** Only a Minor case, and only after 10 minutes without a reply from the patient, can close as No response. */
-  private async checkCanCloseAsNoResponse(handled: { id: string; triageLevel: string | null; assignedAt: Date | null }) {
+  private async checkCanCloseAsNoResponse(handled: {
+    id: string;
+    triageLevel: string | null;
+    assignedAt: Date | null;
+  }) {
     const lastReply = await this.db.client.chatMessage.findFirst({
       where: { caseId: handled.id, sender: "PATIENT" },
       orderBy: { createdAt: "desc" },

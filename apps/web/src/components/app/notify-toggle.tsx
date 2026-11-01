@@ -17,9 +17,9 @@ const WHY = {
 };
 
 /**
- * FR 6.6, 5.12: notifications are asked for where they help, not at login (people refuse prompts with no
- * reason). The browser's own prompt follows the button. NFR 13: they only say "You have a new message."
- * FR 1.8: never offered on a shared device.
+ * Notifications are asked for where they help, not at login (people refuse prompts with no
+ * reason). The browser's own prompt follows the button. They only ever say "You have a new message."
+ * Never offered on a shared device.
  */
 export function NotifyToggle({ who }: { who: keyof typeof WHY }) {
   const [state, setState] = useState<PushState | null>(null);
@@ -47,8 +47,8 @@ export function NotifyToggle({ who }: { who: keyof typeof WHY }) {
       setState(next);
       if (next === "on") toast.success(t.notify.nowOn);
       if (next === "off" && !on) toast.success(t.notify.nowOff);
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : t.notify.failed);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : t.notify.failed);
     } finally {
       setPending(false);
     }
@@ -79,7 +79,9 @@ export function NotifyToggle({ who }: { who: keyof typeof WHY }) {
         <LuBell className="mt-0.5 size-5 shrink-0 text-info-fg" aria-hidden />
         <div className="flex flex-col">
           <span className="text-body text-fg">{who === "patient" ? t.notify.why : WHY.clinician}</span>
-          <span className="text-small text-fg-secondary">{who === "patient" ? t.notify.only : "It only says “You have a new message”, nothing about your health."}</span>
+          <span className="text-small text-fg-secondary">
+            {who === "patient" ? t.notify.only : "It only says “You have a new message”, nothing about your health."}
+          </span>
         </div>
       </div>
       <Button variant="secondary" loading={pending} onClick={() => change(true)} className="shrink-0">

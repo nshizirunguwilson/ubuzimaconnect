@@ -10,18 +10,25 @@ import { StatusBadge, type Tone } from "@/components/ui/status";
 import { cn } from "@/lib/cn";
 import { useApi } from "@/lib/use-api";
 
-type Data = { shift: "DAY" | "NIGHT"; date: string; rows: { id: string; name: string; scheduled: boolean; status: AgentStatus; since: string; alert: boolean }[] };
+type Data = {
+  shift: "DAY" | "NIGHT";
+  date: string;
+  rows: { id: string; name: string; scheduled: boolean; status: AgentStatus; since: string; alert: boolean }[];
+};
 
 const TONE: Record<AgentStatus, Tone> = { AVAILABLE: "success", BUSY: "info", AWAY: "warning", OFFLINE: "neutral" };
 const REFRESH_MS = 15_000;
 
-const duration = (iso: string, now: number) => {
-  const m = Math.max(0, Math.floor((now - new Date(iso).getTime()) / 60_000));
-  return m < 1 ? "just now" : m < 60 ? `${m} min` : `${Math.floor(m / 60)} h ${m % 60} min`;
-};
+/** How long ago this was: "just now", "12 min" or "2 h 5 min". */
+function duration(iso: string, now: number) {
+  const minutes = Math.max(0, Math.floor((now - new Date(iso).getTime()) / 60_000));
+  if (minutes < 1) return "just now";
+  if (minutes < 60) return `${minutes} min`;
+  return `${Math.floor(minutes / 60)} h ${minutes % 60} min`;
+}
 
 /**
- * FR 12.5: every agent, whether they are on this shift, their status and for how long.
+ * Every agent, whether they are on this shift, their status and for how long.
  * Agents scheduled now but Offline come first, in red. Refreshes every 15 seconds.
  */
 export function OnDuty() {
@@ -36,13 +43,16 @@ export function OnDuty() {
   }, [reload]);
 
   if (!data) return <div className="h-96" aria-busy />;
-  const scheduled = data.rows.filter((r) => r.scheduled);
-  const alerts = data.rows.filter((r) => r.alert).length;
-  const ready = scheduled.filter((r) => r.status === "AVAILABLE" || r.status === "BUSY").length;
+  const scheduled = data.rows.filter((row) => row.scheduled);
+  const alerts = data.rows.filter((row) => row.alert).length;
+  const ready = scheduled.filter((agent) => agent.status === "AVAILABLE" || agent.status === "BUSY").length;
 
   return (
     <div className="flex max-w-[900px] flex-col gap-6">
-      <PageHeader title="On duty" intro={`${data.shift === "DAY" ? "Day shift, 07:00 to 19:00" : "Night shift, 19:00 to 07:00"}. ${ready} of ${scheduled.length} scheduled agents are working.`} />
+      <PageHeader
+        title="On duty"
+        intro={`${data.shift === "DAY" ? "Day shift, 07:00 to 19:00" : "Night shift, 19:00 to 07:00"}. ${ready} of ${scheduled.length} scheduled agents are working.`}
+      />
       {alerts > 0 && (
         <Notice tone="urgent" title={`${alerts} scheduled ${alerts === 1 ? "agent is" : "agents are"} Offline`}>
           Cases may wait longer. Call them or find cover.
@@ -59,19 +69,23 @@ export function OnDuty() {
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
-            {data.rows.map((r) => (
-              <tr key={r.id} className={cn(r.alert && "bg-urgent-soft")}>
+            {data.rows.map((agent) => (
+              <tr key={agent.id} className={cn(agent.alert && "bg-urgent-soft")}>
                 <td className="px-4 py-3 md:px-6">
                   <span className="flex items-center gap-2 font-medium text-fg">
-                    {r.alert && <LuTriangleAlert className="size-4 shrink-0 text-urgent" aria-label="Scheduled but Offline" />}
-                    {r.name}
+                    {agent.alert && (
+                      <LuTriangleAlert className="size-4 shrink-0 text-urgent" aria-label="Scheduled but Offline" />
+                    )}
+                    {agent.name}
                   </span>
                 </td>
-                <td className="px-4 py-3 text-fg-secondary max-sm:hidden">{r.scheduled ? "Scheduled" : "Not scheduled"}</td>
-                <td className="px-4 py-3">
-                  <StatusBadge tone={TONE[r.status]}>{AGENT_STATUS_LABEL[r.status]}</StatusBadge>
+                <td className="px-4 py-3 text-fg-secondary max-sm:hidden">
+                  {agent.scheduled ? "Scheduled" : "Not scheduled"}
                 </td>
-                <td className="px-4 py-3 text-fg-secondary tabular-nums md:px-6">{duration(r.since, now)}</td>
+                <td className="px-4 py-3">
+                  <StatusBadge tone={TONE[agent.status]}>{AGENT_STATUS_LABEL[agent.status]}</StatusBadge>
+                </td>
+                <td className="px-4 py-3 text-fg-secondary tabular-nums md:px-6">{duration(agent.since, now)}</td>
               </tr>
             ))}
           </tbody>

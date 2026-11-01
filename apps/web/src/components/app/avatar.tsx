@@ -1,8 +1,18 @@
 /* eslint-disable @next/next/no-img-element -- the photo is served by our API behind the session cookie */
 import { cn } from "@/lib/cn";
 
-/** A true circle (DESIGN.md §5): identity photos from NIDA (FR 1.10). */
-export function Avatar({ src, name, size = 40, className }: { src: string | null; name: string; size?: number; className?: string }) {
+/** A true circle: identity photos from NIDA. */
+export function Avatar({
+  src,
+  name,
+  size = 40,
+  className,
+}: {
+  src: string | null;
+  name: string;
+  size?: number;
+  className?: string;
+}) {
   return src ? (
     <img
       src={src}
@@ -15,7 +25,10 @@ export function Avatar({ src, name, size = 40, className }: { src: string | null
   ) : (
     <span
       aria-hidden
-      className={cn("flex shrink-0 items-center justify-center rounded-full bg-sunken text-small font-semibold text-fg-secondary", className)}
+      className={cn(
+        "flex shrink-0 items-center justify-center rounded-full bg-sunken text-small font-semibold text-fg-secondary",
+        className,
+      )}
       style={{ width: size, height: size }}
     >
       {name.slice(0, 1)}

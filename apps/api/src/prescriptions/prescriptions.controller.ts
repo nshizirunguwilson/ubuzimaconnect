@@ -19,7 +19,12 @@ export class PrescriptionsController {
 
   @Post(":id/cancel")
   @HttpCode(200)
-  cancel(@Param("id", ParseUUIDPipe) id: string, @Body() body: unknown, @CurrentSession() session: LiveSession, @Req() request: Request) {
+  cancel(
+    @Param("id", ParseUUIDPipe) id: string,
+    @Body() body: unknown,
+    @CurrentSession() session: LiveSession,
+    @Req() request: Request,
+  ) {
     const { reason } = parse(cancelPrescription, body);
     return this.prescriptions.cancel(id, session.staffId!, reason, request.ip);
   }

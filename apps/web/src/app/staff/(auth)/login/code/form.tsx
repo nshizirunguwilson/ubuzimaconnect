@@ -15,10 +15,14 @@ import { usePending, useOnHide } from "@/lib/pending";
 
 const noop = () => () => {};
 
-/** FR 2.2: the second factor, a 6-digit code by email that works for 5 minutes. */
+/** The second factor, a 6-digit code by email that works for 5 minutes. */
 export function CodeForm() {
   const router = useRouter();
-  const to = useSyncExternalStore(noop, () => sessionStorage.getItem("uc_code_to"), () => null);
+  const to = useSyncExternalStore(
+    noop,
+    () => sessionStorage.getItem("uc_code_to"),
+    () => null,
+  );
   const [code, setCode] = useState("");
   const [error, setError] = useState<string>();
   const [expired, setExpired] = useState(false);
@@ -32,12 +36,12 @@ export function CodeForm() {
 
   async function submit(e: FormEvent) {
     e.preventDefault();
-    const r = check(emailCode, { code });
-    if (!r.data) return setError(r.errors.code);
+    const result = check(emailCode, { code });
+    if (!result.data) return setError(result.errors.code);
     setError(undefined);
     setPending(true);
     try {
-      await api("/auth/staff/code", r.data);
+      await api("/auth/staff/code", result.data);
       sessionStorage.removeItem("uc_code_to");
       router.replace("/staff");
     } catch (err) {
@@ -67,7 +71,8 @@ export function CodeForm() {
     return (
       <AuthCard title="This login has timed out">
         <Notice tone="info" title="Start again">
-          The code only works for {LIMITS.loginCodeMinutes} minutes. Enter your email and password again to get a new one.
+          The code only works for {LIMITS.loginCodeMinutes} minutes. Enter your email and password again to get a new
+          one.
         </Notice>
         <Link href="/staff/login" className="text-small font-medium text-link underline underline-offset-2">
           Back to staff login
@@ -81,12 +86,12 @@ export function CodeForm() {
       title="Check your email"
       intro={
         <>
-          We sent a 6-digit code to {to ? <span className="font-medium text-fg">{to}</span> : "your email"}. It works for{" "}
-          {LIMITS.loginCodeMinutes} minutes.
+          We sent a 6-digit code to {to ? <span className="font-medium text-fg">{to}</span> : "your email"}. It works
+          for {LIMITS.loginCodeMinutes} minutes.
         </>
       }
     >
-      {/* D66: the made-up demo accounts can't receive mail; their codes are in the demo inbox. */}
+      {/* The made-up demo accounts can't receive mail; their codes are in the demo inbox. */}
       {to?.endsWith("@ubuzima.test") && (
         <Notice tone="info" title="This is a demo account">
           <a href="/demo/inbox" target="_blank" className="font-medium underline underline-offset-2">

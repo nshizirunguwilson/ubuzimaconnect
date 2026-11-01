@@ -75,7 +75,13 @@ function capitalised(word: string) {
 export class ReportsService {
   constructor(private db: DbService) {}
 
-  async build(role: string, staffId: string, facilityId: string | null, period: Period, anchor: string): Promise<Report> {
+  async build(
+    role: string,
+    staffId: string,
+    facilityId: string | null,
+    period: Period,
+    anchor: string,
+  ): Promise<Report> {
     const range = periodRange(period, anchor);
     const header = { period, start: range.start, end: range.end };
 
@@ -103,7 +109,14 @@ export class ReportsService {
         where: {
           createdAt: inPeriod,
           action: {
-            in: ["case.delay_incident", "routing.no_beds", "routing.no_match", "routing.expired", "bed.released", "ai.failure"],
+            in: [
+              "case.delay_incident",
+              "routing.no_beds",
+              "routing.no_match",
+              "routing.expired",
+              "bed.released",
+              "ai.failure",
+            ],
           },
         },
         _count: true,
@@ -115,7 +128,9 @@ export class ReportsService {
     const ratings = withoutNulls(closed.map((found) => found.rating));
 
     // Minor cases closed without the patient having to travel.
-    const minorClosed = closed.filter((found) => found.triageLevel === "MINOR" && found.outcome !== "CANCELLED_BY_PATIENT");
+    const minorClosed = closed.filter(
+      (found) => found.triageLevel === "MINOR" && found.outcome !== "CANCELLED_BY_PATIENT",
+    );
     const minorHandledRemotely = minorClosed.filter(
       (found) => found.outcome === "ADVISED_REMOTELY" || found.outcome === "PRESCRIPTION_ISSUED",
     );
@@ -148,7 +163,10 @@ export class ReportsService {
           title: "Requests by triage level",
           columns: ["Level", "Requests"],
           rows: [
-            ...TRIAGE_LEVELS.map((level) => [capitalised(level), created.filter((found) => found.triageLevel === level).length]),
+            ...TRIAGE_LEVELS.map((level) => [
+              capitalised(level),
+              created.filter((found) => found.triageLevel === level).length,
+            ]),
             ["Not finished", created.filter((found) => !found.triageLevel).length],
           ],
         },
@@ -226,7 +244,9 @@ export class ReportsService {
 
     return range.days.map((day) => {
       const scheduled = new Set(shifts.filter((shift) => dayOf(shift.date) === day).map((shift) => shift.staffId));
-      const online = new Set(activity.filter((event) => kigaliDay(event.createdAt) === day).map((event) => event.actorId));
+      const online = new Set(
+        activity.filter((event) => kigaliDay(event.createdAt) === day).map((event) => event.actorId),
+      );
       const scheduledAndOnline = [...scheduled].filter((staffId) => online.has(staffId)).length;
       return [day, scheduled.size, scheduledAndOnline];
     });
@@ -258,7 +278,9 @@ export class ReportsService {
       : null;
 
     const stayMinutes = withoutNulls(
-      ended.filter((visit) => visit.status !== "TRANSFERRED").map((visit) => minutesBetween(visit.arrivedAt, visit.endedAt)),
+      ended
+        .filter((visit) => visit.status !== "TRANSFERRED")
+        .map((visit) => minutesBetween(visit.arrivedAt, visit.endedAt)),
     );
     const averageStay = average(stayMinutes);
     const averageStayDays = round(averageStay === null ? null : averageStay / MINUTES_PER_DAY, 1);

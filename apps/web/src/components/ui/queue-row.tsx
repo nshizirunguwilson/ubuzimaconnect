@@ -6,7 +6,7 @@ import { cn } from "@/lib/cn";
 import { Squircle } from "./squircle";
 
 /**
- * Queue row (DESIGN.md §9, RESEARCH R2 and R3): primary text, one status badge and the
+ * A queue row: primary text, one status badge and the
  * time on the right. Only what decides the next action. The whole row is one button.
  */
 export function QueueRow({

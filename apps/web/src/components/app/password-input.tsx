@@ -18,7 +18,7 @@ export function PasswordInput(props: Omit<ComponentProps<typeof Input>, "type" |
           type="button"
           radius="sm"
           focus="self"
-          onClick={() => setShown((s) => !s)}
+          onClick={() => setShown((previous) => !previous)}
           aria-pressed={shown}
           className="inline-flex h-10 cursor-pointer items-center gap-1.5 px-2.5 text-small font-medium text-fg-secondary hover:sq-bg-sunken"
         >

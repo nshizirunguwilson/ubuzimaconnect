@@ -48,7 +48,15 @@ export class PrescriptionsService {
   ) {}
 
   /** Issues a prescription. No approval is needed; it gets a unique code and is valid for 7 days. */
-  async issue(input: { patientId: string; caseId?: string; routingId?: string; prescriberId: string; ip?: string } & PrescriptionInput) {
+  async issue(
+    input: {
+      patientId: string;
+      caseId?: string;
+      routingId?: string;
+      prescriberId: string;
+      ip?: string;
+    } & PrescriptionInput,
+  ) {
     // One moment for both, so "valid for 7 days" is exactly 7 days from the issue time.
     const issuedAt = new Date();
     for (let attempt = 0; ; attempt++) {
@@ -83,7 +91,11 @@ export class PrescriptionsService {
 
   /** Every prescription the patient has ever had, newest first. */
   async forPatient(patientId: string) {
-    const list = await this.db.client.prescription.findMany({ where: { patientId }, orderBy: { createdAt: "desc" }, include });
+    const list = await this.db.client.prescription.findMany({
+      where: { patientId },
+      orderBy: { createdAt: "desc" },
+      include,
+    });
     return list.map(view);
   }
 
@@ -108,7 +120,10 @@ export class PrescriptionsService {
       throw new ApiException(409, "CONFLICT", "This prescription has already expired or been cancelled.");
     }
 
-    await this.db.client.prescription.update({ where: { id }, data: { cancelledAt: new Date(), cancelReason: reason } });
+    await this.db.client.prescription.update({
+      where: { id },
+      data: { cancelledAt: new Date(), cancelReason: reason },
+    });
     await this.audit.record(
       { type: "staff", id: staffId },
       "prescription.cancelled",

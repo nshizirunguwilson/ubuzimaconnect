@@ -84,7 +84,13 @@ export const routingChoice = z.object({
 });
 
 /** How a case ended. */
-export const OUTCOMES = ["ADVISED_REMOTELY", "PRESCRIPTION_ISSUED", "ROUTED_TO_FACILITY", "REFERRED_TO_912", "NO_RESPONSE"] as const;
+export const OUTCOMES = [
+  "ADVISED_REMOTELY",
+  "PRESCRIPTION_ISSUED",
+  "ROUTED_TO_FACILITY",
+  "REFERRED_TO_912",
+  "NO_RESPONSE",
+] as const;
 export const OUTCOME_LABEL: Record<(typeof OUTCOMES)[number] | "CANCELLED_BY_PATIENT", string> = {
   ADVISED_REMOTELY: "Advised remotely",
   PRESCRIPTION_ISSUED: "Prescription issued",

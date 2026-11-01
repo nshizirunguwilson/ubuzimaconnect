@@ -146,7 +146,12 @@ export class CasesController {
     const open = await this.db.client.case.findFirst({ where: { patientId: subject.id, status: NOT_CLOSED } });
     if (open) {
       await this.db.client.case.update({ where: { id: open.id }, data: callDetails });
-      await this.audit.record({ type: "patient", id: session.patientId }, "case.call.requested", { caseId: open.id }, request.ip);
+      await this.audit.record(
+        { type: "patient", id: session.patientId },
+        "case.call.requested",
+        { caseId: open.id },
+        request.ip,
+      );
       return { id: open.id, existing: true };
     }
 
@@ -159,7 +164,12 @@ export class CasesController {
       status: "QUEUED",
       queuedAt: new Date(),
     });
-    await this.audit.record({ type: "patient", id: session.patientId }, "case.call.requested", { caseId: newCase.id }, request.ip);
+    await this.audit.record(
+      { type: "patient", id: session.patientId },
+      "case.call.requested",
+      { caseId: newCase.id },
+      request.ip,
+    );
     return { id: newCase.id, existing: false };
   }
 
@@ -172,7 +182,11 @@ export class CasesController {
   /** The answer to "Are you pregnant?", asked before the pregnancy danger signs. */
   @Post(":id/pregnancy")
   @HttpCode(200)
-  async pregnancy(@Param("id", ParseUUIDPipe) caseId: string, @Body() body: unknown, @CurrentSession() session: LiveSession) {
+  async pregnancy(
+    @Param("id", ParseUUIDPipe) caseId: string,
+    @Body() body: unknown,
+    @CurrentSession() session: LiveSession,
+  ) {
     const details = await this.flow.own(session, caseId);
     const { pregnant } = parse(pregnancyAnswer, body);
 
@@ -367,7 +381,11 @@ export class CasesController {
   /** "I no longer need help". The agent is told, and any bed held for the patient is released. */
   @Post(":id/cancel")
   @HttpCode(200)
-  async cancel(@Param("id", ParseUUIDPipe) caseId: string, @CurrentSession() session: LiveSession, @Req() request: Request) {
+  async cancel(
+    @Param("id", ParseUUIDPipe) caseId: string,
+    @CurrentSession() session: LiveSession,
+    @Req() request: Request,
+  ) {
     const details = await this.flow.own(session, caseId);
     if (details.status === "CLOSED") throw new ApiException(409, "CONFLICT", "This case is already closed.");
 
@@ -412,7 +430,11 @@ export class CasesController {
 
   /** The patient's chat message, while the case is waiting for an agent or with one. */
   @Post(":id/messages")
-  async message(@Param("id", ParseUUIDPipe) caseId: string, @Body() body: unknown, @CurrentSession() session: LiveSession) {
+  async message(
+    @Param("id", ParseUUIDPipe) caseId: string,
+    @Body() body: unknown,
+    @CurrentSession() session: LiveSession,
+  ) {
     const details = await this.flow.own(session, caseId);
     this.ensureChatOpen(details);
     const { text } = parse(chatMessage, body);
@@ -422,7 +444,11 @@ export class CasesController {
 
   /** A voice note from the patient, on an open case. */
   @Post(":id/voice")
-  async voice(@Param("id", ParseUUIDPipe) caseId: string, @Body() body: unknown, @CurrentSession() session: LiveSession) {
+  async voice(
+    @Param("id", ParseUUIDPipe) caseId: string,
+    @Body() body: unknown,
+    @CurrentSession() session: LiveSession,
+  ) {
     const details = await this.flow.own(session, caseId);
     this.ensureChatOpen(details);
     return saveVoice(this.db, this.events, { caseId, sender: "PATIENT" }, body);
@@ -456,7 +482,12 @@ export class CasesController {
 
     const { rating: stars } = parse(rating, body);
     await this.db.client.case.update({ where: { id: caseId }, data: { rating: stars } });
-    await this.audit.record({ type: "patient", id: session.patientId }, "case.rated", { caseId, rating: stars }, request.ip);
+    await this.audit.record(
+      { type: "patient", id: session.patientId },
+      "case.rated",
+      { caseId, rating: stars },
+      request.ip,
+    );
     return this.patientView.view(await this.flow.load(caseId));
   }
 

@@ -12,29 +12,42 @@ import { formatDate } from "@/lib/time";
 import { useApi } from "@/lib/use-api";
 
 type Tile = { label: string; value: number | null; unit?: "min" | "%" | "days" | "/5"; hint?: string };
-type Report = { title: string; period: Period; start: string; end: string; tiles: Tile[]; tables: { title: string; columns: string[]; rows: (string | number | null)[][] }[] };
+type Report = {
+  title: string;
+  period: Period;
+  start: string;
+  end: string;
+  tiles: Tile[];
+  tables: { title: string; columns: string[]; rows: (string | number | null)[][] }[];
+};
 
 const today = () => new Date(Date.now() + 2 * 3_600_000).toISOString().slice(0, 10);
 const LABEL: Record<Period, string> = { day: "Day", week: "Week", month: "Month" };
 
 /** "24 Oct 2026", "19 to 25 Oct 2026", "October 2026". */
 function periodName(period: Period, anchor: string) {
-  const r = periodRange(period, anchor);
-  if (period === "day") return formatDate(r.start);
-  if (period === "month") return new Intl.DateTimeFormat("en-GB", { month: "long", year: "numeric", timeZone: "UTC" }).format(new Date(`${r.start}T00:00:00Z`));
-  const last = r.days[r.days.length - 1];
-  return `${formatDate(r.start).replace(/ \d{4}$/, "")} to ${formatDate(last)}`;
+  const range = periodRange(period, anchor);
+  if (period === "day") return formatDate(range.start);
+  if (period === "month")
+    return new Intl.DateTimeFormat("en-GB", { month: "long", year: "numeric", timeZone: "UTC" }).format(
+      new Date(`${range.start}T00:00:00Z`),
+    );
+  const last = range.days[range.days.length - 1];
+  return `${formatDate(range.start).replace(/ \d{4}$/, "")} to ${formatDate(last)}`;
 }
 
 /** Stat tile (dataviz contract): label, then the value in proportional figures; a dash when the period has no data. */
-function value(t: Tile) {
-  if (t.value === null) return "–";
-  const n = t.value.toLocaleString("en-GB");
-  return t.unit === "%" ? `${n}%` : t.unit === "/5" ? `${n} / 5` : t.unit ? `${n} ${t.unit}` : n;
+function value(tile: Tile) {
+  if (tile.value === null) return "–";
+  const formatted = tile.value.toLocaleString("en-GB");
+  if (tile.unit === "%") return `${formatted}%`;
+  if (tile.unit === "/5") return `${formatted} / 5`;
+  if (tile.unit) return `${formatted} ${tile.unit}`;
+  return formatted;
 }
 
 /**
- * FR 12.8: each role's own report for a day, a week or a month, with the same numbers as a CSV download.
+ * Each role's own report for a day, a week or a month, with the same numbers as a CSV download.
  * Headline numbers first, then the tables behind them.
  */
 export function Reports() {
@@ -50,28 +63,44 @@ export function Reports() {
       {/* Filters in one row above the numbers (dataviz: interaction) */}
       <div className="flex flex-wrap items-center gap-3">
         <div role="radiogroup" aria-label="Period" className="flex gap-1">
-          {(["day", "week", "month"] as const).map((p) => (
+          {(["day", "week", "month"] as const).map((option) => (
             <Squircle
-              key={p}
+              key={option}
               as="button"
               type="button"
               role="radio"
-              aria-checked={period === p}
+              aria-checked={period === option}
               radius="md"
               focus="self"
-              onClick={() => setPeriod(p)}
-              className={cn("h-10 cursor-pointer px-3.5 text-small font-medium", period === p ? "sq-bg-accent-soft sq-border-primary text-info-fg" : "sq-bg-surface sq-border-border-strong text-fg hover:sq-bg-sunken")}
+              onClick={() => setPeriod(option)}
+              className={cn(
+                "h-10 cursor-pointer px-3.5 text-small font-medium",
+                period === option
+                  ? "sq-bg-accent-soft sq-border-primary text-info-fg"
+                  : "sq-bg-surface sq-border-border-strong text-fg hover:sq-bg-sunken",
+              )}
             >
-              {LABEL[p]}
+              {LABEL[option]}
             </Squircle>
           ))}
         </div>
         <div className="flex items-center gap-1">
-          <Button variant="ghost" size="icon" aria-label={`Previous ${period}`} onClick={() => setAnchor(shiftPeriod(period, anchor, -1))}>
+          <Button
+            variant="ghost"
+            size="icon"
+            aria-label={`Previous ${period}`}
+            onClick={() => setAnchor(shiftPeriod(period, anchor, -1))}
+          >
             <LuChevronLeft />
           </Button>
           <span className="min-w-36 text-center text-small font-medium text-fg">{periodName(period, anchor)}</span>
-          <Button variant="ghost" size="icon" aria-label={`Next ${period}`} disabled={isCurrent} onClick={() => setAnchor(shiftPeriod(period, anchor, 1))}>
+          <Button
+            variant="ghost"
+            size="icon"
+            aria-label={`Next ${period}`}
+            disabled={isCurrent}
+            onClick={() => setAnchor(shiftPeriod(period, anchor, 1))}
+          >
             <LuChevronRight />
           </Button>
         </div>
@@ -91,11 +120,11 @@ export function Reports() {
       ) : (
         <>
           <dl className="grid grid-cols-2 gap-3 md:grid-cols-3">
-            {data.tiles.map((t) => (
-              <Card key={t.label} className="flex flex-col gap-1">
-                <dt className="text-small text-fg-secondary">{t.label}</dt>
-                <dd className="font-heading text-h2 font-semibold text-fg">{value(t)}</dd>
-                {t.hint && <dd className="text-caption text-fg-muted">{t.hint}</dd>}
+            {data.tiles.map((tile) => (
+              <Card key={tile.label} className="flex flex-col gap-1">
+                <dt className="text-small text-fg-secondary">{tile.label}</dt>
+                <dd className="font-heading text-h2 font-semibold text-fg">{value(tile)}</dd>
+                {tile.hint && <dd className="text-caption text-fg-muted">{tile.hint}</dd>}
               </Card>
             ))}
           </dl>
@@ -110,9 +139,9 @@ export function Reports() {
                   <table className="w-full text-left text-small">
                     <thead className="text-fg-secondary">
                       <tr className="border-b border-border">
-                        {tb.columns.map((c, i) => (
-                          <th key={i} className={cn("py-2 pr-3 font-medium", i > 0 && "text-right")}>
-                            {c}
+                        {tb.columns.map((column, index) => (
+                          <th key={index} className={cn("py-2 pr-3 font-medium", index > 0 && "text-right")}>
+                            {column}
                           </th>
                         ))}
                       </tr>
@@ -120,9 +149,12 @@ export function Reports() {
                     <tbody className="divide-y divide-border">
                       {tb.rows.map((row, i) => (
                         <tr key={i}>
-                          {row.map((v, j) => (
-                            <td key={j} className={cn("py-2 pr-3", j === 0 ? "text-fg" : "text-right text-fg tabular-nums")}>
-                              {v ?? "–"}
+                          {row.map((value, index) => (
+                            <td
+                              key={index}
+                              className={cn("py-2 pr-3", index === 0 ? "text-fg" : "text-right text-fg tabular-nums")}
+                            >
+                              {value ?? "–"}
                             </td>
                           ))}
                         </tr>
@@ -133,7 +165,9 @@ export function Reports() {
               </Card>
             ))}
           </div>
-          <p className="text-caption text-fg-muted">A dash means there was nothing to measure in this period. Times are in Rwanda time.</p>
+          <p className="text-caption text-fg-muted">
+            A dash means there was nothing to measure in this period. Times are in Rwanda time.
+          </p>
         </>
       )}
     </div>

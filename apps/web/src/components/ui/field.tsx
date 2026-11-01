@@ -6,7 +6,7 @@ import { cn } from "@/lib/cn";
 import { Squircle } from "./squircle";
 
 /**
- * DESIGN.md §9: the label is always above, helper text below, and an error
+ * The label is always above, helper text below, and an error
  * replaces the helper with an icon and a message in red-700. Inputs are 16 px (§3).
  */
 type FieldProps = {
@@ -69,7 +69,18 @@ type InputProps = Omit<ComponentPropsWithoutRef<"input">, "id"> & {
   mono?: boolean;
 };
 
-export function Input({ label, hint, error, optional, leading, trailing, mono, className, disabled, ...rest }: InputProps) {
+export function Input({
+  label,
+  hint,
+  error,
+  optional,
+  leading,
+  trailing,
+  mono,
+  className,
+  disabled,
+  ...rest
+}: InputProps) {
   return (
     <Field label={label} hint={hint} error={error} optional={optional} className={className}>
       {({ id, describedBy, invalid }) => (
@@ -159,9 +170,9 @@ export function Select({
                 {placeholder}
               </option>
             )}
-            {options.map((o) => (
-              <option key={o.value} value={o.value}>
-                {o.label}
+            {options.map((choice) => (
+              <option key={choice.value} value={choice.value}>
+                {choice.label}
               </option>
             ))}
           </select>

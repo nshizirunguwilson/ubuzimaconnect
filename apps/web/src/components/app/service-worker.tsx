@@ -5,7 +5,7 @@ import { SW_URL } from "@/lib/push";
 
 /**
  * Registers the service worker that makes the app installable and opens the emergency page without a
- * connection (NFR 8, FR 1.9). Only in a production build: in development the cache would serve old code.
+ * connection. Only in a production build: in development the cache would serve old code.
  * Push notifications register the same worker themselves when they are turned on (lib/push.ts).
  */
 export function ServiceWorker() {

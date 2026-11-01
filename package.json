@@ -11,9 +11,11 @@
     "lint": "turbo run lint",
     "test": "turbo run test",
     "translations": "pnpm --filter @ubuzima/api exec tsx ../../scripts/translation-sheet.ts",
-    "postinstall": "pnpm --filter @ubuzima/db generate"
+    "postinstall": "pnpm --filter @ubuzima/db generate",
+    "format": "prettier --write \"apps/*/src/**/*.{ts,tsx}\" \"apps/api/test/**/*.ts\" \"packages/shared/src/**/*.ts\" \"scripts/**/*.{ts,mjs}\""
   },
   "devDependencies": {
+    "prettier": "3.6.2",
     "turbo": "^2.11.10"
   }
 }

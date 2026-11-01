@@ -4,7 +4,7 @@ import { BackLink } from "@/components/patient/back-link";
 import { ActivityList, useActivity } from "@/components/app/activity-list";
 import { useT } from "@/i18n/client";
 
-/** FR 10.2: every action on these records, by anyone including the patient, with the device for logins. */
+/** Every action on these records, by anyone including the patient, with the device for logins. */
 export function Activity({ id }: { id: string }) {
   const feed = useActivity(`/records/${id}/activity`);
   const { t } = useT();

@@ -12,7 +12,7 @@ import { useApi } from "@/lib/use-api";
 
 type S = { aiEnabled: boolean; updatedAt: string; updatedBy: string | null };
 
-/** FR 4.8: the AI switch. While it is off, every new case goes to the agents as Uncertain. */
+/** The AI switch. While it is off, every new case goes to the agents as Uncertain. */
 export function Settings() {
   const { data, reload } = useApi<S>("/settings");
   const [pending, setPending] = useState(false);

@@ -13,7 +13,7 @@ import {
 } from "react";
 import { cn } from "@/lib/cn";
 
-/** DESIGN.md §5. `xs` exists only for controls smaller than 24 px (checkbox). */
+/** Corner sizes. `xs` exists only for controls smaller than 24 px (the checkbox). */
 export const RADIUS = { xs: 6, sm: 8, md: 12, lg: 16, xl: 24 } as const;
 export type Radius = keyof typeof RADIUS;
 
@@ -52,7 +52,7 @@ type SquircleProps<T extends ElementType> = {
   radius?: Radius;
   /** Which focus state draws the ring: the element itself, a focused child, or a preceding `.peer` input. */
   focus?: "self" | "within" | "peer" | "none";
-  /** The one shadow level, for overlays only (DESIGN.md §6). */
+  /** The one shadow level, for overlays only. */
   elevated?: boolean;
   /** "top": top corners only. "sheet": top only on phones, all corners from 640 px (bottom sheet to dialog). */
   corners?: Corners;
@@ -75,7 +75,7 @@ export function Squircle<T extends ElementType = "div">({
   const mode = useSquircleMode();
   const local = useRef<HTMLElement | null>(null);
   const [size, setSize] = useState<Size | null>(null);
-  const r = RADIUS[radius];
+  const radiusSize = RADIUS[radius];
 
   useLayoutEffect(() => {
     const el = local.current;
@@ -100,14 +100,14 @@ export function Squircle<T extends ElementType = "div">({
     <Tag
       ref={setRef}
       className={cn("sq", className)}
-      style={{ "--sq-r": `${r}px`, ...style } as CSSProperties}
+      style={{ "--sq-r": `${radiusSize}px`, ...style } as CSSProperties}
       data-sq-focus={focus === "none" ? undefined : focus}
       data-sq-elevated={elevated || undefined}
       data-sq-corners={corners === "all" ? undefined : corners}
       data-sq-ready={ready || undefined}
       {...rest}
     >
-      {ready && <SquircleLayer size={size} radius={r} corners={corners} focus={focus !== "none"} />}
+      {ready && <SquircleLayer size={size} radius={radiusSize} corners={corners} focus={focus !== "none"} />}
       {children}
     </Tag>
   );

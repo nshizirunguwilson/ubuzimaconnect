@@ -26,7 +26,7 @@ type Row = {
   managers: string[];
 };
 
-/** FR 12.1: the administrator creates facilities; their managers then keep the profile up to date (FR 8.1). */
+/** The administrator creates facilities; their managers then keep the profile up to date. */
 export function Facilities() {
   const { data, reload } = useApi<Row[]>("/facilities");
   const [open, setOpen] = useState(false);
@@ -71,8 +71,8 @@ export function Facilities() {
                     setErrors(undefined);
                     toast.success(`${body.name} added`);
                     await reload();
-                  } catch (e) {
-                    if (e instanceof ApiFailure) setErrors(e.error.fields ?? { name: e.error.message });
+                  } catch (error) {
+                    if (error instanceof ApiFailure) setErrors(error.error.fields ?? { name: error.error.message });
                   } finally {
                     setPending(false);
                   }
@@ -99,21 +99,32 @@ export function Facilities() {
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
-              {data.map((f) => (
-                <tr key={f.id} className="max-md:flex max-md:flex-wrap max-md:items-center max-md:gap-x-3 max-md:gap-y-1 max-md:px-4 max-md:py-3">
+              {data.map((facility) => (
+                <tr
+                  key={facility.id}
+                  className="max-md:flex max-md:flex-wrap max-md:items-center max-md:gap-x-3 max-md:gap-y-1 max-md:px-4 max-md:py-3"
+                >
                   <td className="md:px-6 md:py-3 max-md:w-full">
-                    <span className="block font-semibold text-fg">{f.name}</span>
+                    <span className="block font-semibold text-fg">{facility.name}</span>
                     <span className="block text-fg-secondary">
-                      {LEVEL_LABEL[f.level]} · {f.district}
-                      {f.managers.length > 0 ? ` · Manager: ${f.managers.join(", ")}` : " · No manager yet"}
+                      {LEVEL_LABEL[facility.level]} · {facility.district}
+                      {facility.managers.length > 0
+                        ? ` · Manager: ${facility.managers.join(", ")}`
+                        : " · No manager yet"}
                     </span>
                   </td>
-                  <td className="text-fg-secondary md:px-4 md:py-3 max-md:w-full">{f.services.map((s) => SERVICE_LABEL[s]).join(", ")}</td>
+                  <td className="text-fg-secondary md:px-4 md:py-3 max-md:w-full">
+                    {facility.services.map((service) => SERVICE_LABEL[service]).join(", ")}
+                  </td>
                   <td className="whitespace-nowrap text-fg tabular-nums md:px-4 md:py-3 md:text-right">
-                    {f.availableBeds} <span className="text-fg-muted">of {f.totalBeds}</span>
+                    {facility.availableBeds} <span className="text-fg-muted">of {facility.totalBeds}</span>
                   </td>
                   <td className="md:px-4 md:py-3 md:pr-6">
-                    {f.active ? <StatusBadge tone="success">Accepting patients</StatusBadge> : <StatusBadge tone="neutral">Not accepting</StatusBadge>}
+                    {facility.active ? (
+                      <StatusBadge tone="success">Accepting patients</StatusBadge>
+                    ) : (
+                      <StatusBadge tone="neutral">Not accepting</StatusBadge>
+                    )}
                   </td>
                 </tr>
               ))}

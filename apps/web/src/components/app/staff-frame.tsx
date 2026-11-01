@@ -28,32 +28,45 @@ function write(folded: boolean) {
   } catch {
     /* not remembered, still works */
   }
-  listeners.forEach((l) => l());
+  listeners.forEach((listener) => listener());
 }
 function subscribe(l: () => void) {
   listeners.add(l);
   return () => listeners.delete(l);
 }
-// A springy ease: the panel overshoots a little and settles, so the slide reads as one heavy object (D71).
+// A springy ease: the panel overshoots a little and settles, so the slide reads as one heavy object.
 const SLIDE = "duration-500 ease-[cubic-bezier(0.34,1.4,0.64,1)] motion-reduce:transition-none";
 
 /**
- * The staff layout (DECISIONS.md D18, D71): the floating navigation panel and the page beside it. From 768 px the
+ * The staff layout: the floating navigation panel and the page beside it. From 768 px the
  * panel can be folded to its icons; the choice is remembered on this device. Phones keep the row at the top.
  */
-export function StaffFrame({ items, name, role, children }: { items: NavItem[]; name: string; role: string; children: ReactNode }) {
+export function StaffFrame({
+  items,
+  name,
+  role,
+  children,
+}: {
+  items: NavItem[];
+  name: string;
+  role: string;
+  children: ReactNode;
+}) {
   const folded = useSyncExternalStore(subscribe, read, () => false);
   const toggle = () => write(!folded);
   const initials = name
     .replace(/^Dr\.?\s+/, "")
     .split(/\s+/)
     .slice(0, 2)
-    .map((w) => w[0])
+    .map((word) => word[0])
     .join("");
 
   return (
     <div
-      className={cn("min-h-dvh p-3 md:grid md:grid-cols-[var(--side)_minmax(0,1fr)] md:gap-3 md:transition-[grid-template-columns]", SLIDE)}
+      className={cn(
+        "min-h-dvh p-3 md:grid md:grid-cols-[var(--side)_minmax(0,1fr)] md:gap-3 md:transition-[grid-template-columns]",
+        SLIDE,
+      )}
       style={{ ["--side" as string]: folded ? "76px" : "240px" }}
     >
       <Squircle

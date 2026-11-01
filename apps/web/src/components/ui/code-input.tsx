@@ -6,9 +6,9 @@ import { Field } from "./field";
 import { Squircle } from "./squircle";
 
 /**
- * A 6-digit code shown as one box per digit (FR 2.2, 2.4). Underneath it is a single real input laid
+ * A 6-digit code shown as one box per digit. Underneath it is a single real input laid
  * over the boxes, so pasting the whole code, the device's "code from email" autofill and screen readers
- * all work as with a normal field (DECISIONS.md D41). Only digits are kept. There is no maxLength: the email
+ * all work as with a normal field. Only digits are kept. There is no maxLength: the email
  * shows the code as "616 260", and a 6-character limit would cut the pasted text before the space is removed.
  */
 export function CodeInput({
@@ -43,7 +43,11 @@ export function CodeInput({
               aria-hidden
               className={cn(
                 "flex h-14 min-w-0 flex-1 items-center justify-center font-mono text-h2 text-fg sq-bg-surface sm:max-w-14",
-                invalid ? "sq-border-urgent" : focused && i === at ? "sq-bg-accent-soft sq-border-primary" : "sq-border-border-strong",
+                invalid
+                  ? "sq-border-urgent"
+                  : focused && i === at
+                    ? "sq-bg-accent-soft sq-border-primary"
+                    : "sq-border-border-strong",
               )}
             >
               {digits[i] ?? (focused && i === at ? <span className="h-6 w-px animate-pulse bg-fg" /> : null)}
@@ -58,7 +62,7 @@ export function CodeInput({
             pattern="\d*"
             autoFocus={autoFocus}
             value={digits}
-            onChange={(e) => onChange(e.target.value.replace(/\D/g, "").slice(0, length))}
+            onChange={(event) => onChange(event.target.value.replace(/\D/g, "").slice(0, length))}
             onFocus={() => setFocused(true)}
             onBlur={() => setFocused(false)}
             className="absolute inset-0 w-full cursor-text bg-transparent text-transparent caret-transparent outline-none selection:bg-transparent"

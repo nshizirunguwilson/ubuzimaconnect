@@ -59,10 +59,7 @@ export const emailCode = z.object({
  * At least 8 characters, with no rules about which characters. NIST SP 800-63B-4 sets 8 as the minimum when the
  * password is one of two factors, and staff also enter an emailed code.
  */
-export const newPassword = z
-  .string()
-  .min(8, "Use at least 8 characters")
-  .max(128, "Use 128 characters or fewer");
+export const newPassword = z.string().min(8, "Use at least 8 characters").max(128, "Use 128 characters or fewer");
 
 export const setPassword = z.object({ token: z.string().min(20), password: newPassword });
 export const resetRequest = z.object({ email });

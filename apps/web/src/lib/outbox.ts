@@ -1,6 +1,6 @@
 /**
- * FR 3.10: steps of a request made without a connection (answers, symptoms) wait here, in order,
- * and are sent when the connection returns. Cleared at logout, so nothing stays on the device (FR 1.8).
+ * Steps of a request made without a connection (answers, symptoms) wait here, in order,
+ * and are sent when the connection returns. Cleared at logout, so nothing stays on the device.
  */
 export type Step = { path: string; body: unknown };
 type Store = Pick<Storage, "getItem" | "setItem" | "removeItem" | "key" | "length">;
@@ -23,10 +23,10 @@ export function readOutbox(caseId: string): Step[] {
 }
 
 function write(caseId: string, steps: Step[]) {
-  const s = store();
-  if (!s) return;
-  if (steps.length) s.setItem(PREFIX + caseId, JSON.stringify(steps));
-  else s.removeItem(PREFIX + caseId);
+  const storage = store();
+  if (!storage) return;
+  if (steps.length) storage.setItem(PREFIX + caseId, JSON.stringify(steps));
+  else storage.removeItem(PREFIX + caseId);
 }
 
 export function queueStep(caseId: string, step: Step) {
@@ -39,15 +39,19 @@ export function queueStep(caseId: string, step: Step) {
  * "rejected": the server refused a step (the case moved on meanwhile); the rest are dropped,
  * because they were answers to questions the server no longer asks.
  */
-export async function flushOutbox(caseId: string, send: (s: Step) => Promise<void>, isOffline: (e: unknown) => boolean) {
+export async function flushOutbox(
+  caseId: string,
+  send: (s: Step) => Promise<void>,
+  isOffline: (e: unknown) => boolean,
+) {
   for (;;) {
     const [next, ...rest] = readOutbox(caseId);
     if (!next) return "sent" as const;
     try {
       await send(next);
       write(caseId, rest);
-    } catch (e) {
-      if (isOffline(e)) return "offline" as const;
+    } catch (error) {
+      if (isOffline(error)) return "offline" as const;
       write(caseId, []);
       return "rejected" as const;
     }
@@ -56,8 +60,10 @@ export async function flushOutbox(caseId: string, send: (s: Step) => Promise<voi
 
 /** At logout: every waiting step, for every case. */
 export function clearOutboxes() {
-  const s = store();
-  if (!s) return;
-  const keys = Array.from({ length: s.length }, (_, i) => s.key(i)).filter((k): k is string => !!k?.startsWith(PREFIX));
-  keys.forEach((k) => s.removeItem(k));
+  const storage = store();
+  if (!storage) return;
+  const keys = Array.from({ length: storage.length }, (_, i) => storage.key(i)).filter(
+    (k): k is string => !!k?.startsWith(PREFIX),
+  );
+  keys.forEach((key) => storage.removeItem(key));
 }

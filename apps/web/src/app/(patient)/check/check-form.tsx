@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/field";
 import { LanguageSwitch, useT } from "@/i18n/client";
 
-/** FR 11.7: type the code, or scan the QR code with any phone camera, which opens the result directly. */
+/** Type the code, or scan the QR code with any phone camera, which opens the result directly. */
 export function CheckForm() {
   const router = useRouter();
   const { t } = useT();
@@ -41,7 +41,7 @@ export function CheckForm() {
           autoComplete="off"
           spellCheck={false}
           value={code}
-          onChange={(e) => setCode(formatPrescriptionCode(e.target.value))}
+          onChange={(event) => setCode(formatPrescriptionCode(event.target.value))}
           error={error}
         />
         <div className="flex-1" />

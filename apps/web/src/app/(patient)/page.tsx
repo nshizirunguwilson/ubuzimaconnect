@@ -8,7 +8,7 @@ import { ButtonLink } from "@/components/ui/button-link";
 import { LanguageSwitch } from "@/i18n/client";
 import { getT } from "@/i18n/server";
 
-/** Start page. One primary action (log in), and the emergency number without logging in (FR 1.9). */
+/** Start page. One primary action (log in), and the emergency number without logging in. */
 export default async function Welcome() {
   const t = await getT();
   return (

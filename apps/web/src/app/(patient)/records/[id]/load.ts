@@ -6,7 +6,15 @@ import type { Prescription } from "@/components/app/prescription";
 const apiUrl = process.env.API_URL ?? "http://localhost:4000";
 
 export type Records = {
-  person: { id: string; name: string; dateOfBirth: string; age: { years: number; months: number; days: number }; sex: "FEMALE" | "MALE"; district: string | null; photoUrl: string | null };
+  person: {
+    id: string;
+    name: string;
+    dateOfBirth: string;
+    age: { years: number; months: number; days: number };
+    sex: "FEMALE" | "MALE";
+    district: string | null;
+    photoUrl: string | null;
+  };
   prescriptions: Prescription[];
   cases: {
     id: string;
@@ -22,16 +30,26 @@ export type Records = {
       status: string;
       arrivedAt: string;
       endedAt: string | null;
-      entries: { id: string; diagnosis: string | null; treatment: string | null; notes: string | null; by: string; at: string }[];
+      entries: {
+        id: string;
+        diagnosis: string | null;
+        treatment: string | null;
+        notes: string | null;
+        by: string;
+        at: string;
+      }[];
     }[];
   }[];
 };
 
-/** FR 7.2: loads a record on the server with the session cookie. Not yours or your child's: not found. */
+/** Loads a record on the server with the session cookie. Not yours or your child's: not found. */
 export async function loadRecords(id: string): Promise<Records> {
   const cookie = await sessionCookie("patient");
   if (!cookie) redirect("/login");
-  const res = await fetch(`${apiUrl}/records/${encodeURIComponent(id)}`, { headers: { cookie, "x-uc-app": "patient" }, cache: "no-store" });
+  const res = await fetch(`${apiUrl}/records/${encodeURIComponent(id)}`, {
+    headers: { cookie, "x-uc-app": "patient" },
+    cache: "no-store",
+  });
   if (res.status === 401) redirect("/login?ended=1");
   if (!res.ok) notFound();
   return res.json();

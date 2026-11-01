@@ -10,10 +10,18 @@ import { LuUserPlus } from "react-icons/lu";
 
 export const metadata: Metadata = { title: "Home" };
 
-const greeting = () => {
-  const h = Number(new Intl.DateTimeFormat("en-GB", { hour: "numeric", hourCycle: "h23", timeZone: "Africa/Kigali" }).format(new Date()));
-  return h < 12 ? "Good morning" : h < 18 ? "Good afternoon" : "Good evening";
-};
+/** "Good morning", "Good afternoon" or "Good evening", by the time in Kigali. */
+function greeting() {
+  const kigaliClock = new Intl.DateTimeFormat("en-GB", {
+    hour: "numeric",
+    hourCycle: "h23",
+    timeZone: "Africa/Kigali",
+  });
+  const kigaliHour = Number(kigaliClock.format(new Date()));
+  if (kigaliHour < 12) return "Good morning";
+  if (kigaliHour < 18) return "Good afternoon";
+  return "Good evening";
+}
 
 export default function StaffHome() {
   return (
@@ -25,12 +33,12 @@ export default function StaffHome() {
 
 async function Home() {
   const me = await requireStaff();
-  // An agent's home is the queue (FR 6); a clinician's is their patients (FR 7.4).
+  // An agent's home is the queue; a clinician's is their patients.
   if (me.role === "AGENT") redirect("/staff/queue");
   if (me.role === "CLINICIAN") redirect("/staff/patients");
   return (
     <div className="flex flex-col gap-8">
-      {/* RESEARCH R3: a greeting with one purpose line */}
+      {/* A greeting with one purpose line */}
       <div className="flex flex-col gap-2">
         <h1 className="text-h1 text-fg">
           {greeting()}, {greetingName(me.name)}

@@ -21,7 +21,7 @@ type Problem = {
   unlock?: boolean;
 } | null;
 
-/** FR 2.1 and 2.3: email and password, then a code by email (FR 2.2). */
+/** Email and password, then a code by email. */
 export function StaffLoginForm({
   ended,
   other = false,
@@ -72,12 +72,12 @@ export function StaffLoginForm({
 
   async function submit(e: FormEvent) {
     e.preventDefault();
-    const r = check(staffLogin, { email, password });
-    if (!r.data) return setErrors(r.errors);
+    const result = check(staffLogin, { email, password });
+    if (!result.data) return setErrors(result.errors);
     setErrors({});
     setPending(true);
     try {
-      const res = await api<{ email: string }>("/auth/staff/login", r.data);
+      const res = await api<{ email: string }>("/auth/staff/login", result.data);
       sessionStorage.setItem("uc_code_to", res.email);
       router.push("/staff/login/code");
     } catch (err) {
@@ -102,10 +102,7 @@ export function StaffLoginForm({
       const left = Number(fields?.attemptsLeft);
       setProblem({
         tone: "urgent",
-        title:
-          code === "DEACTIVATED"
-            ? "Account turned off"
-            : "Email or password is wrong",
+        title: code === "DEACTIVATED" ? "Account turned off" : "Email or password is wrong",
         body:
           code === "INVALID_CREDENTIALS"
             ? `Check them and try again.${left && left <= 2 ? ` ${left === 1 ? "1 try" : `${left} tries`} left before the account is locked.` : ""}`
@@ -115,20 +112,14 @@ export function StaffLoginForm({
   }
 
   return (
-    <AuthCard
-      title="Staff login"
-      intro="For health agents, clinicians, facility managers and administrators."
-    >
+    <AuthCard title="Staff login" intro="For health agents, clinicians, facility managers and administrators.">
       {problem && (
         <Notice
           tone={problem.tone}
           title={problem.title}
           action={
             problem.unlock ? (
-              <Link
-                href="/staff/unlock"
-                className="text-small font-semibold underline underline-offset-2"
-              >
+              <Link href="/staff/unlock" className="text-small font-semibold underline underline-offset-2">
                 Enter the unlock code
               </Link>
             ) : undefined
@@ -144,23 +135,18 @@ export function StaffLoginForm({
           autoComplete="username"
           inputMode="email"
           value={email}
-          onChange={(e) => setEmail(e.target.value)}
+          onChange={(event) => setEmail(event.target.value)}
           error={errors.email}
         />
         <PasswordInput
           label="Password"
           autoComplete="current-password"
           value={password}
-          onChange={(e) => setPassword(e.target.value)}
+          onChange={(event) => setPassword(event.target.value)}
           error={errors.password}
         />
         <div className="flex flex-col gap-4 sm:flex-row-reverse sm:items-center sm:justify-between">
-          <Button
-            type="submit"
-            variant="primary"
-            loading={pending}
-            className="w-full sm:w-auto"
-          >
+          <Button type="submit" variant="primary" loading={pending} className="w-full sm:w-auto">
             Continue
           </Button>
           <Link

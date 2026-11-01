@@ -36,7 +36,13 @@ async function measure(action: string, call: (i: number) => Promise<Response | {
     }),
   );
   times.sort((a, b) => a - b);
-  const r = { action, n: times.length, p50: Math.round(times[Math.floor(times.length * 0.5)]), p95: Math.round(times[Math.ceil(times.length * 0.95) - 1]), max: Math.round(times[times.length - 1]) };
+  const r = {
+    action,
+    n: times.length,
+    p50: Math.round(times[Math.floor(times.length * 0.5)]),
+    p95: Math.round(times[Math.ceil(times.length * 0.95) - 1]),
+    max: Math.round(times[times.length - 1]),
+  };
   results.push(r);
   expect(failures, `${action}: failed requests`).toBe(0);
   return r;
@@ -76,12 +82,24 @@ beforeAll(async () => {
     [me.id],
   );
   caseId = (await b("/cases", { subjectId: me.id, location: KIGALI })).body.id;
-  await db.query(`update "Case" set status = 'ASSIGNED', "triageLevel" = 'MINOR', "neededService" = 'GENERAL_MEDICINE', "agentId" = (select id from "Staff" where email = 'agent@ubuzima.test'), "assignedAt" = now() where id = $1`, [caseId]);
-  await db.query(`update "Staff" set "agentStatus" = 'BUSY', "lastSeenAt" = (now() at time zone 'utc') + interval '1 hour' where email = 'agent@ubuzima.test'`);
+  await db.query(
+    `update "Case" set status = 'ASSIGNED', "triageLevel" = 'MINOR', "neededService" = 'GENERAL_MEDICINE', "agentId" = (select id from "Staff" where email = 'agent@ubuzima.test'), "assignedAt" = now() where id = $1`,
+    [caseId],
+  );
+  await db.query(
+    `update "Staff" set "agentStatus" = 'BUSY', "lastSeenAt" = (now() at time zone 'utc') + interval '1 hour' where email = 'agent@ubuzima.test'`,
+  );
 }, 120_000);
 
 afterAll(async () => {
-  writeFileSync(resolve(import.meta.dirname, "../../../docs/performance-api.json"), JSON.stringify({ measuredAt: new Date().toISOString(), concurrency: CONCURRENCY, requestsPerAction: REQUESTS, results }, null, 2) + "\n");
+  writeFileSync(
+    resolve(import.meta.dirname, "../../../docs/performance-api.json"),
+    JSON.stringify(
+      { measuredAt: new Date().toISOString(), concurrency: CONCURRENCY, requestsPerAction: REQUESTS, results },
+      null,
+      2,
+    ) + "\n",
+  );
   console.table(results);
   await gemini.close();
   await db.end();
@@ -92,23 +110,33 @@ describe("at the SRS's scale (NFR 4, NFR 5)", () => {
     const agent = await staffLogin("agent@ubuzima.test");
     const admin = await staffLogin("admin@ubuzima.test");
     const er = await staffLogin("clinician@ubuzima.test");
-    const patients = await Promise.all(Array.from({ length: CONCURRENCY }, async () => {
-      const b = browser();
-      await b("/auth/patient/login", ALINE);
-      return b;
-    }));
+    const patients = await Promise.all(
+      Array.from({ length: CONCURRENCY }, async () => {
+        const b = browser();
+        await b("/auth/patient/login", ALINE);
+        return b;
+      }),
+    );
     const p = (i: number) => patients[i % CONCURRENCY];
     // A real code: 200 unknown codes from one address would rightly trip the guessing pause (FR 11.7).
-    const rx = (await agent(`/agent/cases/${caseId}/prescriptions`, { items: [{ medicine: "Paracetamol 500 mg tablets", dose: "2 tablets", frequency: "3 times a day", days: 3 }] })).body.code;
+    const rx = (
+      await agent(`/agent/cases/${caseId}/prescriptions`, {
+        items: [{ medicine: "Paracetamol 500 mg tablets", dose: "2 tablets", frequency: "3 times a day", days: 3 }],
+      })
+    ).body.code;
     const call = (b: ReturnType<typeof browser>, path: string, body?: unknown) => b(path, body);
 
     const checks = [
       await measure("Patient: open a request", (i) => call(p(i), `/cases/${caseId}`)),
       await measure("Patient: home list of requests", (i) => call(p(i), "/cases/mine")),
-      await measure("Patient: send a chat message", (i) => call(p(i), `/cases/${caseId}/messages`, { text: `Message ${i}` })),
+      await measure("Patient: send a chat message", (i) =>
+        call(p(i), `/cases/${caseId}/messages`, { text: `Message ${i}` }),
+      ),
       await measure("Agent: queue and status", () => call(agent, "/agent/state")),
       await measure("Agent: open the case", () => call(agent, `/agent/cases/${caseId}`)),
-      await measure("Agent: facilities to route to (50 facilities)", () => call(agent, `/agent/cases/${caseId}/routing-options?service=GENERAL_MEDICINE&bedNeeded=true`)),
+      await measure("Agent: facilities to route to (50 facilities)", () =>
+        call(agent, `/agent/cases/${caseId}/routing-options?service=GENERAL_MEDICINE&bedNeeded=true`),
+      ),
       await measure("Clinician: patients on the way", () => call(er, "/clinician/patients")),
       await measure("Pharmacy: check a code", () => fetch(`${API}/public/prescriptions/${rx}`)),
       await measure("Administrator: on-duty dashboard", () => call(admin, "/on-duty")),

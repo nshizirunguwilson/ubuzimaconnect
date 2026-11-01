@@ -1,5 +1,5 @@
 /**
- * The palette and the text-on-background pairs we promise in DESIGN.md §2.
+ * The palette and the text-on-background pairs we promise in.
  * Mirrors the @theme block in app/globals.css; contrast.test.ts checks every pair.
  */
 export const palette = {

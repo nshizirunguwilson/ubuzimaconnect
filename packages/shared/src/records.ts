@@ -14,7 +14,11 @@ export const prescriptionItem = z.object({
   medicine: requiredText("Enter the medicine", 120),
   dose: requiredText("Enter the dose", 60),
   frequency: requiredText("Enter how often", 60),
-  days: z.coerce.number({ error: "Enter the number of days" }).int("Whole days").min(1, "At least 1 day").max(90, "90 days at most"),
+  days: z.coerce
+    .number({ error: "Enter the number of days" })
+    .int("Whole days")
+    .min(1, "At least 1 day")
+    .max(90, "90 days at most"),
   instructions: z
     .string()
     .trim()

@@ -20,7 +20,11 @@ export class PhotoController {
 
   @Get(":id/photo")
   @Header("Cache-Control", "private, max-age=3600")
-  async photo(@Param("id", ParseUUIDPipe) patientId: string, @CurrentSession() session: LiveSession, @Res() response: Response) {
+  async photo(
+    @Param("id", ParseUUIDPipe) patientId: string,
+    @CurrentSession() session: LiveSession,
+    @Res() response: Response,
+  ) {
     if (!(await this.maySee(session, patientId))) {
       throw new ApiException(403, "FORBIDDEN", "You don't have access to this.");
     }

@@ -91,7 +91,12 @@ export class AiService {
           abortSignal: abort.signal,
         },
       });
-      const answer = JSON.parse(res.text ?? "{}") as { category?: string; urgency?: string; confidence?: string; reason?: string };
+      const answer = JSON.parse(res.text ?? "{}") as {
+        category?: string;
+        urgency?: string;
+        confidence?: string;
+        reason?: string;
+      };
       this.failuresInARow = 0;
 
       // The answer is checked value by value: anything outside the allowed lists becomes null.
@@ -121,7 +126,9 @@ export class AiService {
     }
     this.log.warn(`AI failure: ${detail}`);
     // Every failure is logged. TimersService alerts the administrator when there are more than 5 in 5 minutes.
-    await this.db.client.systemSettings.update({ where: { id: 1 }, data: { aiFailureCount: { increment: 1 } } }).catch(() => null);
+    await this.db.client.systemSettings
+      .update({ where: { id: 1 }, data: { aiFailureCount: { increment: 1 } } })
+      .catch(() => null);
     await this.audit.record({ type: "system" }, "ai.failure", { caseId, detail: detail.slice(0, 200) });
   }
 }

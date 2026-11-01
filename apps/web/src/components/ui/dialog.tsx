@@ -7,7 +7,7 @@ import { useT } from "@/i18n/client";
 import { Squircle } from "./squircle";
 
 /**
- * Dialog / bottom sheet (DESIGN.md §9): one clear title, a primary and a secondary action.
+ * Dialog / bottom sheet: one clear title, a primary and a secondary action.
  * On phones it is a bottom sheet (top corners only); from sm up it is a centred dialog.
  */
 export const Dialog = RadixDialog.Root;
@@ -39,28 +39,30 @@ export function DialogContent({
         >
           {/* Scrolls inside the shape, so the squircle layer and shadow are never clipped */}
           <div className="flex flex-col gap-6 overflow-y-auto p-6 pb-[max(1.5rem,env(safe-area-inset-bottom))]">
-          <div className="flex items-start gap-4">
-            <div className="flex flex-1 flex-col gap-2">
-              <RadixDialog.Title className="font-heading text-h2 font-semibold text-fg">{title}</RadixDialog.Title>
-              {description && (
-                <RadixDialog.Description className="text-body text-fg-secondary">{description}</RadixDialog.Description>
-              )}
+            <div className="flex items-start gap-4">
+              <div className="flex flex-1 flex-col gap-2">
+                <RadixDialog.Title className="font-heading text-h2 font-semibold text-fg">{title}</RadixDialog.Title>
+                {description && (
+                  <RadixDialog.Description className="text-body text-fg-secondary">
+                    {description}
+                  </RadixDialog.Description>
+                )}
+              </div>
+              <RadixDialog.Close asChild>
+                <Squircle
+                  as="button"
+                  type="button"
+                  radius="sm"
+                  focus="self"
+                  aria-label={t.common.close}
+                  className="-mt-2 -mr-2 inline-flex size-11 shrink-0 cursor-pointer items-center justify-center text-fg-secondary hover:sq-bg-sunken"
+                >
+                  <LuX className="size-5" aria-hidden />
+                </Squircle>
+              </RadixDialog.Close>
             </div>
-            <RadixDialog.Close asChild>
-              <Squircle
-                as="button"
-                type="button"
-                radius="sm"
-                focus="self"
-                aria-label={t.common.close}
-                className="-mt-2 -mr-2 inline-flex size-11 shrink-0 cursor-pointer items-center justify-center text-fg-secondary hover:sq-bg-sunken"
-              >
-                <LuX className="size-5" aria-hidden />
-              </Squircle>
-            </RadixDialog.Close>
-          </div>
-          {children}
-          <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">{actions}</div>
+            {children}
+            <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">{actions}</div>
           </div>
         </Squircle>
       </RadixDialog.Content>

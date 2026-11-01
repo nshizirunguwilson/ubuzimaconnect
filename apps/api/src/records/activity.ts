@@ -1,7 +1,14 @@
 import { actionLabel, ROLE_LABEL, type StaffRole } from "@ubuzima/shared";
 import type { Db } from "@ubuzima/db";
 
-type Event = { id: string; actorType: string; actorId: string | null; action: string; detail: unknown; createdAt: Date };
+type Event = {
+  id: string;
+  actorType: string;
+  actorId: string | null;
+  action: string;
+  detail: unknown;
+  createdAt: Date;
+};
 type Person = { name: string; role: string | null };
 
 /**
