@@ -4,7 +4,7 @@ import { randomUUID } from "node:crypto";
 import pg from "pg";
 import { Subject, filter, map, type Observable } from "rxjs";
 
-/** One Postgres channel carries every live event between API instances (DECISIONS.md D70, NFR 5). */
+/** One Postgres channel carries every live event between API servers. */
 const PG_CHANNEL = "uc_live";
 /** Postgres refuses NOTIFY payloads of 8000 bytes or more. */
 const MAX_PAYLOAD = 7900;
@@ -12,11 +12,11 @@ const MAX_PAYLOAD = 7900;
 type Message = { channel: string; event: LiveEvent };
 
 /**
- * Live updates. Channels: `case:<id>`, `agent:<staffId>`, `agents`, `staff:<staffId>` and `facility:<facilityId>`.
+ * Live updates. Channels: `case:<id>`, `agent:<staffId>`, `agents`, `admins`, `staff:<staffId>` and `facility:<facilityId>`.
  *
- * An event is delivered at once to the browsers connected to this instance, and sent through Postgres NOTIFY to the
- * other instances, which deliver it to theirs. So a patient on one instance and an agent on another see each other's
- * messages, and instances can be added behind Azure's load balancer with no code change (NFR 5).
+ * An event is delivered at once to the browsers connected to this server, and sent through Postgres NOTIFY to the
+ * other servers, which deliver it to theirs. So a patient on one server and an agent on another see each other's
+ * messages, and servers can be added behind Azure's load balancer with no code change.
  */
 @Injectable()
 export class EventsService implements OnModuleInit, OnModuleDestroy {
@@ -47,26 +47,29 @@ export class EventsService implements OnModuleInit, OnModuleDestroy {
       this.listener = undefined;
       setTimeout(() => void this.listen(), 2000);
     };
-    client.on("error", (e) => {
-      this.log.warn(`Listener lost: ${e.message}`);
+    client.on("error", (error) => {
+      this.log.warn(`Listener lost: ${error.message}`);
       retry();
     });
     client.on("end", retry);
-    client.on("notification", (n) => {
-      if (n.channel !== PG_CHANNEL || !n.payload) return;
+    client.on("notification", (notification) => {
+      if (notification.channel !== PG_CHANNEL || !notification.payload) return;
       try {
-        const m = JSON.parse(n.payload) as Message & { origin: string };
-        if (m.origin !== this.origin) this.bus.next({ channel: m.channel, event: m.event, local: false });
+        const message = JSON.parse(notification.payload) as Message & { origin: string };
+        const sentByThisServer = message.origin === this.origin; // already delivered locally in emit()
+        if (!sentByThisServer) {
+          this.bus.next({ channel: message.channel, event: message.event, local: false });
+        }
       } catch {
-        /* not ours */
+        // Not one of our messages: ignore it.
       }
     });
     try {
       await client.connect();
       await client.query(`LISTEN ${PG_CHANNEL}`);
       this.listener = client;
-    } catch (e) {
-      this.log.warn(`Listener could not connect: ${(e as Error).message}`);
+    } catch (error) {
+      this.log.warn(`Listener could not connect: ${(error as Error).message}`);
       this.listener = client;
       retry();
     }
@@ -80,37 +83,39 @@ export class EventsService implements OnModuleInit, OnModuleDestroy {
     if (Buffer.byteLength(payload) >= MAX_PAYLOAD && "caseId" in event) {
       payload = JSON.stringify({ origin: this.origin, channel, event: { type: "case", caseId: event.caseId } });
     }
-    this.publisher.query("select pg_notify($1, $2)", [PG_CHANNEL, payload]).catch((e) => this.log.warn(`Notify failed: ${e.message}`));
+    this.publisher
+      .query("select pg_notify($1, $2)", [PG_CHANNEL, payload])
+      .catch((error) => this.log.warn(`Notify failed: ${error.message}`));
   }
 
-  /** Events raised on this instance, for work that must happen once (push notifications). */
+  /** Events raised on this server only, for work that must happen once, such as push notifications. */
   all(): Observable<Message> {
     return this.bus.pipe(
-      filter((m) => m.local),
+      filter((message) => message.local),
       map(({ channel, event }) => ({ channel, event })),
     );
   }
 
-  // Who has the app open on this instance, so push is only sent to people who don't (FR 6.6).
+  // Who has the app open on this server, so push notifications go only to people who don't.
   private watching = new Map<string, number>();
   watch(key: string) {
     this.watching.set(key, (this.watching.get(key) ?? 0) + 1);
   }
   unwatch(key: string) {
-    const n = (this.watching.get(key) ?? 1) - 1;
-    if (n > 0) this.watching.set(key, n);
+    const openStreams = (this.watching.get(key) ?? 1) - 1;
+    if (openStreams > 0) this.watching.set(key, openStreams);
     else this.watching.delete(key);
   }
   isWatching(key: string) {
     return this.watching.has(key);
   }
 
-  /** Events from every instance on these channels, for a browser's stream. */
+  /** Events from every server on these channels, for a browser's stream. */
   stream(channels: string[]): Observable<LiveEvent> {
-    const set = new Set(channels);
+    const wanted = new Set(channels);
     return this.bus.pipe(
-      filter((m) => set.has(m.channel)),
-      map((m) => m.event),
+      filter((message) => wanted.has(message.channel)),
+      map((message) => message.event),
     );
   }
 }
