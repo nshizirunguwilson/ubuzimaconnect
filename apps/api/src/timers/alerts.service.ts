@@ -15,9 +15,9 @@ const SUBJECT: Record<AlertKind, string> = {
 };
 
 /**
- * FR 12.7: the administrator is told about escalations, no agent online, no-capacity events and AI failures.
- * Every alert is saved and pushed live to open administrator screens; the serious ones are also emailed
- * (FR 6.11), because the administrator may not have the app open.
+ * Alerts for the administrator: escalations, no agent online, no facility able to take a case, and AI failures.
+ * Every alert is saved and pushed live to open administrator screens. The serious ones are also emailed,
+ * because the administrator may not have the app open.
  */
 @Injectable()
 export class AlertsService {
@@ -28,15 +28,25 @@ export class AlertsService {
     private audit: AuditService,
   ) {}
 
-  async raise(kind: AlertKind, message: string, opts: { caseId?: string; email?: boolean } = {}) {
-    const alert = await this.db.client.alert.create({ data: { kind, message, caseId: opts.caseId ?? null, emailed: !!opts.email } });
+  async raise(kind: AlertKind, message: string, options: { caseId?: string; email?: boolean } = {}) {
+    const sendEmail = options.email === true;
+    const alert = await this.db.client.alert.create({
+      data: { kind, message, caseId: options.caseId ?? null, emailed: sendEmail },
+    });
     this.events.emit("admins", { type: "admin-alert", kind, text: message });
-    if (opts.email) {
-      const admins = await this.db.client.staff.findMany({ where: { role: "ADMIN", status: "ACTIVE" }, select: { email: true } });
+
+    if (sendEmail) {
+      const admins = await this.db.client.staff.findMany({
+        where: { role: "ADMIN", status: "ACTIVE" },
+        select: { email: true },
+      });
       const text = `${message}\n\nOpen the alerts: ${env.webUrl}/staff/alerts`;
-      for (const a of admins) await this.mail.send(a.email, `UbuzimaConnect: ${SUBJECT[kind]}`, text);
+      for (const admin of admins) {
+        await this.mail.send(admin.email, `UbuzimaConnect: ${SUBJECT[kind]}`, text);
+      }
     }
-    await this.audit.record({ type: "system" }, "alert.raised", { kind, caseId: opts.caseId, alertId: alert.id });
+
+    await this.audit.record({ type: "system" }, "alert.raised", { kind, caseId: options.caseId, alertId: alert.id });
     return alert;
   }
 }

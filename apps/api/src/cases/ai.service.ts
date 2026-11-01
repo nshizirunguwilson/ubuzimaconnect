@@ -4,13 +4,14 @@ import { CATEGORIES, type AiOutcome, type Category, type Confidence, type Urgenc
 import { AuditService } from "../common/audit.service";
 import { DbService } from "../common/db.service";
 
-const TIMEOUT_MS = 10_000; // FR 4.3: a reply within 10 seconds
-const BREAKER_FAILURES = 3; // FR 4.7: after 3 failures in a row...
-const BREAKER_OPEN_MS = 60_000; // ...don't call the AI for 1 minute
+/** The AI must answer within 10 seconds. */
+const TIMEOUT_MS = 10_000;
+/** After 3 failures in a row... */
+const BREAKER_FAILURES = 3;
+/** ...the AI isn't called for 1 minute (a "circuit breaker"), so patients don't wait on a service that is down. */
+const BREAKER_OPEN_MS = 60_000;
 
-/**
- * The only information sent to the AI (FR 4.6): never the name, national ID or location.
- */
+/** Everything sent to the AI. Never the name, national ID or location. */
 export type AiInput = {
   description: string;
   duration: string;
@@ -44,8 +45,9 @@ const SCHEMA = {
 };
 
 /**
- * FR 4.3 to 4.8: calls Gemini with a 10-second limit and a circuit breaker. Any failure becomes a
- * result the triage rules treat as Uncertain, and the patient sees the normal message, not an error.
+ * Asks Gemini for a first suggestion of category and urgency, with a 10-second limit and a circuit breaker.
+ * Any failure becomes a result the triage rules treat as Uncertain, and the patient sees the normal message,
+ * not an error. A human agent reviews every case either way.
  */
 @Injectable()
 export class AiService {
@@ -57,7 +59,7 @@ export class AiService {
         httpOptions: process.env.GEMINI_BASE_URL ? { baseUrl: process.env.GEMINI_BASE_URL } : undefined,
       })
     : null;
-  /** DECISIONS.md D33: a Lite model with minimal thinking answers in about 1 s, well inside FR 4.3's 10 s. */
+  /** A Lite model with minimal thinking answers in about 1 second, well inside the 10-second limit. */
   private model = process.env.GEMINI_MODEL || "gemini-3.5-flash-lite";
   private thinking = (process.env.GEMINI_THINKING || "MINIMAL") as ThinkingLevel;
   private failuresInARow = 0;
@@ -89,19 +91,21 @@ export class AiService {
           abortSignal: abort.signal,
         },
       });
-      const data = JSON.parse(res.text ?? "{}") as { category?: string; urgency?: string; confidence?: string; reason?: string };
+      const answer = JSON.parse(res.text ?? "{}") as { category?: string; urgency?: string; confidence?: string; reason?: string };
       this.failuresInARow = 0;
+
+      // The answer is checked value by value: anything outside the allowed lists becomes null.
       return {
         ok: true,
-        category: (CATEGORIES as readonly string[]).includes(data.category ?? "") ? (data.category as Category) : null,
-        urgency: data.urgency === "URGENT" || data.urgency === "MINOR" ? (data.urgency as Urgency) : null,
-        confidence: ["LOW", "MEDIUM", "HIGH"].includes(data.confidence ?? "") ? (data.confidence as Confidence) : null,
-        reason: data.reason?.slice(0, 400) ?? null,
+        category: oneOf(CATEGORIES, answer.category) as Category | null,
+        urgency: oneOf(["URGENT", "MINOR"], answer.urgency) as Urgency | null,
+        confidence: oneOf(["LOW", "MEDIUM", "HIGH"], answer.confidence) as Confidence | null,
+        reason: answer.reason?.slice(0, 400) ?? null,
         latencyMs: Date.now() - started,
       };
-    } catch (e) {
+    } catch (error) {
       const timedOut = abort.signal.aborted;
-      await this.failed(caseId, timedOut ? "TIMEOUT" : (e as Error).message);
+      await this.failed(caseId, timedOut ? "TIMEOUT" : (error as Error).message);
       return { ok: false, error: timedOut ? "TIMEOUT" : "ERROR", latencyMs: Date.now() - started };
     } finally {
       clearTimeout(timer);
@@ -116,8 +120,13 @@ export class AiService {
       this.log.warn("Circuit breaker open for 1 minute");
     }
     this.log.warn(`AI failure: ${detail}`);
-    // FR 10.1 logs AI failures; FR 4.7's administrator alert (more than 5 in 5 minutes) is built with alerts in phase 3.
+    // Every failure is logged. TimersService alerts the administrator when there are more than 5 in 5 minutes.
     await this.db.client.systemSettings.update({ where: { id: 1 }, data: { aiFailureCount: { increment: 1 } } }).catch(() => null);
     await this.audit.record({ type: "system" }, "ai.failure", { caseId, detail: detail.slice(0, 200) });
   }
+}
+
+/** The value when it is one of the allowed ones, otherwise null. */
+function oneOf(allowed: readonly string[], value: string | undefined): string | null {
+  return value !== undefined && allowed.includes(value) ? value : null;
 }
