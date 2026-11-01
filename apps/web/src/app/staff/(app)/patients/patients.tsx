@@ -2,7 +2,7 @@
 
 import { SERVICE_LABEL, type Service } from "@ubuzima/shared";
 import Link from "next/link";
-import { LuBedDouble, LuChevronRight, LuTriangleAlert, LuUsersRound } from "react-icons/lu";
+import { PiBedBold, PiCaretRightBold, PiWarningBold, PiUsersThreeBold } from "react-icons/pi";
 import { Avatar } from "@/components/app/avatar";
 import { NotifyToggle } from "@/components/app/notify-toggle";
 import { PageHeader } from "@/components/app/page-header";
@@ -77,7 +77,7 @@ export function Patients({ facility }: { facility: string | null }) {
         <Card className="p-0 md:p-0">
           {data.visits.length === 0 ? (
             <EmptyState
-              icon={LuUsersRound}
+              icon={PiUsersThreeBold}
               message="No patients in your care. When you mark a patient arrived, they appear here."
             />
           ) : (
@@ -94,11 +94,11 @@ export function Patients({ facility }: { facility: string | null }) {
                     </div>
                     {visit.handedOver && <StatusBadge tone="info">Handed over to you</StatusBadge>}
                     {visit.hasBed && (
-                      <StatusBadge tone="neutral" icon={<LuBedDouble aria-hidden />} className="max-sm:hidden">
+                      <StatusBadge tone="neutral" icon={<PiBedBold aria-hidden />} className="max-sm:hidden">
                         Bed
                       </StatusBadge>
                     )}
-                    <LuChevronRight className="size-5 shrink-0 text-fg-muted" aria-hidden />
+                    <PiCaretRightBold className="size-5 shrink-0 text-fg-muted" aria-hidden />
                   </Link>
                 </li>
               ))}
@@ -118,14 +118,14 @@ export function Patients({ facility }: { facility: string | null }) {
         ) : (
           <Card className="p-0 md:p-0">
             {data.incoming.length === 0 ? (
-              <EmptyState icon={LuUsersRound} message="Nobody is on the way right now." />
+              <EmptyState icon={PiUsersThreeBold} message="Nobody is on the way right now." />
             ) : (
               <ul className="divide-y divide-border">
                 {data.incoming.map((patient) => (
                   <li key={patient.id}>
                     <Link href={`/staff/incoming/${patient.id}`} className={rowClass}>
                       {patient.level === "URGENT" ? (
-                        <LuTriangleAlert className="size-5 shrink-0 text-urgent" aria-hidden />
+                        <PiWarningBold className="size-5 shrink-0 text-urgent" aria-hidden />
                       ) : (
                         <span className="size-5 shrink-0" aria-hidden />
                       )}
@@ -158,7 +158,7 @@ export function Patients({ facility }: { facility: string | null }) {
                       >
                         {formatTime(patient.sentAt)}
                       </span>
-                      <LuChevronRight className="size-5 shrink-0 text-fg-muted" aria-hidden />
+                      <PiCaretRightBold className="size-5 shrink-0 text-fg-muted" aria-hidden />
                     </Link>
                   </li>
                 ))}

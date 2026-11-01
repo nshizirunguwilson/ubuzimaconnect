@@ -2,7 +2,7 @@
 
 import { periodRange, shiftPeriod, type Period } from "@ubuzima/shared";
 import { useState } from "react";
-import { LuChevronLeft, LuChevronRight, LuDownload } from "react-icons/lu";
+import { PiCaretLeftBold, PiCaretRightBold, PiDownloadSimpleBold } from "react-icons/pi";
 import { PageHeader } from "@/components/app/page-header";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -91,7 +91,7 @@ export function Reports() {
             aria-label={`Previous ${period}`}
             onClick={() => setAnchor(shiftPeriod(period, anchor, -1))}
           >
-            <LuChevronLeft />
+            <PiCaretLeftBold />
           </Button>
           <span className="min-w-36 text-center text-small font-medium text-fg">{periodName(period, anchor)}</span>
           <Button
@@ -101,14 +101,14 @@ export function Reports() {
             disabled={isCurrent}
             onClick={() => setAnchor(shiftPeriod(period, anchor, 1))}
           >
-            <LuChevronRight />
+            <PiCaretRightBold />
           </Button>
         </div>
         <a
           href={`/api/reports/csv?period=${period}&date=${anchor}`}
           className="ml-auto inline-flex min-h-10 items-center gap-2 text-small font-medium text-link underline underline-offset-2"
         >
-          <LuDownload className="size-4" aria-hidden />
+          <PiDownloadSimpleBold className="size-4" aria-hidden />
           Download CSV
         </a>
       </div>

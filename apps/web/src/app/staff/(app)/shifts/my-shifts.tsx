@@ -3,7 +3,7 @@
 import { addDays, SHIFT_HOURS, SHIFT_LABEL, shiftHasEnded, type ShiftType } from "@ubuzima/shared";
 import dynamic from "next/dynamic";
 import { useState, type FormEvent } from "react";
-import { LuCalendarClock, LuChevronLeft, LuChevronRight } from "react-icons/lu";
+import { PiCalendarDotsBold, PiCaretLeftBold, PiCaretRightBold } from "react-icons/pi";
 import { PageHeader } from "@/components/app/page-header";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -68,7 +68,7 @@ export function MyShifts({ canMarkUnavailable }: { canMarkUnavailable: boolean }
             aria-label="Previous week"
             onClick={() => setWeek(addDays(data.monday, -7))}
           >
-            <LuChevronLeft />
+            <PiCaretLeftBold />
           </Button>
           <Button variant="secondary" size="compact" onClick={() => setWeek(null)}>
             This week
@@ -79,7 +79,7 @@ export function MyShifts({ canMarkUnavailable }: { canMarkUnavailable: boolean }
             aria-label="Next week"
             onClick={() => setWeek(addDays(data.monday, 7))}
           >
-            <LuChevronRight />
+            <PiCaretRightBold />
           </Button>
         </div>
       </div>
@@ -106,7 +106,7 @@ export function MyShifts({ canMarkUnavailable }: { canMarkUnavailable: boolean }
         <TabsContent value="list">
           <Card className="max-w-[720px] p-0 md:p-0">
             {data.shifts.length === 0 ? (
-              <EmptyState icon={LuCalendarClock} message="No shifts this week." />
+              <EmptyState icon={PiCalendarDotsBold} message="No shifts this week." />
             ) : (
               <ul className="divide-y divide-border">
                 {data.shifts.map((assigned) => {

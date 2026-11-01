@@ -9,7 +9,7 @@ import {
   nidaPersonInput,
 } from "@ubuzima/shared";
 import { useCallback, useEffect, useState, type ChangeEvent, type FormEvent } from "react";
-import { LuCircleCheck, LuIdCard, LuImagePlus, LuX } from "react-icons/lu";
+import { PiCheckCircleBold, PiIdentificationCardBold, PiImageBold, PiXBold } from "react-icons/pi";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { ChoiceRow } from "@/components/ui/choice";
@@ -214,14 +214,14 @@ export function MockNida() {
                     <img src={photo} alt="Chosen photo" className="size-20 rounded-lg object-cover" />
                   ) : (
                     <span className="flex size-20 items-center justify-center rounded-lg bg-sunken text-fg-muted">
-                      <LuIdCard className="size-8" aria-hidden />
+                      <PiIdentificationCardBold className="size-8" aria-hidden />
                     </span>
                   )}
                   <label
                     htmlFor={id}
                     className="inline-flex h-11 cursor-pointer items-center gap-2 rounded-lg border border-border-strong px-4 text-small font-medium text-fg hover:bg-sunken"
                   >
-                    <LuImagePlus className="size-5" aria-hidden />
+                    <PiImageBold className="size-5" aria-hidden />
                     {photo ? "Choose another" : "Choose a photo"}
                   </label>
                   <input id={id} type="file" accept="image/jpeg,image/png" className="sr-only" onChange={pickPhoto} />
@@ -233,13 +233,19 @@ export function MockNida() {
                       aria-label="Remove the photo"
                       onClick={() => setPhoto(null)}
                     >
-                      <LuX />
+                      <PiXBold />
                     </Button>
                   )}
                 </div>
               )}
             </Field>
-            <Button type="submit" variant="primary" loading={pending} icon={<LuCircleCheck />} className="self-start">
+            <Button
+              type="submit"
+              variant="primary"
+              loading={pending}
+              icon={<PiCheckCircleBold />}
+              className="self-start"
+            >
               Add to the mock NIDA
             </Button>
           </form>

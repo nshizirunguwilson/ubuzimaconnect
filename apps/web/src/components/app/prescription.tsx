@@ -3,7 +3,7 @@
 import { PRESCRIPTION_VALID_DAYS, prescriptionItem, type PrescriptionStatus } from "@ubuzima/shared";
 import QRCode from "qrcode";
 import { useEffect, useState, type FormEvent, type ReactNode } from "react";
-import { LuCheck, LuCopy, LuDownload, LuPlus, LuTrash2 } from "react-icons/lu";
+import { PiCheckBold, PiCopyBold, PiDownloadSimpleBold, PiPlusBold, PiTrashBold } from "react-icons/pi";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/field";
@@ -181,7 +181,7 @@ function PrescriptionActions({ prescription }: { prescription: Prescription }) {
   return (
     <div className="flex gap-1">
       <Button variant="ghost" size="icon" aria-label={t.prescription.copy} title={t.prescription.copy} onClick={copy}>
-        {copied ? <LuCheck /> : <LuCopy />}
+        {copied ? <PiCheckBold /> : <PiCopyBold />}
       </Button>
       <Button
         variant="ghost"
@@ -190,7 +190,7 @@ function PrescriptionActions({ prescription }: { prescription: Prescription }) {
         title={t.prescription.download}
         onClick={download}
       >
-        <LuDownload />
+        <PiDownloadSimpleBold />
       </Button>
     </div>
   );
@@ -336,7 +336,7 @@ export function PrescribeForm({
               <Button
                 variant="ghost"
                 size="compact"
-                icon={<LuTrash2 />}
+                icon={<PiTrashBold />}
                 onClick={() => setRows((rs) => rs.filter((_, j) => j !== index))}
               >
                 Remove
@@ -387,7 +387,7 @@ export function PrescribeForm({
           Issue prescription
         </Button>
         {rows.length < 10 && (
-          <Button variant="ghost" icon={<LuPlus />} onClick={() => setRows((rs) => [...rs, empty()])}>
+          <Button variant="ghost" icon={<PiPlusBold />} onClick={() => setRows((rs) => [...rs, empty()])}>
             Add another medicine
           </Button>
         )}

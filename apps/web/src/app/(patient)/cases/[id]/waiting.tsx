@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { LuCircleCheck, LuPhone, LuPhoneCall } from "react-icons/lu";
+import { PiCheckCircleBold, PiPhoneBold, PiPhoneCallBold } from "react-icons/pi";
 import { Confirm } from "@/components/app/confirm";
 import { NotifyToggle } from "@/components/app/notify-toggle";
 import { BackLink } from "@/components/patient/back-link";
@@ -51,7 +51,7 @@ export function Waiting({ view, onChange }: { view: CaseView; onChange: (v: Case
                     <ButtonLink
                       href={`tel:${where.facility.phone.replace(/\s/g, "")}`}
                       variant="secondary"
-                      icon={<LuPhone />}
+                      icon={<PiPhoneBold />}
                     >
                       {t.case.callFacility}
                     </ButtonLink>
@@ -59,7 +59,12 @@ export function Waiting({ view, onChange }: { view: CaseView; onChange: (v: Case
                 </div>
               </Card>
             )}
-            <ButtonLink href="tel:912" variant="danger" icon={<LuPhone />} className="h-14 w-full text-body md:h-14">
+            <ButtonLink
+              href="tel:912"
+              variant="danger"
+              icon={<PiPhoneBold />}
+              className="h-14 w-full text-body md:h-14"
+            >
               {t.common.call912}
             </ButtonLink>
           </>
@@ -97,14 +102,14 @@ export function Waiting({ view, onChange }: { view: CaseView; onChange: (v: Case
                     <ButtonLink
                       href={`tel:${where.facility.phone.replace(/\s/g, "")}`}
                       variant="secondary"
-                      icon={<LuPhone />}
+                      icon={<PiPhoneBold />}
                       className="self-start"
                     >
                       {t.case.callFacility}
                     </ButtonLink>
                   )}
                 </Card>
-                <ButtonLink href="tel:912" variant="danger" icon={<LuPhone />} className="w-full">
+                <ButtonLink href="tel:912" variant="danger" icon={<PiPhoneBold />} className="w-full">
                   {t.common.call912}
                 </ButtonLink>
               </>
@@ -125,7 +130,7 @@ export function Waiting({ view, onChange }: { view: CaseView; onChange: (v: Case
                   <ButtonLink
                     href={`tel:${view.guidance.facility.phone.replace(/\s/g, "")}`}
                     variant="secondary"
-                    icon={<LuPhone />}
+                    icon={<PiPhoneBold />}
                     className="self-start"
                   >
                     {t.case.callFacility}
@@ -134,7 +139,7 @@ export function Waiting({ view, onChange }: { view: CaseView; onChange: (v: Case
               </Card>
             ) : (
               <Card highlighted className="flex items-center gap-3">
-                <LuCircleCheck className="size-6 shrink-0 text-info-fg" aria-hidden />
+                <PiCheckCircleBold className="size-6 shrink-0 text-info-fg" aria-hidden />
                 <div className="flex flex-col">
                   <span className="text-body font-semibold text-fg">
                     {view.withAgent ? t.case.agentHasIt : t.case.sent}
@@ -152,7 +157,7 @@ export function Waiting({ view, onChange }: { view: CaseView; onChange: (v: Case
               <ButtonLink
                 href={`/call?case=${view.id}`}
                 variant="secondary"
-                icon={<LuPhoneCall />}
+                icon={<PiPhoneCallBold />}
                 className="self-start"
               >
                 {t.case.preferCall}
@@ -162,7 +167,7 @@ export function Waiting({ view, onChange }: { view: CaseView; onChange: (v: Case
               href="/emergency"
               className="inline-flex min-h-11 w-fit items-center gap-2 text-small font-semibold text-urgent-fg"
             >
-              <LuPhone className="size-4" aria-hidden />
+              <PiPhoneBold className="size-4" aria-hidden />
               {t.case.ifWorse}
             </Link>
           </>

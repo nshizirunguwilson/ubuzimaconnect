@@ -1,7 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { LuChevronRight } from "react-icons/lu";
+import { PiCaretRightBold } from "react-icons/pi";
 import { cn } from "@/lib/cn";
 import { Squircle } from "./squircle";
 
@@ -55,7 +55,7 @@ export function QueueRow({
           {timeLabel && <span className="sr-only">{timeLabel}</span>}
         </span>
       )}
-      <LuChevronRight className="size-5 shrink-0 text-fg-muted" aria-hidden />
+      <PiCaretRightBold className="size-5 shrink-0 text-fg-muted" aria-hidden />
     </Squircle>
   );
 }

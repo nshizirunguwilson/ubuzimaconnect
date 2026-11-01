@@ -2,13 +2,13 @@ import type { ReactNode } from "react";
 import { cn } from "@/lib/cn";
 import type { Tone } from "./status";
 import { Squircle } from "./squircle";
-import { LuCircleCheck, LuInfo, LuTriangleAlert, LuCircleHelp } from "react-icons/lu";
+import { PiCheckCircleBold, PiInfoBold, PiWarningBold, PiQuestionBold } from "react-icons/pi";
 
 const tones = {
-  urgent: { box: "sq-bg-urgent-soft text-urgent-fg", Icon: LuTriangleAlert },
-  warning: { box: "sq-bg-warning-soft text-warning-fg", Icon: LuCircleHelp },
-  success: { box: "sq-bg-success-soft text-success-fg", Icon: LuCircleCheck },
-  info: { box: "sq-bg-info-soft text-info-fg", Icon: LuInfo },
+  urgent: { box: "sq-bg-urgent-soft text-urgent-fg", Icon: PiWarningBold },
+  warning: { box: "sq-bg-warning-soft text-warning-fg", Icon: PiQuestionBold },
+  success: { box: "sq-bg-success-soft text-success-fg", Icon: PiCheckCircleBold },
+  info: { box: "sq-bg-info-soft text-info-fg", Icon: PiInfoBold },
 } as const;
 
 /**

@@ -1,7 +1,7 @@
 "use client";
 
 import { useId, type ComponentPropsWithoutRef, type ReactNode } from "react";
-import { LuChevronDown, LuCircleAlert } from "react-icons/lu";
+import { PiCaretDownBold, PiWarningCircleBold } from "react-icons/pi";
 import { cn } from "@/lib/cn";
 import { Squircle } from "./squircle";
 
@@ -38,7 +38,7 @@ export function Field({ label, hint, error, optional, className, children }: Fie
             error ? "font-medium text-urgent-fg" : "text-fg-secondary",
           )}
         >
-          {error && <LuCircleAlert className="mt-0.5 size-4 shrink-0" aria-hidden />}
+          {error && <PiWarningCircleBold className="mt-0.5 size-4 shrink-0" aria-hidden />}
           {note}
         </p>
       )}
@@ -176,7 +176,7 @@ export function Select({
               </option>
             ))}
           </select>
-          <LuChevronDown className="pointer-events-none absolute right-3 size-5 text-fg-secondary" aria-hidden />
+          <PiCaretDownBold className="pointer-events-none absolute right-3 size-5 text-fg-secondary" aria-hidden />
         </Squircle>
       )}
     </Field>

@@ -1,6 +1,6 @@
 "use client";
 
-import { LuLogOut } from "react-icons/lu";
+import { PiSignOutBold } from "react-icons/pi";
 import { Confirm } from "@/components/app/confirm";
 import { Button } from "@/components/ui/button";
 import { api } from "@/lib/api";
@@ -26,10 +26,10 @@ export function LogoutButton({ to, iconOnly = false }: { to: string; iconOnly?: 
             title={staff ? "Log out" : t.logout.button}
             className="mx-auto"
           >
-            <LuLogOut />
+            <PiSignOutBold />
           </Button>
         ) : (
-          <Button variant="ghost" size="compact" icon={<LuLogOut />}>
+          <Button variant="ghost" size="compact" icon={<PiSignOutBold />}>
             {staff ? "Log out" : t.logout.button}
           </Button>
         )

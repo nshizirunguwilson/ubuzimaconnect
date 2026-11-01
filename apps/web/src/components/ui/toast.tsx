@@ -1,7 +1,7 @@
 "use client";
 
 import { Toaster as Sonner, toast as sonner } from "sonner";
-import { LuCircleAlert, LuCircleCheck, LuX } from "react-icons/lu";
+import { PiWarningCircleBold, PiCheckCircleBold, PiXBold } from "react-icons/pi";
 import { Squircle } from "./squircle";
 
 /**
@@ -13,7 +13,7 @@ export function Toaster() {
 }
 
 function show(kind: "success" | "error", message: string) {
-  const Icon = kind === "success" ? LuCircleCheck : LuCircleAlert;
+  const Icon = kind === "success" ? PiCheckCircleBold : PiWarningCircleBold;
   return sonner.custom(
     (id) => (
       <Squircle
@@ -36,7 +36,7 @@ function show(kind: "success" | "error", message: string) {
           onClick={() => sonner.dismiss(id)}
           className="inline-flex size-10 shrink-0 cursor-pointer items-center justify-center text-gray-200 hover:sq-bg-gray-700"
         >
-          <LuX className="size-5" aria-hidden />
+          <PiXBold className="size-5" aria-hidden />
         </Squircle>
       </Squircle>
     ),

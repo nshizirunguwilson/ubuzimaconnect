@@ -2,7 +2,7 @@
 
 import { LEVEL_LABEL, SERVICE_LABEL, type FacilityLevel, type Service } from "@ubuzima/shared";
 import { useState } from "react";
-import { LuBuilding2, LuPlus } from "react-icons/lu";
+import { PiBuildingsBold, PiPlusBold } from "react-icons/pi";
 import { emptyFacility, FacilityForm } from "@/components/app/facility-form";
 import { PageHeader } from "@/components/app/page-header";
 import { Button } from "@/components/ui/button";
@@ -41,7 +41,7 @@ export function Facilities() {
         action={
           <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
-              <Button variant="primary" icon={<LuPlus />}>
+              <Button variant="primary" icon={<PiPlusBold />}>
                 Add facility
               </Button>
             </DialogTrigger>
@@ -87,7 +87,7 @@ export function Facilities() {
         {data === null ? (
           <div className="h-48" aria-busy />
         ) : data.length === 0 ? (
-          <EmptyState icon={LuBuilding2} message="No facilities yet. Add the first one." />
+          <EmptyState icon={PiBuildingsBold} message="No facilities yet. Add the first one." />
         ) : (
           <table className="w-full text-left text-small">
             <thead className="border-b border-border text-caption text-fg-muted max-md:sr-only">

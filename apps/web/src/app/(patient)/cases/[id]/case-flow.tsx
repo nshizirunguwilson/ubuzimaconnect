@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { LuPhone } from "react-icons/lu";
+import { PiPhoneBold } from "react-icons/pi";
 
 import { BackLink } from "@/components/patient/back-link";
 import { SavedFacilities } from "@/components/patient/saved-facilities";
@@ -244,7 +244,7 @@ function NotSentYet({ urgent }: { urgent: boolean }) {
           <p className="text-body text-fg-secondary">{t.offline.savedAnswers}</p>
         </div>
       )}
-      <ButtonLink href="tel:912" variant="danger" icon={<LuPhone />} className="h-14 w-full text-body md:h-14">
+      <ButtonLink href="tel:912" variant="danger" icon={<PiPhoneBold />} className="h-14 w-full text-body md:h-14">
         {t.common.call912}
       </ButtonLink>
       {urgent && <p className="text-small font-medium text-fg-secondary">{t.offline.notSentShort}</p>}

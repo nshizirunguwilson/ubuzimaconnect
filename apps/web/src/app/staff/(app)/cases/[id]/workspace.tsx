@@ -18,7 +18,14 @@ import {
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
-import { LuArrowLeft, LuCircleCheck, LuCircleHelp, LuPhone, LuSparkles, LuTriangleAlert } from "react-icons/lu";
+import {
+  PiArrowLeftBold,
+  PiCheckCircleBold,
+  PiQuestionBold,
+  PiPhoneBold,
+  PiLightbulbBold,
+  PiWarningBold,
+} from "react-icons/pi";
 import { Avatar } from "@/components/app/avatar";
 import { PrescribeForm, PrescriptionHistory, type Prescription } from "@/components/app/prescription";
 import { Chat, type ChatMsg } from "@/components/app/chat";
@@ -141,7 +148,7 @@ export function Workspace({ id }: { id: string }) {
           href="/staff/queue"
           className="-ml-2 inline-flex min-h-11 items-center gap-2 px-2 text-small font-medium text-fg"
         >
-          <LuArrowLeft className="size-5" aria-hidden />
+          <PiArrowLeftBold className="size-5" aria-hidden />
           Queue
         </Link>
         <div className="flex items-center gap-2">
@@ -248,7 +255,7 @@ function WhatTheySaid({ data }: { data: View }) {
         ))
       ) : data.answers.length > 0 ? (
         <p className="flex items-center gap-2 text-small text-fg-secondary">
-          <LuCircleCheck className="size-4 text-success" aria-hidden />
+          <PiCheckCircleBold className="size-4 text-success" aria-hidden />
           No to all {data.answers.length} red-flag questions{data.pregnant ? " (pregnant)" : ""}.
         </p>
       ) : null}
@@ -269,7 +276,7 @@ function WhatTheySaid({ data }: { data: View }) {
       {data.ai && (
         <div className="flex flex-col gap-1 border-t border-border pt-4">
           <p className="flex items-center gap-2 text-caption font-medium text-fg-muted">
-            <LuSparkles className="size-4" aria-hidden />
+            <PiLightbulbBold className="size-4" aria-hidden />
             Suggested by AI · reviewed by you
           </p>
           {data.ai.error ? (
@@ -302,19 +309,19 @@ function Review({ data, onSaved }: { data: View; onSaved: () => Promise<void> })
       value: "URGENT",
       label: "Urgent",
       hint: "Needs care at a facility today.",
-      icon: <LuTriangleAlert className="text-urgent" />,
+      icon: <PiWarningBold className="text-urgent" />,
     },
     {
       value: "UNCERTAIN",
       label: "Uncertain",
       hint: "Can't be judged safely yet.",
-      icon: <LuCircleHelp className="text-warning-fg" />,
+      icon: <PiQuestionBold className="text-warning-fg" />,
     },
     {
       value: "MINOR",
       label: "Minor",
       hint: "Can be handled remotely.",
-      icon: <LuCircleCheck className="text-success" />,
+      icon: <PiCheckCircleBold className="text-success" />,
     },
   ] as const;
 
@@ -581,7 +588,7 @@ function Calls({ data, onDone }: { data: View; onDone: () => Promise<void> }) {
           href={`tel:${data.call!.number}`}
           className="inline-flex items-center gap-2 font-mono text-body font-medium text-link"
         >
-          <LuPhone className="size-4" aria-hidden />
+          <PiPhoneBold className="size-4" aria-hidden />
           {data.call!.number}
         </a>
       </div>

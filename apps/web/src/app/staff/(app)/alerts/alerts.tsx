@@ -1,6 +1,6 @@
 "use client";
 
-import { LuBell } from "react-icons/lu";
+import { PiBellBold } from "react-icons/pi";
 import { PageHeader } from "@/components/app/page-header";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -69,7 +69,7 @@ export function Alerts() {
       />
       <Card className="p-0 md:p-0">
         {data.alerts.length === 0 ? (
-          <EmptyState icon={LuBell} message="No alerts yet." />
+          <EmptyState icon={PiBellBold} message="No alerts yet." />
         ) : (
           <ul className="divide-y divide-border">
             {data.alerts.map((alert) => (

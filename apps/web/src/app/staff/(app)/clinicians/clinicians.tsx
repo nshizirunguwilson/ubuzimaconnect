@@ -2,7 +2,7 @@
 
 import { clinicianInvite, SERVICE_LABEL, SERVICES, type Service } from "@ubuzima/shared";
 import { useState, type FormEvent } from "react";
-import { LuStethoscope, LuUserPlus } from "react-icons/lu";
+import { PiStethoscopeBold, PiUserPlusBold } from "react-icons/pi";
 import { Confirm } from "@/components/app/confirm";
 import { PageHeader } from "@/components/app/page-header";
 import { Button } from "@/components/ui/button";
@@ -49,7 +49,7 @@ export function Clinicians({ facility }: { facility: string }) {
         {data === null ? (
           <div className="h-48" aria-busy />
         ) : data.length === 0 ? (
-          <EmptyState icon={LuStethoscope} message="No clinicians yet. Invite the first one." />
+          <EmptyState icon={PiStethoscopeBold} message="No clinicians yet. Invite the first one." />
         ) : (
           <ul className="divide-y divide-border">
             {data.map((member) => (
@@ -160,7 +160,7 @@ function ClinicianDialog({
     >
       <DialogTrigger asChild>
         {mode === "invite" ? (
-          <Button variant="primary" icon={<LuUserPlus />}>
+          <Button variant="primary" icon={<PiUserPlusBold />}>
             Invite clinician
           </Button>
         ) : (

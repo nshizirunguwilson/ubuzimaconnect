@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { InstallApp } from "@/components/patient/install-app";
-import { LuChevronRight, LuPhone } from "react-icons/lu";
+import { PiCaretRightBold, PiPhoneBold } from "react-icons/pi";
 import { Logo } from "@/components/app/logo";
 import { BottomBar } from "@/components/app/bottom-bar";
 import { SquircleLink } from "@/components/ui/squircle-link";
@@ -28,12 +28,12 @@ export default async function Welcome() {
           radius="md"
           className="flex min-h-16 items-center gap-3 px-4 py-3 sq-bg-urgent-soft text-urgent-fg hover:sq-bg-red-50"
         >
-          <LuPhone className="size-6 shrink-0" aria-hidden />
+          <PiPhoneBold className="size-6 shrink-0" aria-hidden />
           <span className="flex flex-1 flex-col">
             <span className="text-body font-semibold">{t.common.emergencyCall912}</span>
             <span className="text-small text-fg">{t.welcome.noLogin}</span>
           </span>
-          <LuChevronRight className="size-5 shrink-0" aria-hidden />
+          <PiCaretRightBold className="size-5 shrink-0" aria-hidden />
         </SquircleLink>
 
         <InstallApp />

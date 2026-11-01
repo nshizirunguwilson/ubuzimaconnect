@@ -11,7 +11,7 @@ import {
 } from "@ubuzima/shared";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { LuInbox, LuPhoneCall, LuTriangleAlert } from "react-icons/lu";
+import { PiTrayBold, PiPhoneCallBold, PiWarningBold } from "react-icons/pi";
 import { PageHeader } from "@/components/app/page-header";
 import { Button } from "@/components/ui/button";
 import { ButtonLink } from "@/components/ui/button-link";
@@ -273,7 +273,7 @@ export function Queue({ firstName }: { firstName: string }) {
             return (
               <TabsContent key={levelName} value={levelName} className="outline-none">
                 {rows.length === 0 ? (
-                  <EmptyState icon={LuInbox} message={`No ${levelName.toLowerCase()} cases waiting.`} />
+                  <EmptyState icon={PiTrayBold} message={`No ${levelName.toLowerCase()} cases waiting.`} />
                 ) : (
                   <ul className="divide-y divide-border">
                     {rows.map((waitingCase) => {
@@ -281,9 +281,9 @@ export function Queue({ firstName }: { firstName: string }) {
                       return (
                         <li key={waitingCase.id} className="flex items-center gap-3 px-4 py-3 md:px-6">
                           {waitingCase.level === "URGENT" ? (
-                            <LuTriangleAlert className="size-5 shrink-0 text-urgent" aria-hidden />
+                            <PiWarningBold className="size-5 shrink-0 text-urgent" aria-hidden />
                           ) : waitingCase.callRequested ? (
-                            <LuPhoneCall className="size-5 shrink-0 text-fg-secondary" aria-hidden />
+                            <PiPhoneCallBold className="size-5 shrink-0 text-fg-secondary" aria-hidden />
                           ) : (
                             <span className="size-5 shrink-0" aria-hidden />
                           )}

@@ -2,7 +2,7 @@
 
 import { ADMIN_INVITE_ROLES, invitation, ROLE_LABEL, type StaffRole } from "@ubuzima/shared";
 import { useCallback, useEffect, useState, type FormEvent } from "react";
-import { LuUserPlus, LuUsers } from "react-icons/lu";
+import { PiUserPlusBold, PiUsersBold } from "react-icons/pi";
 import { Confirm } from "@/components/app/confirm";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -60,7 +60,7 @@ export function Team({ meId }: { meId: string }) {
         {rows === null ? (
           <div className="h-48" aria-busy />
         ) : rows.length === 0 ? (
-          <EmptyState icon={LuUsers} message="No staff accounts yet." />
+          <EmptyState icon={PiUsersBold} message="No staff accounts yet." />
         ) : (
           <table className="w-full text-left text-small">
             <thead className="border-b border-border text-caption text-fg-muted max-md:sr-only">
@@ -244,7 +244,7 @@ function InviteDialog({ facilities, onInvited }: { facilities: Facility[]; onInv
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="primary" icon={<LuUserPlus />}>
+        <Button variant="primary" icon={<PiUserPlusBold />}>
           Invite staff
         </Button>
       </DialogTrigger>

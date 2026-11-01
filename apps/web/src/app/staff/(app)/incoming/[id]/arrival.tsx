@@ -5,7 +5,7 @@ import { DURATION_LABEL, SERVICE_LABEL, type Duration, type Service } from "@ubu
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { LuArrowLeft, LuBedDouble, LuCircleCheck } from "react-icons/lu";
+import { PiArrowLeftBold, PiBedBold, PiCheckCircleBold } from "react-icons/pi";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
@@ -85,7 +85,7 @@ export function Arrival({ id }: { id: string }) {
           href="/staff/patients"
           className="-ml-2 inline-flex min-h-11 items-center gap-2 px-2 text-small font-medium text-fg"
         >
-          <LuArrowLeft className="size-5" aria-hidden />
+          <PiArrowLeftBold className="size-5" aria-hidden />
           Patients
         </Link>
         <div className="flex items-center gap-2">
@@ -158,7 +158,7 @@ export function Arrival({ id }: { id: string }) {
               <dt className="text-fg-secondary">Bed</dt>
               <dd className="text-fg">
                 {data.bedHeld ? (
-                  <StatusBadge tone="neutral" icon={<LuBedDouble aria-hidden />}>
+                  <StatusBadge tone="neutral" icon={<PiBedBold aria-hidden />}>
                     One bed held
                   </StatusBadge>
                 ) : data.bedNeeded ? (
@@ -178,7 +178,7 @@ export function Arrival({ id }: { id: string }) {
               </dd>
             </dl>
             <p className="flex items-center gap-2 text-caption text-fg-muted">
-              <LuCircleCheck className="size-4" aria-hidden />
+              <PiCheckCircleBold className="size-4" aria-hidden />
               The name and full record open for the attending clinician once the patient has arrived.
             </p>
           </Card>

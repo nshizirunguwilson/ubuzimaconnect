@@ -6,7 +6,7 @@ import { useEffect, useRef, type ReactNode } from "react";
 import { cn } from "@/lib/cn";
 import { Squircle } from "@/components/ui/squircle";
 
-/** `icon` is a rendered element (e.g. <LuHouse />) so a server layout can pass it. */
+/** `icon` is a rendered element (e.g. <PiHouseBold />) so a server layout can pass it. */
 export type NavItem = { href: string; label: string; icon: ReactNode };
 
 /** A narrow left navigation with a few labelled items; the active one is blue. */

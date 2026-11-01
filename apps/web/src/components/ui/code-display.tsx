@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { LuCheck, LuCopy } from "react-icons/lu";
+import { PiCheckBold, PiCopyBold } from "react-icons/pi";
 import { cn } from "@/lib/cn";
 import { Squircle } from "./squircle";
 
@@ -42,7 +42,11 @@ export function CodeDisplay({ label, value, className }: { label: string; value:
           onClick={copy}
           className="inline-flex h-10 cursor-pointer items-center gap-1.5 px-3 text-small font-medium text-fg hover:sq-bg-gray-200"
         >
-          {copied ? <LuCheck className="size-5 text-success" aria-hidden /> : <LuCopy className="size-5" aria-hidden />}
+          {copied ? (
+            <PiCheckBold className="size-5 text-success" aria-hidden />
+          ) : (
+            <PiCopyBold className="size-5" aria-hidden />
+          )}
           <span aria-live="polite">{copied ? "Copied" : "Copy"}</span>
         </Squircle>
       </Squircle>

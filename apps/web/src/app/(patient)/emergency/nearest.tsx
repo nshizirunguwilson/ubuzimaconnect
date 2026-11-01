@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { LuMapPin, LuPhone } from "react-icons/lu";
+import { PiMapPinBold, PiPhoneBold } from "react-icons/pi";
 import { ButtonLink } from "@/components/ui/button-link";
 import { SavedFacilities } from "@/components/patient/saved-facilities";
 import { Card } from "@/components/ui/card";
@@ -49,7 +49,7 @@ export function NearestEmergency() {
   if (state.kind === "finding") {
     return (
       <p className="flex items-center gap-2 text-small text-fg-secondary" aria-live="polite">
-        <LuMapPin className="size-4" aria-hidden />
+        <PiMapPinBold className="size-4" aria-hidden />
         {t.emergency.finding}
       </p>
     );
@@ -66,7 +66,7 @@ export function NearestEmergency() {
           <ButtonLink
             href={`tel:${facility.phone.replace(/\s/g, "")}`}
             variant="secondary"
-            icon={<LuPhone />}
+            icon={<PiPhoneBold />}
             className="self-start"
           >
             {t.emergency.callNumber(facility.phone)}

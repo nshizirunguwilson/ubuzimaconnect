@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
-import { LuPencil } from "react-icons/lu";
+import { PiPencilSimpleBold } from "react-icons/pi";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/field";
@@ -74,7 +74,7 @@ export function Entry({
           {latest.version > 1 ? ` · version ${latest.version}` : ""}
         </span>
         {entry.thisVisit && (
-          <Button variant="ghost" size="compact" icon={<LuPencil />} onClick={() => setEditing(true)}>
+          <Button variant="ghost" size="compact" icon={<PiPencilSimpleBold />} onClick={() => setEditing(true)}>
             Edit
           </Button>
         )}

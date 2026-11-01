@@ -2,7 +2,7 @@
 
 import type { PatientMe, StaffMe } from "@ubuzima/shared";
 import { useEffect, useState } from "react";
-import { LuBell, LuBellOff } from "react-icons/lu";
+import { PiBellBold, PiBellSlashBold } from "react-icons/pi";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { toast } from "@/components/ui/toast";
@@ -57,7 +57,7 @@ export function NotifyToggle({ who }: { who: keyof typeof WHY }) {
   if (state === "on") {
     return (
       <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-small text-fg-secondary">
-        <LuBell className="size-4 text-success" aria-hidden />
+        <PiBellBold className="size-4 text-success" aria-hidden />
         <span>{t.notify.on}</span>
         <Button variant="ghost" size="compact" loading={pending} onClick={() => change(false)}>
           {t.notify.turnOff}
@@ -68,7 +68,7 @@ export function NotifyToggle({ who }: { who: keyof typeof WHY }) {
   if (state === "blocked") {
     return (
       <p className="flex items-start gap-2 text-small text-fg-secondary">
-        <LuBellOff className="mt-0.5 size-4 shrink-0" aria-hidden />
+        <PiBellSlashBold className="mt-0.5 size-4 shrink-0" aria-hidden />
         {t.notify.blocked}
       </p>
     );
@@ -76,7 +76,7 @@ export function NotifyToggle({ who }: { who: keyof typeof WHY }) {
   return (
     <Card className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
       <div className="flex items-start gap-3">
-        <LuBell className="mt-0.5 size-5 shrink-0 text-info-fg" aria-hidden />
+        <PiBellBold className="mt-0.5 size-5 shrink-0 text-info-fg" aria-hidden />
         <div className="flex flex-col">
           <span className="text-body text-fg">{who === "patient" ? t.notify.why : WHY.clinician}</span>
           <span className="text-small text-fg-secondary">

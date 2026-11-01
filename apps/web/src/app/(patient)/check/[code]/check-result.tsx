@@ -2,7 +2,7 @@
 
 import { formatPrescriptionCode, type PrescriptionStatus } from "@ubuzima/shared";
 import Link from "next/link";
-import { LuArrowLeft, LuLoaderCircle } from "react-icons/lu";
+import { PiArrowLeftBold, PiCircleNotchBold } from "react-icons/pi";
 import { Logo } from "@/components/app/logo";
 import { Medicines, type Prescription } from "@/components/app/prescription";
 import { Card } from "@/components/ui/card";
@@ -42,7 +42,7 @@ export function CheckResult({ code }: { code: string }) {
         href="/check"
         className="-ml-2 inline-flex min-h-11 w-fit items-center gap-2 px-2 text-small font-medium text-fg"
       >
-        <LuArrowLeft className="size-5" aria-hidden />
+        <PiArrowLeftBold className="size-5" aria-hidden />
         {t.check.another}
       </Link>
       <p className="font-mono text-h3 font-semibold tracking-wide text-fg">{clean}</p>
@@ -52,7 +52,7 @@ export function CheckResult({ code }: { code: string }) {
         </Notice>
       ) : !data ? (
         <p className="flex h-48 items-start gap-2 text-body text-fg-secondary" aria-busy>
-          <LuLoaderCircle className="mt-1 size-5 animate-spin" aria-hidden />
+          <PiCircleNotchBold className="mt-1 size-5 animate-spin" aria-hidden />
           {t.check.checking}
         </p>
       ) : !data.found ? (

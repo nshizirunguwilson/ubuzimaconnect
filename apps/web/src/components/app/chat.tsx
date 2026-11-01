@@ -2,7 +2,7 @@
 
 import { QUICK_REPLIES, VOICE_MAX_MS } from "@ubuzima/shared";
 import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
-import { LuMic, LuSendHorizontal, LuX } from "react-icons/lu";
+import { PiMicrophoneBold, PiPaperPlaneRightBold, PiXBold } from "react-icons/pi";
 import {
   AudioPlayerButton,
   AudioPlayerProgress,
@@ -284,7 +284,7 @@ export function Chat({
                   aria-label={labels.cancelVoice}
                   onClick={() => recorder.stop(false)}
                 >
-                  <LuX />
+                  <PiXBold />
                 </Button>
                 <Squircle radius="md" className="flex h-11 min-w-0 flex-1 items-center gap-3 px-3 sq-bg-urgent-soft">
                   <span className="size-2.5 shrink-0 animate-pulse rounded-full bg-urgent" aria-hidden />
@@ -312,7 +312,7 @@ export function Chat({
                   aria-label={labels.sendVoice}
                   onClick={() => recorder.stop(true)}
                 >
-                  <LuSendHorizontal />
+                  <PiPaperPlaneRightBold />
                 </Button>
               </div>
             ) : (
@@ -359,7 +359,7 @@ export function Chat({
                       void recorder.start();
                     }}
                   >
-                    <LuMic />
+                    <PiMicrophoneBold />
                   </Button>
                 ) : (
                   <Button
@@ -370,7 +370,7 @@ export function Chat({
                     loading={sending}
                     disabled={!text.trim()}
                   >
-                    <LuSendHorizontal />
+                    <PiPaperPlaneRightBold />
                   </Button>
                 )}
               </form>

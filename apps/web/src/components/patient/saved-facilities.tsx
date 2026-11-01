@@ -1,7 +1,7 @@
 "use client";
 
 import { useSyncExternalStore } from "react";
-import { LuPhone } from "react-icons/lu";
+import { PiPhoneBold } from "react-icons/pi";
 import { Card } from "@/components/ui/card";
 import { NEARBY_KEY, type NearbyFacility } from "@/lib/nearby";
 import { useT } from "@/i18n/client";
@@ -41,7 +41,7 @@ export function SavedFacilities({ list }: { list?: NearbyFacility[] }) {
                 href={`tel:${facility.phone.replace(/\s/g, "")}`}
                 className="inline-flex min-h-11 shrink-0 items-center gap-1.5 text-small font-medium text-link"
               >
-                <LuPhone className="size-4" aria-hidden />
+                <PiPhoneBold className="size-4" aria-hidden />
                 {t.saved.call}
               </a>
             )}

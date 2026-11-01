@@ -1,6 +1,6 @@
 "use client";
 
-import { LuChevronRight, LuLoaderCircle } from "react-icons/lu";
+import { PiCaretRightBold, PiCircleNotchBold } from "react-icons/pi";
 import { BottomBar } from "@/components/app/bottom-bar";
 import { BackLink } from "@/components/patient/back-link";
 import { Button } from "@/components/ui/button";
@@ -54,9 +54,9 @@ export function Checklist({
               >
                 <span className="flex-1 text-body text-fg">{sign.text}</span>
                 {pending === sign.id ? (
-                  <LuLoaderCircle className="size-5 shrink-0 animate-spin text-fg-secondary" aria-hidden />
+                  <PiCircleNotchBold className="size-5 shrink-0 animate-spin text-fg-secondary" aria-hidden />
                 ) : (
-                  <LuChevronRight className="size-5 shrink-0 text-fg-muted" aria-hidden />
+                  <PiCaretRightBold className="size-5 shrink-0 text-fg-muted" aria-hidden />
                 )}
               </Squircle>
             ))}

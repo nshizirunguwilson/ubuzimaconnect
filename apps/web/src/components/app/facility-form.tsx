@@ -12,7 +12,7 @@ import {
   type Service,
 } from "@ubuzima/shared";
 import { useState, type FormEvent } from "react";
-import { LuLocateFixed } from "react-icons/lu";
+import { PiCrosshairBold } from "react-icons/pi";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/choice";
 import { Input, Select } from "@/components/ui/field";
@@ -186,7 +186,7 @@ export function FacilityForm({
         <Button
           variant="secondary"
           size="compact"
-          icon={<LuLocateFixed />}
+          icon={<PiCrosshairBold />}
           onClick={locate}
           loading={locating}
           className="self-start"

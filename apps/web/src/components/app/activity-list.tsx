@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { LuHistory, LuLaptop, LuSmartphone, LuTablet } from "react-icons/lu";
+import { PiClockCounterClockwiseBold, PiLaptopBold, PiDeviceMobileBold, PiDeviceTabletBold } from "react-icons/pi";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -58,9 +58,9 @@ export function useActivity(path: string) {
 }
 
 const DEVICE = {
-  phone: { Icon: LuSmartphone, label: "Phone" },
-  tablet: { Icon: LuTablet, label: "Tablet" },
-  computer: { Icon: LuLaptop, label: "Computer" },
+  phone: { Icon: PiDeviceMobileBold, label: "Phone" },
+  tablet: { Icon: PiDeviceTabletBold, label: "Tablet" },
+  computer: { Icon: PiLaptopBold, label: "Computer" },
 } as const;
 
 /** When, what and who, grouped by day; logins show the device type. */
@@ -70,7 +70,7 @@ export function ActivityList({ feed }: { feed: ReturnType<typeof useActivity> })
   if (feed.rows.length === 0)
     return (
       <Card className="p-0 md:p-0">
-        <EmptyState icon={LuHistory} message={t.activity.empty} />
+        <EmptyState icon={PiClockCounterClockwiseBold} message={t.activity.empty} />
       </Card>
     );
 
