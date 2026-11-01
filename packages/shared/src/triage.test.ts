@@ -20,7 +20,7 @@ describe("red-flag groups (Appendix C, FR 3.6, 4.2)", () => {
     expect(isNewborn(age("2026-10-16", now))).toBe(false); // 8 days
   });
 
-  it("asks A always, C under 12, N under 2 months, P only when pregnant and female 12–55", () => {
+  it("asks A always, C under 12, N under 2 months, P only when pregnant and female 12 to 55", () => {
     expect(redFlagGroups("MALE", age("1990-01-01", now), null)).toEqual(["A"]);
     expect(redFlagGroups("MALE", age("2019-06-02", now), null)).toEqual(["A", "C"]);
     expect(redFlagGroups("FEMALE", age("2026-09-10", now), null)).toEqual(["A", "C", "N"]);

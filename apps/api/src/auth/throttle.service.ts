@@ -5,25 +5,34 @@ import { DbService } from "../common/db.service";
 export type Failure = { locked: false; left: number } | { locked: true; until: Date; locksInARow: number };
 
 /**
- * FR 1.6 and 2.3: 5 failed attempts lock the key for 15 minutes. The key is a hashed national ID
- * or a staff email, and it is counted even when no account exists.
+ * Slows down password and ID guessing: 5 failed attempts lock the key for 15 minutes.
+ * The key is a hashed national ID or a staff email, and failures are counted even when no account exists,
+ * so the lock gives nothing away about which accounts exist.
  */
 @Injectable()
 export class ThrottleService {
   constructor(private db: DbService) {}
 
+  /** When the lock on this key ends, or null when it isn't locked. */
   async lockedUntil(key: string): Promise<Date | null> {
-    const t = await this.db.client.loginThrottle.findUnique({ where: { key } });
-    return t?.lockedUntil && t.lockedUntil.getTime() > Date.now() ? t.lockedUntil : null;
+    const throttle = await this.db.client.loginThrottle.findUnique({ where: { key } });
+    const lockedUntil = throttle?.lockedUntil;
+    if (lockedUntil && lockedUntil.getTime() > Date.now()) return lockedUntil;
+    return null;
   }
 
+  /** Counts a failed attempt, and locks the key when it reaches the limit. */
   async fail(key: string): Promise<Failure> {
-    const t = await this.db.client.loginThrottle.upsert({
+    const throttle = await this.db.client.loginThrottle.upsert({
       where: { key },
       create: { key, failures: 1 },
       update: { failures: { increment: 1 } },
     });
-    if (t.failures < LIMITS.maxFailedAttempts) return { locked: false, left: LIMITS.maxFailedAttempts - t.failures };
+
+    if (throttle.failures < LIMITS.maxFailedAttempts) {
+      return { locked: false, left: LIMITS.maxFailedAttempts - throttle.failures };
+    }
+
     const until = new Date(Date.now() + LIMITS.lockMinutes * 60_000);
     const locked = await this.db.client.loginThrottle.update({
       where: { key },
@@ -32,6 +41,7 @@ export class ThrottleService {
     return { locked: true, until, locksInARow: locked.locks };
   }
 
+  /** Forgets the failures, after a successful login. */
   clear(key: string) {
     return this.db.client.loginThrottle.deleteMany({ where: { key } });
   }
