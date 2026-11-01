@@ -1,25 +1,32 @@
-function need(name: string, fallback?: string): string {
-  const v = process.env[name] || fallback;
-  if (!v) throw new Error(`${name} is not set`);
-  return v;
+/** A setting from the environment, or the fallback. Throws at startup when a required one is missing. */
+function required(name: string, fallback?: string): string {
+  const value = process.env[name] || fallback;
+  if (!value) throw new Error(`${name} is not set`);
+  return value;
 }
 
-const prod = process.env.NODE_ENV === "production";
+const isProduction = process.env.NODE_ENV === "production";
+
+/** Web Push keys (VAPID). Without them no push notification is sent; everything else works. */
+function vapidKeys() {
+  const publicKey = process.env.VAPID_PUBLIC_KEY;
+  const privateKey = process.env.VAPID_PRIVATE_KEY;
+  if (!publicKey || !privateKey) return null;
+  return { publicKey, privateKey, subject: process.env.VAPID_SUBJECT || "mailto:admin@ubuzima.test" };
+}
 
 export const env = {
-  prod,
+  prod: isProduction,
   port: Number(process.env.PORT ?? 4000),
-  webUrl: need("WEB_URL", "http://localhost:3000"),
-  nidaUrl: need("NIDA_URL", "http://localhost:4100"),
-  nidaKey: need("NIDA_API_KEY", prod ? undefined : "dev-nida-key"),
-  secret: need("APP_SECRET", prod ? undefined : "dev-only-secret-change-me-0123456789abcdef"),
+  webUrl: required("WEB_URL", "http://localhost:3000"),
+  nidaUrl: required("NIDA_URL", "http://localhost:4100"),
+  // In production these two have no fallback, so a missing secret stops the API from starting.
+  nidaKey: required("NIDA_API_KEY", isProduction ? undefined : "dev-nida-key"),
+  secret: required("APP_SECRET", isProduction ? undefined : "dev-only-secret-change-me-0123456789abcdef"),
   resendKey: process.env.RESEND_API_KEY || null,
   mailFrom: process.env.MAIL_FROM || "UbuzimaConnect <noreply@ubuzima.wilsonn.tech>",
   cookieDomain: process.env.COOKIE_DOMAIN || undefined,
-  /** DECISIONS.md D66: on the live demo, emails to the made-up demo addresses can be read at /demo/inbox. */
+  /** On the live demo, emails to the made-up demo addresses can be read at /demo/inbox. */
   demoInbox: process.env.DEMO_INBOX === "1",
-  /** Web Push (VAPID). Without them no push is sent; everything else works. */
-  vapid: process.env.VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY
-    ? { publicKey: process.env.VAPID_PUBLIC_KEY, privateKey: process.env.VAPID_PRIVATE_KEY, subject: process.env.VAPID_SUBJECT || "mailto:admin@ubuzima.test" }
-    : null,
+  vapid: vapidKeys(),
 };

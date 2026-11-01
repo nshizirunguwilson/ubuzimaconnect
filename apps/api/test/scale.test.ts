@@ -118,7 +118,9 @@ describe("at the SRS's scale (NFR 4, NFR 5)", () => {
 
   it("builds a month's report over 30,000 requests in under 3 seconds", async () => {
     const admin = await staffLogin("admin@ubuzima.test");
-    const date = new Date(Date.now() + 2 * 3_600_000).toISOString().slice(0, 10);
+    // The sample cases cover the 30 days up to now. The month that holds the day 15 days ago always holds at
+    // least half of them, whatever today's date (on the 1st, "this month" would hold only one day).
+    const date = new Date(Date.now() + 2 * 3_600_000 - 15 * 86_400_000).toISOString().slice(0, 10);
     const t = performance.now();
     const rep = (await admin(`/reports?period=month&date=${date}`)).body;
     const ms = Math.round(performance.now() - t);

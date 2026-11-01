@@ -133,6 +133,8 @@ describe("copying last week (D77)", () => {
     const manager = await staffLogin("manager@ubuzima.test");
     const next = weekStart(new Date(Date.parse(`${currentShift().date}T00:00:00Z`) + 7 * 86_400_000).toISOString().slice(0, 10));
     const thisWeek = (await manager(`/schedule?week=${weekStart(currentShift().date)}`)).body.assignments.length;
+    // Start from an empty next week: on a Sunday, shifts other tests add for "tomorrow" are already in it.
+    await db.query(`delete from "ShiftAssignment" where date >= $1::date and date < $1::date + 7`, [next]);
     const r = await manager("/schedule/copy", { week: next });
     expect(r.status).toBe(200);
     expect(r.body.added).toBe(thisWeek);

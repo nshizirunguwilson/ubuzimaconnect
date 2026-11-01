@@ -1,15 +1,21 @@
 import { z } from "zod";
 import { SERVICES } from "./catalog";
+import { decodedSize, startsWithBytes } from "./files";
 import { CATEGORIES } from "./triage";
 
 export const AGENT_STATUSES = ["AVAILABLE", "BUSY", "AWAY", "OFFLINE"] as const;
 export type AgentStatus = (typeof AGENT_STATUSES)[number];
-export const AGENT_STATUS_LABEL: Record<AgentStatus, string> = { AVAILABLE: "Available", BUSY: "Busy", AWAY: "Away", OFFLINE: "Offline" };
+export const AGENT_STATUS_LABEL: Record<AgentStatus, string> = {
+  AVAILABLE: "Available",
+  BUSY: "Busy",
+  AWAY: "Away",
+  OFFLINE: "Offline",
+};
 
-/** FR 6.1: Busy is set by the system, never chosen. */
+/** The statuses an agent can choose. Busy is set by the system while they work a case. */
 export const agentStatusChange = z.object({ status: z.enum(["AVAILABLE", "AWAY", "OFFLINE"]) });
 
-/** FR 6.5: the agent confirms or changes these. */
+/** The triage the agent confirms or changes. */
 export const triageReview = z.object({
   triageLevel: z.enum(["URGENT", "UNCERTAIN", "MINOR"]),
   category: z.enum(CATEGORIES).nullable(),
@@ -17,39 +23,58 @@ export const triageReview = z.object({
   bedNeeded: z.boolean(),
 });
 
-/** FR 6.6: quick replies (the SRS names Yes, No, Better, Worse). */
+/** One-tap answers the patient can send in the chat. */
 export const QUICK_REPLIES = ["Yes", "No", "Better", "Worse", "Same", "I don't know"] as const;
 export const chatMessage = z.object({ text: z.string().trim().min(1, "Write a message").max(2000) });
 
-/** D74, D78: a voice note of up to 2 minutes, as a data URL; its real type is checked by its first bytes (audioType). */
+/** The longest voice note: 2 minutes. */
 export const VOICE_MAX_MS = 120_000;
-/** 2 minutes at 32 kbit/s is about 480 kB; Safari may record at a higher rate, so room is left for that. */
+/** 2 minutes at 32 kbit/s is about 480 kB. Safari may record at a higher rate, so room is left for that. */
 export const VOICE_MAX_BYTES = 2_500_000;
+/** The browser's timer can run a little past the limit before the recording stops. */
+const VOICE_TIMER_SLACK_MS = 2_000;
+
+const AUDIO_DATA_URL = /^data:audio\/(webm|ogg|mp4|mpeg)(;codecs=[\w.,-]+)?;base64,[A-Za-z0-9+/]+=*$/;
+
+/** A recorded voice note, sent as a data URL. The API also checks the file's real type with audioType. */
 export const voiceNote = z.object({
   audio: z
     .string()
-    .regex(/^data:audio\/(webm|ogg|mp4|mpeg)(;codecs=[\w.,-]+)?;base64,[A-Za-z0-9+/]+=*$/, "Record the voice note again")
-    .refine((v) => Math.floor(((v.length - v.indexOf(",") - 1) * 3) / 4) <= VOICE_MAX_BYTES, "The voice note is too long"),
-  durationMs: z.number().int().min(500, "Hold a little longer to record").max(VOICE_MAX_MS + 2_000, "Voice notes can be up to 2 minutes"),
+    .regex(AUDIO_DATA_URL, "Record the voice note again")
+    .refine((dataUrl) => decodedSize(dataUrl) <= VOICE_MAX_BYTES, "The voice note is too long"),
+  durationMs: z
+    .number()
+    .int()
+    .min(500, "Hold a little longer to record")
+    .max(VOICE_MAX_MS + VOICE_TIMER_SLACK_MS, "Voice notes can be up to 2 minutes"),
 });
 
-/** The real audio type, from the file's first bytes; null for anything else. */
-export function audioType(b: Uint8Array): "audio/webm" | "audio/ogg" | "audio/mp4" | "audio/mpeg" | null {
-  if (b[0] === 0x1a && b[1] === 0x45 && b[2] === 0xdf && b[3] === 0xa3) return "audio/webm";
-  if (b[0] === 0x4f && b[1] === 0x67 && b[2] === 0x67 && b[3] === 0x53) return "audio/ogg";
-  if (b[4] === 0x66 && b[5] === 0x74 && b[6] === 0x79 && b[7] === 0x70) return "audio/mp4";
-  if ((b[0] === 0x49 && b[1] === 0x44 && b[2] === 0x33) || (b[0] === 0xff && (b[1] & 0xe0) === 0xe0)) return "audio/mpeg";
+type AudioType = "audio/webm" | "audio/ogg" | "audio/mp4" | "audio/mpeg";
+
+/**
+ * The real type of an audio file, read from its first bytes (its "signature"), so a file can't pretend
+ * to be audio by its name alone. Null for anything that isn't WebM, Ogg, MP4 or MP3.
+ */
+export function audioType(bytes: Uint8Array): AudioType | null {
+  if (startsWithBytes(bytes, [0x1a, 0x45, 0xdf, 0xa3])) return "audio/webm";
+  if (startsWithBytes(bytes, [0x4f, 0x67, 0x67, 0x53])) return "audio/ogg"; // "OggS"
+  if (startsWithBytes(bytes, [0x66, 0x74, 0x79, 0x70], 4)) return "audio/mp4"; // "ftyp" after a 4-byte size
+
+  const hasId3Tag = startsWithBytes(bytes, [0x49, 0x44, 0x33]); // "ID3"
+  const isMp3Frame = bytes[0] === 0xff && (bytes[1] & 0xe0) === 0xe0;
+  if (hasId3Tag || isMp3Frame) return "audio/mpeg";
+
   return null;
 }
 
-/** FR 6.7: one call attempt. */
+/** One attempt to call the patient. */
 export const callNote = z.object({
   answered: z.boolean(),
   dobConfirmed: z.boolean().default(false),
   note: z.string().trim().min(3, "Write a short call note").max(2000),
 });
 
-/** FR 5.6, 5.12: confirm a facility and attending clinician. */
+/** The agent's choice of facility and, optionally, the clinician who will receive the patient. */
 export const routingChoice = z.object({
   facilityId: z.string().uuid(),
   bedNeeded: z.boolean(),
@@ -58,7 +83,7 @@ export const routingChoice = z.object({
   clinicianReason: z.string().trim().max(300).optional(),
 });
 
-/** FR 6.15 */
+/** How a case ended. */
 export const OUTCOMES = ["ADVISED_REMOTELY", "PRESCRIPTION_ISSUED", "ROUTED_TO_FACILITY", "REFERRED_TO_912", "NO_RESPONSE"] as const;
 export const OUTCOME_LABEL: Record<(typeof OUTCOMES)[number] | "CANCELLED_BY_PATIENT", string> = {
   ADVISED_REMOTELY: "Advised remotely",
@@ -73,20 +98,30 @@ export const closeCase = z.object({
   note: z.string().trim().min(3, "Write a closing note").max(2000),
 });
 
+/** The patient's rating of the help, 1 to 5 stars. */
 export const rating = z.object({ rating: z.number().int().min(1).max(5) });
 
-/** Live events sent over Server-Sent Events. */
+export type LiveMessage = {
+  id: string;
+  sender: "PATIENT" | "AGENT" | "SYSTEM";
+  text: string;
+  createdAt: string;
+  staffName?: string | null;
+  audioMs?: number | null;
+};
+
+/** The live updates the API pushes to browsers (Server-Sent Events). */
 export type LiveEvent =
-  | { type: "message"; caseId: string; message: { id: string; sender: "PATIENT" | "AGENT" | "SYSTEM"; text: string; createdAt: string; staffName?: string | null; audioMs?: number | null } }
+  | { type: "message"; caseId: string; message: LiveMessage }
   | { type: "case"; caseId: string }
   | { type: "offer"; caseId: string; expiresAt: string }
   | { type: "offer-ended"; caseId: string }
   | { type: "queue" }
-  // A clinician's facility: an incoming patient was added, arrived or left the list (FR 7.4)
+  // An incoming patient was added to a facility's list, arrived, or left it
   | { type: "incoming" }
-  // FR 5.12, 7.11: a patient was given or handed over to this clinician
+  // A patient was given or handed over to this clinician
   | { type: "notice"; kind: "INCOMING" | "HANDOVER"; routingId: string }
-  // FR 5.13: the agent must choose another facility for a case
+  // The agent must choose another facility for a case
   | { type: "alert"; caseId: string; text: string }
-  // FR 12.7: an alert for the administrator
+  // An alert for the administrator
   | { type: "admin-alert"; kind: string; text: string };

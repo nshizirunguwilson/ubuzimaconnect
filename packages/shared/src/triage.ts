@@ -1,8 +1,8 @@
 import type { Service } from "./catalog";
 
 /**
- * The safety rules of triage and routing, as pure functions so they can be tested line by line
- * against the SRS. The API calls these; nothing else decides a triage level or a service.
+ * The safety rules of triage and routing. They are plain functions with no database or network,
+ * so each rule can be tested on its own. The API calls these; nothing else decides a triage level or a service.
  */
 
 export const CATEGORIES = [
@@ -40,10 +40,15 @@ export type TriageLevel = "URGENT" | "UNCERTAIN" | "MINOR";
 export type Urgency = "URGENT" | "MINOR";
 export type Confidence = "LOW" | "MEDIUM" | "HIGH";
 
-export const TRIAGE_LABEL: Record<TriageLevel, string> = { URGENT: "Urgent", UNCERTAIN: "Uncertain", MINOR: "Minor" };
+export const TRIAGE_LABEL: Record<TriageLevel, string> = {
+  URGENT: "Urgent",
+  UNCERTAIN: "Uncertain",
+  MINOR: "Minor",
+};
 
 export const DURATIONS = ["TODAY", "ONE_TO_THREE_DAYS", "FOUR_TO_SEVEN_DAYS", "MORE_THAN_A_WEEK"] as const;
 export type Duration = (typeof DURATIONS)[number];
+
 export const DURATION_LABEL: Record<Duration, string> = {
   TODAY: "Since today",
   ONE_TO_THREE_DAYS: "1 to 3 days",
@@ -51,46 +56,70 @@ export const DURATION_LABEL: Record<Duration, string> = {
   MORE_THAN_A_WEEK: "More than a week",
 };
 
-// ---------- Age ----------
+// Age
 
-/** Whole days and years between a date of birth and now (UTC dates). */
+const MS_PER_DAY = 86_400_000;
+
+/** Whole days, months and years between a date of birth and now, counted on UTC dates. */
 export function age(dateOfBirth: string | Date, now = new Date()) {
-  const dob = new Date(dateOfBirth);
-  const days = Math.floor((Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()) - Date.UTC(dob.getUTCFullYear(), dob.getUTCMonth(), dob.getUTCDate())) / 86_400_000);
-  let years = now.getUTCFullYear() - dob.getUTCFullYear();
-  if (now.getUTCMonth() < dob.getUTCMonth() || (now.getUTCMonth() === dob.getUTCMonth() && now.getUTCDate() < dob.getUTCDate())) years--;
-  let months = (now.getUTCFullYear() - dob.getUTCFullYear()) * 12 + now.getUTCMonth() - dob.getUTCMonth();
-  if (now.getUTCDate() < dob.getUTCDate()) months--;
+  const born = new Date(dateOfBirth);
+
+  const todayUtc = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
+  const bornUtc = Date.UTC(born.getUTCFullYear(), born.getUTCMonth(), born.getUTCDate());
+  const days = Math.floor((todayUtc - bornUtc) / MS_PER_DAY);
+
+  const birthdayNotReachedThisMonth = now.getUTCDate() < born.getUTCDate();
+  const birthdayNotReachedThisYear =
+    now.getUTCMonth() < born.getUTCMonth() || (now.getUTCMonth() === born.getUTCMonth() && birthdayNotReachedThisMonth);
+
+  let years = now.getUTCFullYear() - born.getUTCFullYear();
+  if (birthdayNotReachedThisYear) years--;
+
+  let months = (now.getUTCFullYear() - born.getUTCFullYear()) * 12 + (now.getUTCMonth() - born.getUTCMonth());
+  if (birthdayNotReachedThisMonth) months--;
+
   return { days, months, years };
 }
 
-/** "7 years", "5 months", "3 days": the age staff see in summaries. */
+/** The age staff see in summaries: "7 years", "5 months" or "3 days". */
 export function ageLabel(dateOfBirth: string | Date, now = new Date()) {
-  const a = age(dateOfBirth, now);
-  return a.years >= 1 ? `${a.years} years` : a.months >= 1 ? `${a.months} months` : `${a.days} days`;
+  const { days, months, years } = age(dateOfBirth, now);
+  if (years >= 1) return `${years} years`;
+  if (months >= 1) return `${months} months`;
+  return `${days} days`;
 }
 
-// ---------- Red flags (FR 3.6, 4.1, 4.2, Appendix C) ----------
+// Red flags (the danger-sign questions)
 
 export type Sex = "FEMALE" | "MALE";
 export type RedFlagGroup = "A" | "C" | "N" | "P";
 
-/** FR 4.2: a baby under 8 days old is Urgent without any question. */
-export const isNewborn = (a: { days: number }) => a.days < 8;
+/** A baby under 8 days old is Urgent without any question. */
+export function isNewborn(patientAge: { days: number }) {
+  return patientAge.days < 8;
+}
 
-/** Appendix C: "Are you pregnant?" is asked only of females aged 12 to 55. */
-export const asksPregnancy = (sex: Sex, a: { years: number }) => sex === "FEMALE" && a.years >= 12 && a.years <= 55;
+/** "Are you pregnant?" is asked only of females aged 12 to 55. */
+export function asksPregnancy(sex: Sex, patientAge: { years: number }) {
+  return sex === "FEMALE" && patientAge.years >= 12 && patientAge.years <= 55;
+}
 
-/** Appendix C: A always; C under 12; N under 2 months; P when female 12–55 and pregnant. */
-export function redFlagGroups(sex: Sex, a: { months: number; years: number }, pregnant: boolean | null): RedFlagGroup[] {
+/**
+ * Which groups of questions a patient is asked:
+ * A for everyone, C for children under 12, N for babies under 2 months, P for a pregnant woman aged 12 to 55.
+ */
+export function redFlagGroups(sex: Sex, patientAge: { months: number; years: number }, pregnant: boolean | null): RedFlagGroup[] {
   const groups: RedFlagGroup[] = ["A"];
-  if (a.years < 12) groups.push("C");
-  if (a.months < 2) groups.push("N");
-  if (asksPregnancy(sex, a) && pregnant === true) groups.push("P");
+  if (patientAge.years < 12) groups.push("C");
+  if (patientAge.months < 2) groups.push("N");
+  if (asksPregnancy(sex, patientAge) && pregnant === true) groups.push("P");
   return groups;
 }
 
-// ---------- Needed service (FR 5.1) ----------
+// The service a patient needs
+
+/** Fits and difficult breathing: for a pregnant woman these go to Maternity rather than their usual service. */
+const MATERNITY_WHEN_PREGNANT = ["A2", "A3"];
 
 export function chooseService(input: {
   redFlag?: { code: string; service: Service } | null;
@@ -99,62 +128,85 @@ export function chooseService(input: {
   category?: Category | null;
 }): Service {
   const { redFlag, pregnant, years, category } = input;
-  // 1. The service of the red-flag question answered Yes (Maternity for a pregnant woman with a fit or difficult breathing).
-  if (redFlag) return pregnant && (redFlag.code === "A2" || redFlag.code === "A3") ? "MATERNITY" : redFlag.service;
-  // 2. Maternity for pregnancy problems.
+  const isInjuryOrBurn = category === "INJURY" || category === "BURN";
+
+  // 1. A danger sign answered Yes decides the service.
+  if (redFlag) {
+    if (pregnant && MATERNITY_WHEN_PREGNANT.includes(redFlag.code)) return "MATERNITY";
+    return redFlag.service;
+  }
+  // 2. Pregnancy problems go to Maternity.
   if (category === "PREGNANCY") return "MATERNITY";
-  // 3. Paediatrics for children under 12, except injuries and burns.
-  if (years < 12 && category !== "INJURY" && category !== "BURN") return "PAEDIATRICS";
-  // 4. Surgery for injuries, burns and bleeding wounds.
-  if (category === "INJURY" || category === "BURN") return "SURGERY";
-  // 5. Internal medicine for chest pain or heart problems.
+  // 3. Children under 12 go to Paediatrics, except for injuries and burns.
+  if (years < 12 && !isInjuryOrBurn) return "PAEDIATRICS";
+  // 4. Injuries, burns and bleeding wounds go to Surgery.
+  if (isInjuryOrBurn) return "SURGERY";
+  // 5. Chest pain and heart problems go to Internal medicine.
   if (category === "CHEST_PAIN_OR_HEART") return "INTERNAL_MEDICINE";
-  // 6. Mental health for mental health problems.
+  // 6. Mental health problems go to Mental health.
   if (category === "MENTAL_HEALTH") return "MENTAL_HEALTH";
-  // 7. General medicine for anything else.
+  // 7. Anything else goes to General medicine.
   return "GENERAL_MEDICINE";
 }
 
-// ---------- Triage level (FR 4.4, 4.5) ----------
+// Triage level
 
 export type AiOutcome =
   | { ok: true; category: Category | null; urgency: Urgency | null; confidence: Confidence | null; reason: string | null }
   | { ok: false; error: "TIMEOUT" | "ERROR" | "OFF" | "BREAKER_OPEN" | "NOT_CONFIGURED" };
 
-export const wordCount = (s: string) => s.trim().split(/\s+/).filter(Boolean).length;
+export function wordCount(text: string) {
+  return text.trim().split(/\s+/).filter(Boolean).length;
+}
 
 /**
- * FR 4.4, in this order: Urgent when the AI suggests urgent, at any confidence; otherwise Uncertain when
- * any FR 4.5 condition is true; otherwise Minor when the AI suggests minor with medium or high confidence.
- * An Uncertain case is never treated as Minor.
+ * The rules, in this order:
+ * 1. Urgent when the AI suggests urgent, at any confidence.
+ * 2. Otherwise Uncertain when anything makes the AI's answer doubtful (listed in the reason).
+ * 3. Otherwise Minor when the AI suggests minor with medium or high confidence.
+ * Anything left is Uncertain. An Uncertain case is never treated as Minor.
  */
 export function triageLevel(ai: AiOutcome, description: string, preferCall: boolean): { level: TriageLevel; reason: string } {
-  if (ai.ok && ai.urgency === "URGENT") return { level: "URGENT", reason: "The AI suggested urgent." };
-  const why: string[] = [];
-  if (!ai.ok) why.push(ai.error === "OFF" ? "AI switched off" : "AI unavailable");
-  else {
-    if (!ai.category || !ai.urgency) why.push("AI gave no category or urgency");
-    if (ai.confidence === "LOW") why.push("AI confidence low");
+  if (ai.ok && ai.urgency === "URGENT") {
+    return { level: "URGENT", reason: "The AI suggested urgent." };
   }
-  if (wordCount(description) < 5) why.push("description shorter than 5 words");
-  if (preferCall) why.push("patient chose Prefer a call");
-  if (why.length > 0) return { level: "UNCERTAIN", reason: `Uncertain: ${why.join("; ")}.` };
-  if (ai.ok && ai.urgency === "MINOR" && (ai.confidence === "MEDIUM" || ai.confidence === "HIGH")) {
-    return { level: "MINOR", reason: "The AI suggested minor with " + ai.confidence.toLowerCase() + " confidence." };
+
+  const doubts: string[] = [];
+  if (!ai.ok) {
+    doubts.push(ai.error === "OFF" ? "AI switched off" : "AI unavailable");
+  } else {
+    if (!ai.category || !ai.urgency) doubts.push("AI gave no category or urgency");
+    if (ai.confidence === "LOW") doubts.push("AI confidence low");
   }
+  if (wordCount(description) < 5) doubts.push("description shorter than 5 words");
+  if (preferCall) doubts.push("patient chose Prefer a call");
+
+  if (doubts.length > 0) {
+    return { level: "UNCERTAIN", reason: `Uncertain: ${doubts.join("; ")}.` };
+  }
+
+  const confidentMinor = ai.ok && ai.urgency === "MINOR" && (ai.confidence === "MEDIUM" || ai.confidence === "HIGH");
+  if (confidentMinor) {
+    return { level: "MINOR", reason: `The AI suggested minor with ${ai.confidence!.toLowerCase()} confidence.` };
+  }
+
   return { level: "UNCERTAIN", reason: "Uncertain: the AI result did not meet the rules for Minor." };
 }
 
-// ---------- Distance and matching (FR 3.5, 5.3, 5.4, 5.8, 5.9) ----------
+// Distance and facility matching
 
-/** Haversine distance in km (FR 5.4: straight-line distance). */
-export function distanceKm(a: { lat: number; lng: number }, b: { lat: number; lng: number }) {
-  const R = 6371;
-  const rad = (d: number) => (d * Math.PI) / 180;
-  const dLat = rad(b.lat - a.lat);
-  const dLng = rad(b.lng - a.lng);
-  const h = Math.sin(dLat / 2) ** 2 + Math.cos(rad(a.lat)) * Math.cos(rad(b.lat)) * Math.sin(dLng / 2) ** 2;
-  return 2 * R * Math.asin(Math.sqrt(h));
+type Point = { lat: number; lng: number };
+
+const EARTH_RADIUS_KM = 6371;
+const toRadians = (degrees: number) => (degrees * Math.PI) / 180;
+
+/** Straight-line distance between two points, in km (the haversine formula). */
+export function distanceKm(from: Point, to: Point) {
+  const latDelta = toRadians(to.lat - from.lat);
+  const lngDelta = toRadians(to.lng - from.lng);
+  const h =
+    Math.sin(latDelta / 2) ** 2 + Math.cos(toRadians(from.lat)) * Math.cos(toRadians(to.lat)) * Math.sin(lngDelta / 2) ** 2;
+  return 2 * EARTH_RADIUS_KM * Math.asin(Math.sqrt(h));
 }
 
 export type FacilityForMatch = {
@@ -166,7 +218,7 @@ export type FacilityForMatch = {
   longitude: number;
   phone: string | null;
   freeBeds: number;
-  /** Specialties of clinicians on duty in the current shift and not marked unavailable */
+  /** Specialties of the clinicians on duty this shift who aren't marked unavailable. */
   onDuty: Service[];
 };
 
@@ -176,30 +228,48 @@ export type Match =
   | { kind: "NO_MATCH" };
 
 /**
- * FR 5.3: suitable = active, offers the service, a clinician of that specialty on duty now, and a free
- * bed when one is needed. FR 5.4: ranked by distance. FR 5.8: none with a bed → the nearest otherwise
- * suitable one, marked no beds. FR 5.9: none at all → no match.
+ * Finds where to send a patient.
+ * A facility can take them when it is active, offers the service and has a clinician of that specialty on duty now.
+ * If a bed is needed, it must also have one free. The nearest one wins.
+ * If none has a free bed, the nearest one that could otherwise take them is returned as NO_BEDS.
+ * If none can take them at all, the answer is NO_MATCH.
  */
-export function matchFacilities(facilities: FacilityForMatch[], at: { lat: number; lng: number }, service: Service, bedNeeded: boolean): Match {
-  const withKm = (f: FacilityForMatch) => ({ facility: f, km: distanceKm(at, { lat: f.latitude, lng: f.longitude }) });
+export function matchFacilities(facilities: FacilityForMatch[], patientAt: Point, service: Service, bedNeeded: boolean): Match {
   const capable = facilities
-    .filter((f) => f.active && f.services.includes(service) && f.onDuty.includes(service))
-    .map(withKm)
+    .filter((facility) => facility.active && facility.services.includes(service) && facility.onDuty.includes(service))
+    .map((facility) => ({ facility, km: distanceKm(patientAt, { lat: facility.latitude, lng: facility.longitude }) }))
     .sort((a, b) => a.km - b.km);
+
   if (capable.length === 0) return { kind: "NO_MATCH" };
-  const ranked = bedNeeded ? capable.filter((c) => c.facility.freeBeds > 0) : capable;
-  if (ranked.length === 0) return { kind: "NO_BEDS", ...capable[0] };
-  return { kind: "SUITABLE", ...ranked[0], ranked };
+
+  const ranked = bedNeeded ? capable.filter((option) => option.facility.freeBeds > 0) : capable;
+  if (ranked.length === 0) {
+    const nearest = capable[0];
+    return { kind: "NO_BEDS", facility: nearest.facility, km: nearest.km };
+  }
+
+  const best = ranked[0];
+  return { kind: "SUITABLE", facility: best.facility, km: best.km, ranked };
 }
 
-/** FR 3.5: the 5 nearest active facilities, saved on the device so they can be shown offline. */
-export function nearestFacilities<T extends { active: boolean; latitude: number; longitude: number }>(facilities: T[], at: { lat: number; lng: number }, n = 5) {
+/** The 5 nearest active facilities. The patient app saves them on the device so they can be shown offline. */
+export function nearestFacilities<T extends { active: boolean; latitude: number; longitude: number }>(
+  facilities: T[],
+  patientAt: Point,
+  howMany = 5,
+) {
   return facilities
-    .filter((f) => f.active)
-    .map((f) => ({ ...f, km: distanceKm(at, { lat: f.latitude, lng: f.longitude }) }))
+    .filter((facility) => facility.active)
+    .map((facility) => ({ ...facility, km: distanceKm(patientAt, { lat: facility.latitude, lng: facility.longitude }) }))
     .sort((a, b) => a.km - b.km)
-    .slice(0, n);
+    .slice(0, howMany);
 }
 
-/** "2.1 km", or "650 m" under 1 km. */
-export const formatKm = (km: number) => (km < 1 ? `${Math.round(km * 100) * 10} m` : `${km.toFixed(1)} km`);
+/** "2.1 km", or "650 m" under 1 km (rounded to the nearest 10 m). */
+export function formatKm(km: number) {
+  if (km < 1) {
+    const metres = Math.round(km * 100) * 10;
+    return `${metres} m`;
+  }
+  return `${km.toFixed(1)} km`;
+}

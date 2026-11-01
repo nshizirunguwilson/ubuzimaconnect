@@ -26,7 +26,10 @@ export type NidaListed = {
 
 export class NidaUnavailable extends Error {}
 
-/** The national identity service (mocked in apps/nida-mock). Slow or failing calls count as unavailable (FR 1.5). */
+/**
+ * Talks to the national identity service (mocked in apps/nida-mock).
+ * A call that is slow or fails counts as "NIDA is unavailable", and the patient is told so.
+ */
 @Injectable()
 export class NidaClient {
   private log = new Logger("NIDA");
@@ -39,51 +42,64 @@ export class NidaClient {
     });
   }
 
-  /** The identity photo: an uploaded JPEG or PNG for people added through the form (D73), else an SVG silhouette. */
+  /** The identity photo: an uploaded JPEG or PNG for people added through the form, or else an SVG silhouette. */
   async photo(ref: string): Promise<{ type: string; body: Buffer }> {
-    const res = await this.raw(`/v1/photos/${encodeURIComponent(ref)}`, {});
-    return { type: res.headers.get("content-type")?.split(";")[0] ?? "image/svg+xml", body: Buffer.from(await res.arrayBuffer()) };
+    const response = await this.request(`/v1/photos/${encodeURIComponent(ref)}`, {});
+    const type = response.headers.get("content-type")?.split(";")[0] ?? "image/svg+xml";
+    const body = Buffer.from(await response.arrayBuffer());
+    return { type, body };
   }
 
-  /** D73: everyone in the mock NIDA, for the administrator. */
+  /** Everyone in the mock NIDA, for the administrator. */
   async people(): Promise<NidaListed[]> {
     return this.call<NidaListed[]>("/v1/people", {});
   }
 
-  /** D73: add a made-up person. A refusal by the mock NIDA comes back as its message, not as "unavailable". */
+  /**
+   * Adds a made-up person. When the mock NIDA refuses the details, its message comes back to show on the form,
+   * rather than "unavailable". Photos make this request bigger, so it gets a longer time limit.
+   */
   async addPerson(body: unknown): Promise<{ ok: true; person: NidaListed } | { ok: false; message: string }> {
-    let res: Response;
+    let response: Response;
     try {
-      res = await fetch(env.nidaUrl + "/v1/people", {
+      response = await fetch(env.nidaUrl + "/v1/people", {
         method: "POST",
         headers: { "content-type": "application/json", "x-api-key": env.nidaKey },
         body: JSON.stringify(body),
         signal: AbortSignal.timeout(10_000),
       });
-    } catch (e) {
-      this.log.warn(`Unavailable: ${(e as Error).message}`);
+    } catch (error) {
+      this.log.warn(`Unavailable: ${(error as Error).message}`);
       throw new NidaUnavailable();
     }
-    if (res.status === 400) return { ok: false, message: ((await res.json().catch(() => ({}))) as { message?: string }).message ?? "Check the details" };
-    if (!res.ok) throw new NidaUnavailable();
-    return { ok: true, person: (await res.json()) as NidaListed };
+
+    if (response.status === 400) {
+      const refusal = (await response.json().catch(() => ({}))) as { message?: string };
+      return { ok: false, message: refusal.message ?? "Check the details" };
+    }
+    if (!response.ok) throw new NidaUnavailable();
+
+    const person = (await response.json()) as NidaListed;
+    return { ok: true, person };
   }
 
   private async call<T>(path: string, init: RequestInit): Promise<T> {
-    return (await this.raw(path, init)).json() as Promise<T>;
+    const response = await this.request(path, init);
+    return response.json() as Promise<T>;
   }
 
-  private async raw(path: string, init: RequestInit) {
+  /** Any request to NIDA, with the API key and a time limit. Every failure becomes NidaUnavailable. */
+  private async request(path: string, init: RequestInit) {
     try {
-      const res = await fetch(env.nidaUrl + path, {
+      const response = await fetch(env.nidaUrl + path, {
         ...init,
         headers: { ...init.headers, "x-api-key": env.nidaKey },
         signal: AbortSignal.timeout(LIMITS.nidaTimeoutMs),
       });
-      if (!res.ok) throw new Error(`status ${res.status}`);
-      return res;
-    } catch (e) {
-      this.log.warn(`Unavailable: ${(e as Error).message}`);
+      if (!response.ok) throw new Error(`status ${response.status}`);
+      return response;
+    } catch (error) {
+      this.log.warn(`Unavailable: ${(error as Error).message}`);
       throw new NidaUnavailable();
     }
   }

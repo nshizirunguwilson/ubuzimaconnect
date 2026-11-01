@@ -7,22 +7,23 @@ import { z } from "zod";
  */
 export const NID_PARTS = [1, 4, 1, 7, 1, 2] as const;
 
-/** "1198780592371064" → "1 1987 8 0592371 0 64", also while the person is still typing. */
+/** "1198780592371064" becomes "1 1987 8 0592371 0 64". Also works while the person is still typing. */
 export function formatNationalId(value: string) {
   const digits = value.replace(/\D/g, "").slice(0, 16);
   const parts: string[] = [];
-  let at = 0;
-  for (const n of NID_PARTS) {
-    if (at >= digits.length) break;
-    parts.push(digits.slice(at, at + n));
-    at += n;
+  let position = 0;
+
+  for (const partLength of NID_PARTS) {
+    if (position >= digits.length) break;
+    parts.push(digits.slice(position, position + partLength));
+    position += partLength;
   }
   return parts.join(" ");
 }
 
 export const nationalId = z
   .string()
-  .transform((v) => v.replace(/\s+/g, ""))
+  .transform((typed) => typed.replace(/\s+/g, ""))
   .pipe(
     z
       .string()
@@ -32,12 +33,12 @@ export const nationalId = z
 
 export const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Enter a date");
 
-/** FR 1.1 and 1.2: national ID, date of birth and one name. */
+/** A patient logs in with their national ID, date of birth and one of their names. */
 export const patientLogin = z.object({
   nationalId,
   dateOfBirth: isoDate,
   name: z.string().trim().min(2, "Enter one of your names").max(60),
-  /** FR 1.8: "This is not my device": no notifications, and nothing stays on the device after logout. */
+  /** "This is not my device": no notifications, and nothing stays on the device after logout. */
   sharedDevice: z.boolean().default(false),
 });
 export type PatientLogin = z.infer<typeof patientLogin>;
@@ -50,13 +51,13 @@ export type StaffLogin = z.infer<typeof staffLogin>;
 export const emailCode = z.object({
   code: z
     .string()
-    .transform((v) => v.replace(/\s+/g, ""))
+    .transform((typed) => typed.replace(/\s+/g, ""))
     .pipe(z.string().regex(/^\d{6}$/, "Enter the 6-digit code from the email")),
 });
 
 /**
- * NFR 6: at least 8 characters, no character rules. NIST SP 800-63B-4 §3.1.1.2 sets 8 as the minimum when the
- * password is one of two factors; staff also enter an emailed code (FR 2.2). DECISIONS.md D40.
+ * At least 8 characters, with no rules about which characters. NIST SP 800-63B-4 sets 8 as the minimum when the
+ * password is one of two factors, and staff also enter an emailed code.
  */
 export const newPassword = z
   .string()
@@ -67,7 +68,7 @@ export const setPassword = z.object({ token: z.string().min(20), password: newPa
 export const resetRequest = z.object({ email });
 export const unlockRequest = z.object({ email, code: emailCode.shape.code });
 
-/** FR 2.1: the four staff roles. Pharmacists have no account; they use the public check page (FR 11.7). */
+/** The four staff roles. Pharmacists have no account: they use the public prescription check page. */
 export const STAFF_ROLES = ["AGENT", "CLINICIAN", "FACILITY_MANAGER", "ADMIN"] as const;
 export type StaffRole = (typeof STAFF_ROLES)[number];
 
@@ -78,7 +79,7 @@ export const ROLE_LABEL: Record<StaffRole, string> = {
   ADMIN: "System administrator",
 };
 
-/** FR 12.1: the administrator creates agent and facility manager accounts. Clinicians are created by their facility manager (FR 8.2). */
+/** The administrator invites agents and facility managers. Clinicians are invited by their facility manager. */
 export const ADMIN_INVITE_ROLES = ["AGENT", "FACILITY_MANAGER"] as const;
 
 export const invitation = z
@@ -89,15 +90,18 @@ export const invitation = z
     facilityId: z.string().uuid().optional(),
     licenceNumber: z.string().trim().max(40).optional(),
   })
-  .superRefine((v, ctx) => {
-    if (v.role === "AGENT" && !v.licenceNumber) {
+  .superRefine((invite, ctx) => {
+    if (invite.role === "AGENT" && !invite.licenceNumber) {
       ctx.addIssue({ code: "custom", path: ["licenceNumber"], message: "Enter the agent's licence number" });
     }
-    if (v.role === "FACILITY_MANAGER" && !v.facilityId) {
+    if (invite.role === "FACILITY_MANAGER" && !invite.facilityId) {
       ctx.addIssue({ code: "custom", path: ["facilityId"], message: "Choose the facility this person manages" });
     }
   });
 export type Invitation = z.infer<typeof invitation>;
 
-/** "Dr. Samuel Mugisha" → "Samuel": the name used in greetings. */
-export const greetingName = (fullName: string) => fullName.replace(/^(dr|prof|mr|mrs|ms)\.?\s+/i, "").split(/\s+/)[0];
+/** The name used in greetings: "Dr. Samuel Mugisha" becomes "Samuel". */
+export function greetingName(fullName: string) {
+  const withoutTitle = fullName.replace(/^(dr|prof|mr|mrs|ms)\.?\s+/i, "");
+  return withoutTitle.split(/\s+/)[0];
+}

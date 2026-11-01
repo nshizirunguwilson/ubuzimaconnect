@@ -1,6 +1,6 @@
 import type { StaffRole } from "./schemas";
 
-/** Error codes the API returns, so the web app can show the right sentence (DESIGN.md §10). */
+/** Error codes the API returns, so the web app can show the right sentence. */
 export type ApiErrorCode =
   | "VALIDATION"
   | "INVALID_CREDENTIALS"
@@ -15,7 +15,7 @@ export type ApiErrorCode =
   | "FORBIDDEN"
   | "NOT_FOUND"
   | "CONFLICT"
-  /** FR 7.8: no free bed; the screen offers a transfer */
+  /** No free bed: the screen offers a transfer instead */
   | "NO_BED";
 
 export type ApiError = {

@@ -1,7 +1,13 @@
-/** FR 10.1 and 10.2: logins are logged with the device type, never the full user agent. */
+/** Logins are logged with the kind of device only, never the full user agent. */
 export function deviceType(userAgent: string | undefined): "phone" | "tablet" | "computer" | "unknown" {
   if (!userAgent) return "unknown";
-  if (/ipad|tablet|(android(?!.*mobile))/i.test(userAgent)) return "tablet";
-  if (/mobi|iphone|android/i.test(userAgent)) return "phone";
+
+  // Android tablets say "Android" without "Mobile".
+  const isTablet = /ipad|tablet|(android(?!.*mobile))/i.test(userAgent);
+  if (isTablet) return "tablet";
+
+  const isPhone = /mobi|iphone|android/i.test(userAgent);
+  if (isPhone) return "phone";
+
   return "computer";
 }
