@@ -84,8 +84,13 @@ describe("triage level (FR 4.4, 4.5)", () => {
 });
 
 describe("facility matching (FR 5.3, 5.4, 5.8, 5.9)", () => {
-  const at = { lat: -1.95, lng: 30.09 };
-  const f = (id: string, lat: number, lng: number, over: Partial<FacilityForMatch> = {}): FacilityForMatch => ({
+  const patient = { lat: -1.95, lng: 30.09 };
+  const facility = (
+    id: string,
+    lat: number,
+    lng: number,
+    overrides: Partial<FacilityForMatch> = {},
+  ): FacilityForMatch => ({
     id,
     name: id,
     active: true,
@@ -95,7 +100,7 @@ describe("facility matching (FR 5.3, 5.4, 5.8, 5.9)", () => {
     phone: null,
     freeBeds: 5,
     onDuty: ["EMERGENCY_CARE", "GENERAL_MEDICINE"],
-    ...over,
+    ...overrides,
   });
 
   it("measures straight-line distance (Haversine)", () => {
@@ -106,23 +111,23 @@ describe("facility matching (FR 5.3, 5.4, 5.8, 5.9)", () => {
 
   it("picks the nearest suitable facility, skipping inactive ones and ones without the specialty on duty", () => {
     const list = [
-      f("near-inactive", -1.951, 30.091, { active: false }),
-      f("near-no-specialist", -1.952, 30.092, { onDuty: ["GENERAL_MEDICINE"] }),
-      f("mid", -1.96, 30.1),
-      f("far", -2.1, 30.3),
+      facility("near-inactive", -1.951, 30.091, { active: false }),
+      facility("near-no-specialist", -1.952, 30.092, { onDuty: ["GENERAL_MEDICINE"] }),
+      facility("mid", -1.96, 30.1),
+      facility("far", -2.1, 30.3),
     ];
-    const m = matchFacilities(list, at, "EMERGENCY_CARE", false);
-    expect(m.kind).toBe("SUITABLE");
-    if (m.kind === "SUITABLE") expect(m.ranked.map((r) => r.facility.id)).toEqual(["mid", "far"]);
+    const match = matchFacilities(list, patient, "EMERGENCY_CARE", false);
+    expect(match.kind).toBe("SUITABLE");
+    if (match.kind === "SUITABLE") expect(match.ranked.map((ranked) => ranked.facility.id)).toEqual(["mid", "far"]);
   });
 
   it("needs a free bed when a bed is needed, and falls back to 'no beds' then 'no match'", () => {
-    const full = [f("a", -1.96, 30.1, { freeBeds: 0 }), f("b", -2.1, 30.3, { freeBeds: 0 })];
-    const m = matchFacilities(full, at, "EMERGENCY_CARE", true);
-    expect(m.kind).toBe("NO_BEDS");
-    if (m.kind === "NO_BEDS") expect(m.facility.id).toBe("a");
-    expect(matchFacilities(full, at, "EMERGENCY_CARE", false).kind).toBe("SUITABLE");
-    expect(matchFacilities(full, at, "MATERNITY", false).kind).toBe("NO_MATCH");
+    const full = [facility("a", -1.96, 30.1, { freeBeds: 0 }), facility("b", -2.1, 30.3, { freeBeds: 0 })];
+    const match = matchFacilities(full, patient, "EMERGENCY_CARE", true);
+    expect(match.kind).toBe("NO_BEDS");
+    if (match.kind === "NO_BEDS") expect(match.facility.id).toBe("a");
+    expect(matchFacilities(full, patient, "EMERGENCY_CARE", false).kind).toBe("SUITABLE");
+    expect(matchFacilities(full, patient, "MATERNITY", false).kind).toBe("NO_MATCH");
   });
 });
 
@@ -130,6 +135,8 @@ describe("sectors (FR 3.4)", () => {
   it("has all 416 sectors inside Rwanda", () => {
     expect(SECTORS).toHaveLength(416);
     expect(sectorsOf("Gasabo")).toHaveLength(15);
-    expect(SECTORS.every((s) => s.lat < -1 && s.lat > -2.9 && s.lng > 28.8 && s.lng < 30.9)).toBe(true);
+    expect(
+      SECTORS.every((sector) => sector.lat < -1 && sector.lat > -2.9 && sector.lng > 28.8 && sector.lng < 30.9),
+    ).toBe(true);
   });
 });

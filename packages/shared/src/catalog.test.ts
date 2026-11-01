@@ -25,11 +25,11 @@ describe("report periods (FR 12.8)", () => {
     const { periodRange, shiftPeriod } = await import("./reports");
     expect(periodRange("day", "2026-10-24")).toMatchObject({ start: "2026-10-24", end: "2026-10-25" });
     expect(periodRange("week", "2026-10-24")).toMatchObject({ start: "2026-10-19", end: "2026-10-26" });
-    const oct = periodRange("month", "2026-10-24");
-    expect(oct).toMatchObject({ start: "2026-10-01", end: "2026-11-01" });
-    expect(oct.days).toHaveLength(31);
+    const october = periodRange("month", "2026-10-24");
+    expect(october).toMatchObject({ start: "2026-10-01", end: "2026-11-01" });
+    expect(october.days).toHaveLength(31);
     expect(periodRange("month", "2026-12-05").end).toBe("2027-01-01");
-    expect(oct.from.toISOString()).toBe("2026-09-30T22:00:00.000Z"); // midnight in Kigali
+    expect(october.from.toISOString()).toBe("2026-09-30T22:00:00.000Z"); // midnight in Kigali
     expect(shiftPeriod("month", "2026-01-31", -1)).toBe("2025-12-01");
     expect(shiftPeriod("week", "2026-10-24", 1)).toBe("2026-10-26");
   });

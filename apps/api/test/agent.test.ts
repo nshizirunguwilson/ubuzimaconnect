@@ -12,19 +12,19 @@ const PEOPLE = {
   esperance: { nationalId: "1196070012689241", dateOfBirth: "1960-12-25", name: "Esperance" },
 };
 type Who = keyof typeof PEOPLE;
-type B = ReturnType<typeof browser>;
+type Browser = ReturnType<typeof browser>;
 
 let gemini: ReturnType<typeof startFakeGemini>;
-let agent: B;
-let agent2: B;
+let agent: Browser;
+let agent2: Browser;
 
-const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
-async function until<T>(fn: () => Promise<T | null | undefined | false>, ms = 5000): Promise<T> {
-  const end = Date.now() + ms;
+const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+async function until<T>(check: () => Promise<T | null | undefined | false>, ms = 5000): Promise<T> {
+  const deadline = Date.now() + ms;
   for (;;) {
-    const v = await fn();
-    if (v) return v;
-    if (Date.now() > end) throw new Error("timed out");
+    const result = await check();
+    if (result) return result;
+    if (Date.now() > deadline) throw new Error("timed out");
     await wait(150);
   }
 }
@@ -56,37 +56,37 @@ beforeEach(async () => {
   await agent2("/agent/status", { status: "AWAY" }, "PUT");
 });
 
-async function patient(who: Who) {
-  const b = browser();
-  await b("/auth/patient/login", PEOPLE[who]);
-  const me = (await b("/auth/me")).body;
-  return { b, me };
+async function logInAs(who: Who) {
+  const patient = browser();
+  await patient("/auth/patient/login", PEOPLE[who]);
+  const me = (await patient("/auth/me")).body;
+  return { patient, me };
 }
 
 /** A queued case: "minor" (AI minor/high), "urgent" (red flag A2 Yes) or "uncertain" (short description). */
 async function caseFor(who: Who, kind: "minor" | "urgent" | "uncertain") {
-  const { b, me } = await patient(who);
-  const id = (await b("/cases", { subjectId: me.id, location: KIGALI })).body.id;
-  let v = (await b(`/cases/${id}`)).body;
-  if (v.stage === "PREGNANCY") v = (await b(`/cases/${id}/pregnancy`, { pregnant: false })).body;
+  const { patient, me } = await logInAs(who);
+  const id = (await patient("/cases", { subjectId: me.id, location: KIGALI })).body.id;
+  let view = (await patient(`/cases/${id}`)).body;
+  if (view.stage === "PREGNANCY") view = (await patient(`/cases/${id}/pregnancy`, { pregnant: false })).body;
   if (kind === "urgent") {
-    v = (await b(`/cases/${id}/answers`, { questionId: v.question.id, answer: false })).body;
-    await b(`/cases/${id}/answers`, { questionId: v.question.id, answer: true });
+    view = (await patient(`/cases/${id}/answers`, { questionId: view.question.id, answer: false })).body;
+    await patient(`/cases/${id}/answers`, { questionId: view.question.id, answer: true });
   } else {
-    while (v.stage === "RED_FLAGS")
-      v = (await b(`/cases/${id}/answers`, { questionId: v.question.id, answer: false })).body;
+    while (view.stage === "RED_FLAGS")
+      view = (await patient(`/cases/${id}/answers`, { questionId: view.question.id, answer: false })).body;
     const description = kind === "minor" ? "I have had a dry cough and a mild fever since yesterday evening" : "cough";
-    await b(`/cases/${id}/symptoms`, { description, duration: "TODAY", severity: 3 });
+    await patient(`/cases/${id}/symptoms`, { description, duration: "TODAY", severity: 3 });
   }
-  return { b, id, me };
+  return { patient, id, me };
 }
 
-const offerFor = (a: B) => until(async () => (await a("/agent/state")).body.offer);
+const offerFor = (someAgent: Browser) => until(async () => (await someAgent("/agent/state")).body.offer);
 
-async function acceptNext(a: B) {
-  await a("/agent/status", { status: "AVAILABLE" }, "PUT");
-  const offer = await offerFor(a);
-  expect((await a(`/agent/offers/${offer.id}/accept`, {})).status).toBe(200);
+async function acceptNext(someAgent: Browser) {
+  await someAgent("/agent/status", { status: "AVAILABLE" }, "PUT");
+  const offer = await offerFor(someAgent);
+  expect((await someAgent(`/agent/offers/${offer.id}/accept`, {})).status).toBe(200);
   return offer.id as string;
 }
 
@@ -101,24 +101,26 @@ describe("queue and offers (FR 6.1 to 6.4, 4.9)", () => {
   });
 
   it("offers to the next agent when one lets it pass, and lets only one accept (FR 6.3)", async () => {
-    const c = await caseFor("claudine", "minor");
+    const queued = await caseFor("claudine", "minor");
     await agent("/agent/status", { status: "AVAILABLE" }, "PUT");
     const first = await offerFor(agent);
-    expect(first.id).toBe(c.id);
+    expect(first.id).toBe(queued.id);
     await agent2("/agent/status", { status: "AVAILABLE" }, "PUT");
-    await agent(`/agent/offers/${c.id}/decline`, {});
+    await agent(`/agent/offers/${queued.id}/decline`, {});
     const second = await offerFor(agent2);
-    expect(second.id).toBe(c.id);
-    expect((await agent(`/agent/offers/${c.id}/accept`, {})).status).toBe(409);
-    expect((await agent2(`/agent/offers/${c.id}/accept`, {})).status).toBe(200);
+    expect(second.id).toBe(queued.id);
+    expect((await agent(`/agent/offers/${queued.id}/accept`, {})).status).toBe(409);
+    expect((await agent2(`/agent/offers/${queued.id}/accept`, {})).status).toBe(200);
   });
 
   it("moves an offer on after the time runs out (30 s in production)", async () => {
-    const c = await caseFor("claudine", "minor");
+    const queued = await caseFor("claudine", "minor");
     await agent("/agent/status", { status: "AVAILABLE" }, "PUT");
     await agent2("/agent/status", { status: "AVAILABLE" }, "PUT");
     const offeredTo = async () =>
-      (await db.query(`select "offeredToId" from "Case" where id = $1`, [c.id])).rows[0].offeredToId as string | null;
+      (await db.query(`select "offeredToId" from "Case" where id = $1`, [queued.id])).rows[0].offeredToId as
+        | string
+        | null;
     const first = await until(offeredTo);
     // Nobody accepts: after the offer time it goes to the other Available agent.
     await until(async () => {
@@ -140,9 +142,9 @@ describe("queue and offers (FR 6.1 to 6.4, 4.9)", () => {
 
 describe("handling a case (FR 6.5 to 6.9, 6.15, 9.2)", () => {
   it("shows the full case only to the agent handling it", async () => {
-    const c = await caseFor("claudine", "minor");
+    const queued = await caseFor("claudine", "minor");
     const id = await acceptNext(agent);
-    expect(id).toBe(c.id);
+    expect(id).toBe(queued.id);
     const view = (await agent(`/agent/cases/${id}`)).body;
     expect(view).toMatchObject({ patient: { name: "Claudine Uwimana" }, ai: { urgency: "MINOR" } });
     expect((await agent2(`/agent/cases/${id}`)).status).toBe(403);
@@ -151,44 +153,47 @@ describe("handling a case (FR 6.5 to 6.9, 6.15, 9.2)", () => {
   it("saves every triage change with the agent and the time (FR 6.5)", async () => {
     await caseFor("claudine", "minor");
     const id = await acceptNext(agent);
-    const r = await agent(
+    const saved = await agent(
       `/agent/cases/${id}/triage`,
       { triageLevel: "UNCERTAIN", category: "RESPIRATORY", neededService: "INTERNAL_MEDICINE", bedNeeded: false },
       "PUT",
     );
-    expect(r.body.changed).toBeGreaterThanOrEqual(2);
+    expect(saved.body.changed).toBeGreaterThanOrEqual(2);
     const rows = (await db.query(`select field, "toValue", "staffId" from "CaseChange" where "caseId" = $1`, [id]))
       .rows;
-    expect(rows.map((x) => x.field)).toEqual(expect.arrayContaining(["triageLevel", "neededService"]));
-    expect(rows.every((x) => x.staffId)).toBe(true);
+    expect(rows.map((change) => change.field)).toEqual(expect.arrayContaining(["triageLevel", "neededService"]));
+    expect(rows.every((change) => change.staffId)).toBe(true);
   });
 
   it("delivers chat both ways live, within 3 seconds (FR 6.6)", async () => {
-    const c = await caseFor("claudine", "minor");
+    const queued = await caseFor("claudine", "minor");
     const id = await acceptNext(agent);
     // The patient's live stream, opened like the browser does.
     const cookie = await patientCookie("claudine");
-    const ctrl = new AbortController();
-    const res = await fetch(`${API}/events/cases/${id}`, { headers: { cookie }, signal: ctrl.signal });
-    const reader = res.body!.getReader();
+    const controller = new AbortController();
+    const response = await fetch(`${API}/events/cases/${id}`, { headers: { cookie }, signal: controller.signal });
+    const reader = response.body!.getReader();
     const sentAt = Date.now();
     await agent(`/agent/cases/${id}/messages`, { text: "Hello, how high is the fever?" });
-    let got = "";
-    while (!got.includes("how high is the fever")) got += new TextDecoder().decode((await reader.read()).value);
+    let received = "";
+    while (!received.includes("how high is the fever"))
+      received += new TextDecoder().decode((await reader.read()).value);
     expect(Date.now() - sentAt).toBeLessThan(3000);
-    ctrl.abort();
-    expect((await c.b(`/cases/${id}/messages`, { text: "Better" })).status).toBe(201);
-    const messages = (await agent(`/agent/cases/${id}`)).body.messages.map((m: { sender: string }) => m.sender);
+    controller.abort();
+    expect((await queued.patient(`/cases/${id}/messages`, { text: "Better" })).status).toBe(201);
+    const messages = (await agent(`/agent/cases/${id}`)).body.messages.map(
+      (message: { sender: string }) => message.sender,
+    );
     expect(messages).toEqual(expect.arrayContaining(["SYSTEM", "AGENT", "PATIENT"]));
   });
 
   it("asks for the date of birth when the number isn't the patient's, and closes after 3 missed calls (FR 6.7)", async () => {
-    const { b, me } = await patient("eric");
-    const r = await b("/cases/call", { subjectId: me.id, number: "0788123456", owner: "SOMEONE_ELSE" });
+    const { patient, me } = await logInAs("eric");
+    const started = await patient("/cases/call", { subjectId: me.id, number: "0788123456", owner: "SOMEONE_ELSE" });
     const id = await acceptNext(agent);
-    expect(id).toBe(r.body.id);
+    expect(id).toBe(started.body.id);
     expect((await agent(`/agent/cases/${id}/calls`, { answered: true, note: "Talked" })).status).toBe(400);
-    for (let i = 0; i < 2; i++)
+    for (let attempt = 0; attempt < 2; attempt++)
       expect((await agent(`/agent/cases/${id}/calls`, { answered: false, note: "No answer" })).body.closed).toBe(false);
     expect((await agent(`/agent/cases/${id}/calls`, { answered: false, note: "No answer" })).body.closed).toBe(true);
     expect((await db.query(`select outcome from "Case" where id = $1`, [id])).rows[0].outcome).toBe("NO_RESPONSE");
@@ -201,7 +206,7 @@ describe("handling a case (FR 6.5 to 6.9, 6.15, 9.2)", () => {
   });
 
   it("closes with an outcome and note, ends the agent's access, and lets the patient rate once (FR 6.15)", async () => {
-    const c = await caseFor("claudine", "minor");
+    const queued = await caseFor("claudine", "minor");
     const id = await acceptNext(agent);
     expect(
       (
@@ -213,46 +218,46 @@ describe("handling a case (FR 6.5 to 6.9, 6.15, 9.2)", () => {
     ).toBe(200);
     expect((await agent(`/agent/cases/${id}`)).status).toBe(403);
     expect((await agent("/agent/state")).body.status).toBe("AVAILABLE");
-    expect((await c.b(`/cases/${id}/rating`, { rating: 5 })).body.rating).toBe(5);
-    expect((await c.b(`/cases/${id}/rating`, { rating: 1 })).status).toBe(409);
+    expect((await queued.patient(`/cases/${id}/rating`, { rating: 5 })).body.rating).toBe(5);
+    expect((await queued.patient(`/cases/${id}/rating`, { rating: 1 })).status).toBe(409);
   });
 });
 
 describe("routing (FR 5.5 to 5.12)", () => {
   it("routes a red-flag case at once: nearest suitable facility, a held bed and a clinician (FR 5.7, 5.12)", async () => {
-    const c = await caseFor("esperance", "urgent");
-    const r = (
+    const queued = await caseFor("esperance", "urgent");
+    const routing = (
       await db.query(`select status, "bedNeeded", "clinicianId", "facilityId" from "Routing" where "caseId" = $1`, [
-        c.id,
+        queued.id,
       ])
     ).rows[0];
-    expect(r).toMatchObject({ status: "SUGGESTED", bedNeeded: true });
-    expect(r.clinicianId).toBeTruthy();
+    expect(routing).toMatchObject({ status: "SUGGESTED", bedNeeded: true });
+    expect(routing.clinicianId).toBeTruthy();
     const held = (
       await db.query(
         `select count(*)::int n from "BedReservation" br join "Routing" r on r.id = br."routingId" where r."caseId" = $1 and br.status = 'HELD'`,
-        [c.id],
+        [queued.id],
       )
     ).rows[0].n;
     expect(held).toBe(1);
   });
 
   it("confirms the suggestion for 24 hours, keeping its bed", async () => {
-    const c = await caseFor("esperance", "urgent");
+    const queued = await caseFor("esperance", "urgent");
     const id = await acceptNext(agent);
-    expect(id).toBe(c.id);
-    const opts = (await agent(`/agent/cases/${id}/routing-options?service=EMERGENCY_CARE&bedNeeded=true`)).body;
-    expect(opts.kind).toBe("SUITABLE");
-    expect((await agent(`/agent/cases/${id}/routing`, { facilityId: opts.nearestId, bedNeeded: true })).status).toBe(
+    expect(id).toBe(queued.id);
+    const options = (await agent(`/agent/cases/${id}/routing-options?service=EMERGENCY_CARE&bedNeeded=true`)).body;
+    expect(options.kind).toBe("SUITABLE");
+    expect((await agent(`/agent/cases/${id}/routing`, { facilityId: options.nearestId, bedNeeded: true })).status).toBe(
       201,
     );
-    const r = (
+    const confirmed = (
       await db.query(
         `select status, "expiresAt" - "confirmedAt" as valid from "Routing" where "caseId" = $1 and status = 'CONFIRMED'`,
         [id],
       )
     ).rows[0];
-    expect(r.valid.hours ?? r.valid.days * 24).toBe(24);
+    expect(confirmed.valid.hours ?? confirmed.valid.days * 24).toBe(24);
     const held = (
       await db.query(
         `select count(*)::int n from "BedReservation" br join "Routing" r on r.id = br."routingId" where r."caseId" = $1 and br.status = 'HELD'`,
@@ -263,11 +268,13 @@ describe("routing (FR 5.5 to 5.12)", () => {
   });
 
   it("needs a reason for a facility that isn't the nearest, and releases the old bed when changed (FR 5.6, 5.10)", async () => {
-    const c = await caseFor("esperance", "urgent");
+    const queued = await caseFor("esperance", "urgent");
     const id = await acceptNext(agent);
-    expect(id).toBe(c.id);
-    const opts = (await agent(`/agent/cases/${id}/routing-options?service=EMERGENCY_CARE&bedNeeded=true`)).body;
-    const other = opts.facilities.find((f: { id: string; suitable: boolean }) => f.suitable && f.id !== opts.nearestId);
+    expect(id).toBe(queued.id);
+    const options = (await agent(`/agent/cases/${id}/routing-options?service=EMERGENCY_CARE&bedNeeded=true`)).body;
+    const other = options.facilities.find(
+      (facility: { id: string; suitable: boolean }) => facility.suitable && facility.id !== options.nearestId,
+    );
     expect(other).toBeDefined();
     expect(
       (await agent(`/agent/cases/${id}/routing`, { facilityId: other.id, bedNeeded: true })).body.fields,
@@ -302,13 +309,13 @@ describe("routing (FR 5.5 to 5.12)", () => {
   });
 
   it("releases the bed and frees the agent when the patient cancels (FR 3.11)", async () => {
-    const c = await caseFor("esperance", "urgent");
+    const queued = await caseFor("esperance", "urgent");
     await acceptNext(agent);
-    await c.b(`/cases/${c.id}/cancel`, {});
+    await queued.patient(`/cases/${queued.id}/cancel`, {});
     const bed = (
       await db.query(
         `select br.status from "BedReservation" br join "Routing" r on r.id = br."routingId" where r."caseId" = $1`,
-        [c.id],
+        [queued.id],
       )
     ).rows[0];
     expect(bed.status).toBe("RELEASED");
@@ -338,10 +345,10 @@ describe("pause, release and lost connection (FR 6.12, 6.14, 6.16, 12.2)", () =>
     expect((await agent(`/agent/cases/${id}/pause`, {})).body.next).toBe(urgent.id);
     const paused = (await db.query(`select status, "frontOfQueue" from "Case" where id = $1`, [id])).rows[0];
     expect(paused).toEqual({ status: "QUEUED", frontOfQueue: true });
-    const msg = (
+    const lastMessage = (
       await db.query(`select text from "ChatMessage" where "caseId" = $1 order by "createdAt" desc limit 1`, [id])
     ).rows[0].text;
-    expect(msg).toContain("called to an emergency");
+    expect(lastMessage).toContain("called to an emergency");
   });
 
   it("marks an agent Offline after 60 s without a connection and returns their case (FR 6.14)", async () => {
@@ -355,10 +362,10 @@ describe("pause, release and lost connection (FR 6.12, 6.14, 6.16, 12.2)", () =>
         (await db.query(`select status from "Case" where id = $1`, [id])).rows[0].status === "QUEUED" ||
         (await db.query(`select status from "Case" where id = $1`, [id])).rows[0].status === "OFFERED",
     );
-    const msg = (
+    const lastMessage = (
       await db.query(`select text from "ChatMessage" where "caseId" = $1 order by "createdAt" desc limit 1`, [id])
     ).rows[0].text;
-    expect(msg).toBe("Another agent will continue with you.");
+    expect(lastMessage).toBe("Another agent will continue with you.");
     expect(
       (await db.query(`select "agentStatus" from "Staff" where email = 'agent@ubuzima.test'`)).rows[0].agentStatus,
     ).toBe("OFFLINE");
@@ -366,10 +373,10 @@ describe("pause, release and lost connection (FR 6.12, 6.14, 6.16, 12.2)", () =>
 });
 
 async function patientCookie(who: Who) {
-  const res = await fetch(`${API}/auth/patient/login`, {
+  const response = await fetch(`${API}/auth/patient/login`, {
     method: "POST",
     headers: { "content-type": "application/json" },
     body: JSON.stringify(PEOPLE[who]),
   });
-  return res.headers.get("set-cookie")!.split(";")[0];
+  return response.headers.get("set-cookie")!.split(";")[0];
 }

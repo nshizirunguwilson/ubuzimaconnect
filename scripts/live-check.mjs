@@ -945,7 +945,7 @@ async function X() {
     { rel: rel.body, status: back.status },
   );
 
-  // C11: pause a call-requested (Uncertain) case after a level 1 alert — checked here as the rule: Urgent can't be paused.
+  // C11: pause a call-requested (Uncertain) case after a level 1 alert - checked here as the rule: Urgent can't be paused.
   let o2;
   for (let i = 0; i < 40 && !o2; i++) {
     o2 = (await agent("/agent/state")).body.offer;

@@ -20,32 +20,32 @@ const results: { action: string; n: number; p50: number; p95: number; max: numbe
 let gemini: ReturnType<typeof startFakeGemini>;
 let caseId: string;
 
-async function measure(action: string, call: (i: number) => Promise<Response | { status: number }>) {
+async function measure(action: string, call: (index: number) => Promise<Response | { status: number }>) {
   const times: number[] = [];
   let next = 0;
   let failures = 0;
   await Promise.all(
     Array.from({ length: CONCURRENCY }, async () => {
       while (next < REQUESTS) {
-        const i = next++;
-        const t = performance.now();
-        const res = await call(i);
-        times.push(performance.now() - t);
-        if (res.status >= 400) failures++;
+        const index = next++;
+        const startedAt = performance.now();
+        const response = await call(index);
+        times.push(performance.now() - startedAt);
+        if (response.status >= 400) failures++;
       }
     }),
   );
-  times.sort((a, b) => a - b);
-  const r = {
+  times.sort((earlier, later) => earlier - later);
+  const measured = {
     action,
     n: times.length,
     p50: Math.round(times[Math.floor(times.length * 0.5)]),
     p95: Math.round(times[Math.ceil(times.length * 0.95) - 1]),
     max: Math.round(times[times.length - 1]),
   };
-  results.push(r);
+  results.push(measured);
   expect(failures, `${action}: failed requests`).toBe(0);
-  return r;
+  return measured;
 }
 
 beforeAll(async () => {
@@ -70,9 +70,9 @@ beforeAll(async () => {
     [now.date, now.shift],
   );
   // A month at 1,000 requests a day, already closed, for the reports.
-  const b = browser();
-  await b("/auth/patient/login", ALINE);
-  const me = (await b("/auth/me")).body;
+  const patient = browser();
+  await patient("/auth/patient/login", ALINE);
+  const me = (await patient("/auth/me")).body;
   await db.query(
     `insert into "Case" (id, code, "patientId", "openedById", status, "triageLevel", "queuedAt", "assignedAt", "closedAt", outcome, rating, "agentId", "createdAt")
      select gen_random_uuid(), 'UC-SCALE-' || g, $1, $1, 'CLOSED', (array['URGENT','UNCERTAIN','MINOR']::"TriageLevel"[])[1 + g % 3],
@@ -81,7 +81,7 @@ beforeAll(async () => {
      from generate_series(1, 30000) g, lateral (select (now() at time zone 'utc') - make_interval(secs => g * 86.4) as t) x`,
     [me.id],
   );
-  caseId = (await b("/cases", { subjectId: me.id, location: KIGALI })).body.id;
+  caseId = (await patient("/cases", { subjectId: me.id, location: KIGALI })).body.id;
   await db.query(
     `update "Case" set status = 'ASSIGNED', "triageLevel" = 'MINOR', "neededService" = 'GENERAL_MEDICINE', "agentId" = (select id from "Staff" where email = 'agent@ubuzima.test'), "assignedAt" = now() where id = $1`,
     [caseId],
@@ -109,39 +109,39 @@ describe("at the SRS's scale (NFR 4, NFR 5)", () => {
   it("answers 95% of common actions well within 3 seconds with 20 people at once", async () => {
     const agent = await staffLogin("agent@ubuzima.test");
     const admin = await staffLogin("admin@ubuzima.test");
-    const er = await staffLogin("clinician@ubuzima.test");
+    const clinician = await staffLogin("clinician@ubuzima.test");
     const patients = await Promise.all(
       Array.from({ length: CONCURRENCY }, async () => {
-        const b = browser();
-        await b("/auth/patient/login", ALINE);
-        return b;
+        const patient = browser();
+        await patient("/auth/patient/login", ALINE);
+        return patient;
       }),
     );
-    const p = (i: number) => patients[i % CONCURRENCY];
+    const patientFor = (index: number) => patients[index % CONCURRENCY];
     // A real code: 200 unknown codes from one address would rightly trip the guessing pause (FR 11.7).
     const rx = (
       await agent(`/agent/cases/${caseId}/prescriptions`, {
         items: [{ medicine: "Paracetamol 500 mg tablets", dose: "2 tablets", frequency: "3 times a day", days: 3 }],
       })
     ).body.code;
-    const call = (b: ReturnType<typeof browser>, path: string, body?: unknown) => b(path, body);
+    const call = (patient: ReturnType<typeof browser>, path: string, body?: unknown) => patient(path, body);
 
     const checks = [
-      await measure("Patient: open a request", (i) => call(p(i), `/cases/${caseId}`)),
-      await measure("Patient: home list of requests", (i) => call(p(i), "/cases/mine")),
-      await measure("Patient: send a chat message", (i) =>
-        call(p(i), `/cases/${caseId}/messages`, { text: `Message ${i}` }),
+      await measure("Patient: open a request", (index) => call(patientFor(index), `/cases/${caseId}`)),
+      await measure("Patient: home list of requests", (index) => call(patientFor(index), "/cases/mine")),
+      await measure("Patient: send a chat message", (index) =>
+        call(patientFor(index), `/cases/${caseId}/messages`, { text: `Message ${index}` }),
       ),
       await measure("Agent: queue and status", () => call(agent, "/agent/state")),
       await measure("Agent: open the case", () => call(agent, `/agent/cases/${caseId}`)),
       await measure("Agent: facilities to route to (50 facilities)", () =>
         call(agent, `/agent/cases/${caseId}/routing-options?service=GENERAL_MEDICINE&bedNeeded=true`),
       ),
-      await measure("Clinician: patients on the way", () => call(er, "/clinician/patients")),
+      await measure("Clinician: patients on the way", () => call(clinician, "/clinician/patients")),
       await measure("Pharmacy: check a code", () => fetch(`${API}/public/prescriptions/${rx}`)),
       await measure("Administrator: on-duty dashboard", () => call(admin, "/on-duty")),
     ];
-    for (const c of checks) expect(c.p95, c.action).toBeLessThan(3000);
+    for (const check of checks) expect(check.p95, check.action).toBeLessThan(3000);
   }, 300_000);
 
   it("builds a month's report over 30,000 requests in under 3 seconds", async () => {
@@ -149,11 +149,11 @@ describe("at the SRS's scale (NFR 4, NFR 5)", () => {
     // The sample cases cover the 30 days up to now. The month that holds the day 15 days ago always holds at
     // least half of them, whatever today's date (on the 1st, "this month" would hold only one day).
     const date = new Date(Date.now() + 2 * 3_600_000 - 15 * 86_400_000).toISOString().slice(0, 10);
-    const t = performance.now();
-    const rep = (await admin(`/reports?period=month&date=${date}`)).body;
-    const ms = Math.round(performance.now() - t);
+    const startedAt = performance.now();
+    const report = (await admin(`/reports?period=month&date=${date}`)).body;
+    const ms = Math.round(performance.now() - startedAt);
     results.push({ action: "Administrator: month report (30,000 requests)", n: 1, p50: ms, p95: ms, max: ms });
-    expect(rep.tiles.find((x: { label: string }) => x.label === "Requests").value).toBeGreaterThan(10_000);
+    expect(report.tiles.find((tile: { label: string }) => tile.label === "Requests").value).toBeGreaterThan(10_000);
     expect(ms).toBeLessThan(3000);
   }, 60_000);
 });

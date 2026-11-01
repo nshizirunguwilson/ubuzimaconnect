@@ -21,20 +21,22 @@ beforeAll(async () => {
   agent = await staffLogin("agent@ubuzima.test");
   await agent("/agent/status", { status: "AVAILABLE" }, "PUT");
   let offer;
-  for (let i = 0; i < 40 && !offer; i++) {
+  for (let attempt = 0; attempt < 40 && !offer; attempt++) {
     offer = (await agent("/agent/state")).body.offer;
-    if (!offer) await new Promise((r) => setTimeout(r, 250));
+    if (!offer) await new Promise((resolve) => setTimeout(resolve, 250));
   }
   await agent(`/agent/offers/${offer.id}/accept`, {});
 });
 
 describe("voice notes in the chat (D74)", () => {
   it("lets the patient send one; the agent sees its length and can play it", async () => {
-    const r = await patient(`/cases/${caseId}/voice`, { audio: WEBM, durationMs: 4200 });
-    expect(r.status).toBe(201);
-    const msg = (await agent(`/agent/cases/${caseId}`)).body.messages.find((m: { id: string }) => m.id === r.body.id);
-    expect(msg).toMatchObject({ sender: "PATIENT", audioMs: 4200 });
-    const audio = await fetch(`${API}/agent/cases/${caseId}/voice/${r.body.id}`, {
+    const sent = await patient(`/cases/${caseId}/voice`, { audio: WEBM, durationMs: 4200 });
+    expect(sent.status).toBe(201);
+    const message = (await agent(`/agent/cases/${caseId}`)).body.messages.find(
+      (found: { id: string }) => found.id === sent.body.id,
+    );
+    expect(message).toMatchObject({ sender: "PATIENT", audioMs: 4200 });
+    const audio = await fetch(`${API}/agent/cases/${caseId}/voice/${sent.body.id}`, {
       headers: { cookie: await agentCookie() },
     });
     expect(audio.headers.get("content-type")).toContain("audio/webm");
@@ -46,10 +48,12 @@ describe("voice notes in the chat (D74)", () => {
   });
 
   it("lets the agent send one, which the patient sees and can play", async () => {
-    const r = await agent(`/agent/cases/${caseId}/voice`, { audio: WEBM, durationMs: 9000 });
-    expect(r.status).toBe(201);
-    const msg = (await patient(`/cases/${caseId}`)).body.messages.find((m: { id: string }) => m.id === r.body.id);
-    expect(msg).toMatchObject({ sender: "AGENT", audioMs: 9000 });
+    const sent = await agent(`/agent/cases/${caseId}/voice`, { audio: WEBM, durationMs: 9000 });
+    expect(sent.status).toBe(201);
+    const message = (await patient(`/cases/${caseId}`)).body.messages.find(
+      (found: { id: string }) => found.id === sent.body.id,
+    );
+    expect(message).toMatchObject({ sender: "AGENT", audioMs: 9000 });
     // D78: up to 2 minutes
     expect((await agent(`/agent/cases/${caseId}/voice`, { audio: WEBM, durationMs: 115_000 })).status).toBe(201);
   });
@@ -62,8 +66,8 @@ describe("voice notes in the chat (D74)", () => {
     ).toBe(400);
     const stranger = browser();
     await stranger("/auth/patient/login", ALINE);
-    const any = (await db.query(`select "messageId" from "ChatAudio" limit 1`)).rows[0].messageId;
-    expect((await stranger(`/cases/${caseId}/voice/${any}`)).status).toBe(404);
+    const someMessageId = (await db.query(`select "messageId" from "ChatAudio" limit 1`)).rows[0].messageId;
+    expect((await stranger(`/cases/${caseId}/voice/${someMessageId}`)).status).toBe(404);
     expect((await stranger(`/cases/${caseId}/voice`, { audio: WEBM, durationMs: 3000 })).status).toBe(404);
   });
 });

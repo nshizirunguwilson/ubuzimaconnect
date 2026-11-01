@@ -10,17 +10,18 @@ const ALINE = { nationalId: "1199270045823116", dateOfBirth: "1992-03-14", name:
 const now = currentShift();
 const today = new Date(Date.now() + 2 * 3_600_000).toISOString().slice(0, 10);
 
-type B = ReturnType<typeof browser>;
+type Browser = ReturnType<typeof browser>;
 let gemini: ReturnType<typeof startFakeGemini>;
-let admin: B;
-let agent: B;
-let manager: B;
-let er: B;
+let admin: Browser;
+let agent: Browser;
+let manager: Browser;
+let clinician: Browser;
 let ids: Record<string, string>;
 type Tile = { label: string; value: number | null };
 type Table = { title: string; rows: (string | number | null)[][] };
-const tile = (rep: { tiles: Tile[] }, label: string) => rep.tiles.find((t) => t.label === label)?.value;
-const table = (rep: { tables: Table[] }, title: string) => rep.tables.find((t) => t.title === title)!.rows;
+const tile = (report: { tiles: Tile[] }, label: string) => report.tiles.find((found) => found.label === label)?.value;
+const table = (report: { tables: Table[] }, title: string) =>
+  report.tables.find((found) => found.title === title)!.rows;
 
 beforeAll(async () => {
   await resetDatabase();
@@ -31,28 +32,38 @@ beforeAll(async () => {
     [now.date, now.shift],
   );
   ids = Object.fromEntries(
-    (await db.query(`select id, email from "Staff"`)).rows.map((r) => [r.email.split("@")[0], r.id]),
+    (await db.query(`select id, email from "Staff"`)).rows.map((member) => [member.email.split("@")[0], member.id]),
   );
-  [admin, agent, manager, er] = await Promise.all(
-    ["admin", "agent", "manager", "clinician"].map((n) => staffLogin(`${n}@ubuzima.test`)),
+  [admin, agent, manager, clinician] = await Promise.all(
+    ["admin", "agent", "manager", "clinician"].map((name) => staffLogin(`${name}@ubuzima.test`)),
   );
 
-  const b = browser();
-  await b("/auth/patient/login", ALINE);
-  const me = (await b("/auth/me")).body;
+  const patient = browser();
+  await patient("/auth/patient/login", ALINE);
+  const me = (await patient("/auth/me")).body;
   // queued, accepted and closed this many minutes ago; then outcome, rating and agent
   const cases: [string, number, number, number, string, number | null, string][] = [
     ["MINOR", 10, 8, 2, "ADVISED_REMOTELY", 5, ids.agent],
     ["MINOR", 20, 16, 6, "ROUTED_TO_FACILITY", 3, ids.agent],
     ["UNCERTAIN", 30, 24, 20, "PRESCRIPTION_ISSUED", null, ids.agent2],
   ];
-  let n = 0;
-  for (const [level, q, a, c, outcome, rating, agentId] of cases) {
+  let number = 0;
+  for (const [level, queuedMinutesAgo, assignedMinutesAgo, closedMinutesAgo, outcome, rating, agentId] of cases) {
     await db.query(
       `insert into "Case" (id, code, "patientId", "openedById", status, "triageLevel", "queuedAt", "assignedAt", "closedAt", outcome, rating, "agentId", "createdAt")
        values (gen_random_uuid(), $1, $2, $2, 'CLOSED', $3::"TriageLevel", (now() at time zone 'utc') - make_interval(mins => $4), (now() at time zone 'utc') - make_interval(mins => $5),
                (now() at time zone 'utc') - make_interval(mins => $6), $7::"CaseOutcome", $8, $9, (now() at time zone 'utc') - make_interval(mins => $4))`,
-      [`UC-TEST-${++n}`, me.id, level, q, a, c, outcome, rating, agentId],
+      [
+        `UC-TEST-${++number}`,
+        me.id,
+        level,
+        queuedMinutesAgo,
+        assignedMinutesAgo,
+        closedMinutesAgo,
+        outcome,
+        rating,
+        agentId,
+      ],
     );
   }
   await db.query(
@@ -66,25 +77,25 @@ afterAll(async () => {
 
 describe("reports (FR 12.8)", () => {
   it("gives the administrator the service numbers for the period", async () => {
-    const rep = (await admin(`/reports?period=month&date=${today}`)).body;
-    expect(rep.title).toBe("Service report");
-    expect(tile(rep, "Requests")).toBe(3);
-    expect(tile(rep, "Median wait for an agent")).toBe(4); // waits of 2, 4 and 6 minutes
-    expect(tile(rep, "Delay incidents")).toBe(1);
-    expect(tile(rep, "Minor cases closed without travel")).toBe(50); // 1 of the 2 minor cases
-    expect(tile(rep, "Average rating")).toBe(4);
-    expect(table(rep, "Requests by triage level")).toContainEqual(["Minor", 2]);
-    expect(table(rep, "Closed requests by outcome")).toContainEqual(["Prescription issued", 1]);
+    const report = (await admin(`/reports?period=month&date=${today}`)).body;
+    expect(report.title).toBe("Service report");
+    expect(tile(report, "Requests")).toBe(3);
+    expect(tile(report, "Median wait for an agent")).toBe(4); // waits of 2, 4 and 6 minutes
+    expect(tile(report, "Delay incidents")).toBe(1);
+    expect(tile(report, "Minor cases closed without travel")).toBe(50); // 1 of the 2 minor cases
+    expect(tile(report, "Average rating")).toBe(4);
+    expect(table(report, "Requests by triage level")).toContainEqual(["Minor", 2]);
+    expect(table(report, "Closed requests by outcome")).toContainEqual(["Prescription issued", 1]);
     // Diane: 2 cases, handling of 6 and 10 minutes, ratings 5 and 3.
-    expect(table(rep, "Agent performance")).toContainEqual(["Diane Umutoni", 2, 6, 4]);
-    expect(table(rep, "Scheduled and online agents").length).toBeGreaterThanOrEqual(28);
+    expect(table(report, "Agent performance")).toContainEqual(["Diane Umutoni", 2, 6, 4]);
+    expect(table(report, "Scheduled and online agents").length).toBeGreaterThanOrEqual(28);
   });
 
   it("shows a day with nothing in it as empty, not as zero", async () => {
-    const rep = (await admin("/reports?period=day&date=2026-01-01")).body;
-    expect(tile(rep, "Requests")).toBe(0);
-    expect(tile(rep, "Median wait for an agent")).toBeNull();
-    expect(tile(rep, "Average rating")).toBeNull();
+    const report = (await admin("/reports?period=day&date=2026-01-01")).body;
+    expect(tile(report, "Requests")).toBe(0);
+    expect(tile(report, "Median wait for an agent")).toBeNull();
+    expect(tile(report, "Average rating")).toBeNull();
   });
 
   it("gives agents their own work, and clinicians their own patients", async () => {
@@ -94,43 +105,43 @@ describe("reports (FR 12.8)", () => {
     expect(tile(mine, "Average rating")).toBe(4);
 
     // A patient arrives, gets a prescription and is discharged by the emergency clinician.
-    const b = browser();
-    await b("/auth/patient/login", ALINE);
-    const me = (await b("/auth/me")).body;
-    const id = (await b("/cases", { subjectId: me.id, location: KIGALI })).body.id;
-    let v = (await b(`/cases/${id}`)).body;
-    if (v.stage === "PREGNANCY") v = (await b(`/cases/${id}/pregnancy`, { pregnant: false })).body;
-    v = (await b(`/cases/${id}/answers`, { questionId: v.question.id, answer: false })).body;
-    await b(`/cases/${id}/answers`, { questionId: v.question.id, answer: true });
+    const patient = browser();
+    await patient("/auth/patient/login", ALINE);
+    const me = (await patient("/auth/me")).body;
+    const id = (await patient("/cases", { subjectId: me.id, location: KIGALI })).body.id;
+    let view = (await patient(`/cases/${id}`)).body;
+    if (view.stage === "PREGNANCY") view = (await patient(`/cases/${id}/pregnancy`, { pregnant: false })).body;
+    view = (await patient(`/cases/${id}/answers`, { questionId: view.question.id, answer: false })).body;
+    await patient(`/cases/${id}/answers`, { questionId: view.question.id, answer: true });
     const routingId = (await db.query(`select id from "Routing" where "caseId" = $1`, [id])).rows[0].id;
-    await er(`/clinician/incoming/${routingId}/arrive`, {});
-    await er(`/clinician/visits/${routingId}/prescriptions`, {
+    await clinician(`/clinician/incoming/${routingId}/arrive`, {});
+    await clinician(`/clinician/visits/${routingId}/prescriptions`, {
       items: [{ medicine: "Salbutamol inhaler 100 mcg", dose: "2 puffs", frequency: "When short of breath", days: 7 }],
     });
-    await er(`/clinician/visits/${routingId}/finish`, {});
+    await clinician(`/clinician/visits/${routingId}/finish`, {});
 
-    const clin = (await er(`/reports?period=day&date=${today}`)).body;
-    expect(clin).toMatchObject({ title: "My patients" });
-    expect(tile(clin, "Patients seen")).toBe(1);
-    expect(tile(clin, "Prescriptions issued")).toBe(1);
-    expect(table(clin, "How visits ended")).toContainEqual(["Discharged", 1]);
+    const clinicianReport = (await clinician(`/reports?period=day&date=${today}`)).body;
+    expect(clinicianReport).toMatchObject({ title: "My patients" });
+    expect(tile(clinicianReport, "Patients seen")).toBe(1);
+    expect(tile(clinicianReport, "Prescriptions issued")).toBe(1);
+    expect(table(clinicianReport, "How visits ended")).toContainEqual(["Discharged", 1]);
 
     // The same visit, seen by the manager of that facility.
-    const fac = (await manager(`/reports?period=day&date=${today}`)).body;
-    expect(fac.title).toBe("Kacyiru District Hospital: facility report");
-    expect(tile(fac, "Arrived")).toBe(1);
-    expect(table(fac, "Movements")).toContainEqual(["Discharged", 1]);
+    const facilityReport = (await manager(`/reports?period=day&date=${today}`)).body;
+    expect(facilityReport.title).toBe("Kacyiru District Hospital: facility report");
+    expect(tile(facilityReport, "Arrived")).toBe(1);
+    expect(table(facilityReport, "Movements")).toContainEqual(["Discharged", 1]);
   });
 
   it("downloads the report as a spreadsheet file, and logs the download", async () => {
-    const res = await fetch(`${API}/reports/csv?period=month&date=${today}`, {
+    const response = await fetch(`${API}/reports/csv?period=month&date=${today}`, {
       headers: { cookie: await adminCookie() },
     });
-    expect(res.headers.get("content-type")).toContain("text/csv");
-    expect(res.headers.get("content-disposition")).toMatch(
+    expect(response.headers.get("content-type")).toContain("text/csv");
+    expect(response.headers.get("content-disposition")).toMatch(
       /attachment; filename="ubuzimaconnect-report-month-\d{4}-\d{2}-01\.csv"/,
     );
-    const text = await res.text();
+    const text = await response.text();
     expect(text).toContain('"Median wait for an agent","4","min"');
     expect(text).toContain('"Diane Umutoni","2","6","4"');
     expect(
@@ -141,20 +152,20 @@ describe("reports (FR 12.8)", () => {
   it("refuses a period it doesn't know, and patients", async () => {
     expect((await admin("/reports?period=year")).status).toBe(400);
     expect((await admin("/reports?period=day&date=yesterday")).status).toBe(400);
-    const b = browser();
-    await b("/auth/patient/login", ALINE);
-    expect((await b("/reports")).status).toBe(403);
+    const patient = browser();
+    await patient("/auth/patient/login", ALINE);
+    expect((await patient("/reports")).status).toBe(403);
   });
 });
 
 /** The test client keeps its cookie inside; a file download needs one on a plain fetch, so this logs in again. */
 async function adminCookie() {
-  const res = await fetch(`${API}/auth/staff/login`, {
+  const response = await fetch(`${API}/auth/staff/login`, {
     method: "POST",
     headers: { "content-type": "application/json" },
     body: JSON.stringify({ email: "admin@ubuzima.test", password: "Ubuzima-demo-2026" }),
   });
-  const cookie = res.headers.get("set-cookie")!.split(";")[0];
+  const cookie = response.headers.get("set-cookie")!.split(";")[0];
   const code = (
     await db.query(
       `select subject from "EmailMessage" where "to" = 'admin@ubuzima.test' order by "createdAt" desc limit 1`,

@@ -10,7 +10,7 @@ This file makes sure nothing in the SRS is left out. Every functional requiremen
 |---|---|
 | Done | Built, and proved by a test or a recorded check |
 | Partly | Some of it is built; the note says what is missing |
-| — | Not started |
+| - | Not started |
 
 **Proof** is an automated test (file named), or a browser check at 375 px and 1280 px recorded in this file.
 
@@ -46,8 +46,8 @@ Source: the FR headings of the SRS (Assignment 2 copy, 23 Oct 2026).
 | 1.5 | Verification unavailable | 0 | Done | “Verification is temporarily unavailable” + Emergency button; failure logged as `nida.unavailable` | `auth.test.ts` |
 | 1.6 | Lock after failed attempts | 0 | Done | 5 tries → 15-minute lock, with the Emergency button | `auth.test.ts` |
 | 1.7 | Patient session timeout | 0 | Done | 15-minute sliding expiry + `IdleLogout` | `auth.test.ts` (staff session; same code path) |
-| 1.8 | Shared device option | 0–3 | Done | “This is not my device”: the cookie ends with the browser, logout clears the screen, and the device can't turn on notifications | `auth.test.ts`, `push.test.ts` |
-| 1.9 | Emergency without login | 0–3 | Done | `/emergency` shows Call 912 and the nearest facility with emergency care on duty, without login (`cases.test.ts`); without a connection, the service worker serves it with the facilities saved on the device. Checked on 24 Oct 2026 with a production build: the web server stopped, `/emergency` still opened with the 5 saved facilities | `cases.test.ts`, browser check |
+| 1.8 | Shared device option | 0-3 | Done | “This is not my device”: the cookie ends with the browser, logout clears the screen, and the device can't turn on notifications | `auth.test.ts`, `push.test.ts` |
+| 1.9 | Emergency without login | 0-3 | Done | `/emergency` shows Call 912 and the nearest facility with emergency care on duty, without login (`cases.test.ts`); without a connection, the service worker serves it with the facilities saved on the device. Checked on 24 Oct 2026 with a production build: the web server stopped, `/emergency` still opened with the 5 saved facilities | `cases.test.ts`, browser check |
 | 1.10 | Identity photo | 0 | Done | `GET /patients/:id/photo` (self, parent, staff) | `auth.test.ts` |
 
 ### FR 2 Staff authentication
@@ -71,8 +71,8 @@ Source: the FR headings of the SRS (Assignment 2 copy, 23 Oct 2026).
 | 3.3 | Capture current location | 1 | Done: device GPS with permission (`/cases/new`) |
 | 3.4 | Manual location fallback | 1 | Done: Province → District → Sector, using the sector’s centre from NISR boundaries (`packages/shared/src/data`, `cases.test.ts`) |
 | 3.5 | Save nearby facilities | 1 | Done: the 5 nearest facilities with name, distance, services and phone are saved on the device; never on a device that isn’t the patient’s (`cases.test.ts`) |
-| 3.6 | Red-flag checklist | 1 | Done: every sign that applies on one screen, a tap is Yes, "None of these" after the last sign (SRS revised 25 Oct); groups A, C, N and P by age and sex; pregnancy asked only of females 12–55 (`cases.test.ts`, `triage.test.ts`) |
-| 3.7 | Submit symptoms | 1 | Done: own words, how long (4 choices), how bad (1–10) (`cases.test.ts`) |
+| 3.6 | Red-flag checklist | 1 | Done: every sign that applies on one screen, a tap is Yes, "None of these" after the last sign (SRS revised 25 Oct); groups A, C, N and P by age and sex; pregnancy asked only of females 12-55 (`cases.test.ts`, `triage.test.ts`) |
+| 3.7 | Submit symptoms | 1 | Done: own words, how long (4 choices), how bad (1-10) (`cases.test.ts`) |
 | 3.8 | Prefer a call | 1 | Done: from the home screen and the case screen; the agent sees the number and whose it is (`agent.test.ts`, `cases.test.ts`) |
 | 3.9 | Phone number not required | 1 | Done: a phone number is asked only here and kept on that case (`cases.test.ts`) |
 | 3.10 | Work offline | 3 | Done: answers and symptoms wait on the device in order and are sent when the connection returns; “Not sent yet: waiting for connection” with the saved facilities marked “Availability not confirmed” and Call 912; a Yes offline shows “Call 912 and go to the nearest health facility”; the remaining questions come with each step (`outbox.test.ts`, `cases.test.ts`). Checked in the browser at 375 px with the connection cut, then restored: both answers arrived in order and the case became Urgent |
@@ -88,7 +88,7 @@ Source: the FR headings of the SRS (Assignment 2 copy, 23 Oct 2026).
 | 4.4 | Set triage level | 1 | Done (`triage.test.ts`, `cases.test.ts`) |
 | 4.5 | Escalate uncertainty | 1 | Done: all five conditions (`triage.test.ts`, `cases.test.ts`) |
 | 4.6 | Protect identity | 1 | Done: only description, answers, age, sex and pregnancy are sent; checked against what the stand-in receives (`cases.test.ts`) |
-| 4.7 | AI unavailable | 1–3 | Done: failures become “Uncertain: AI unavailable” with the normal message; the breaker skips the AI for 1 minute after 3 failures (`cases.test.ts`); more than 5 failures in 5 minutes alert the administrator, once per 5 minutes, by app and email (`timers.test.ts`) |
+| 4.7 | AI unavailable | 1-3 | Done: failures become “Uncertain: AI unavailable” with the normal message; the breaker skips the AI for 1 minute after 3 failures (`cases.test.ts`); more than 5 failures in 5 minutes alert the administrator, once per 5 minutes, by app and email (`timers.test.ts`) |
 | 4.8 | AI switch | 1 | Done: while off, new cases are Uncertain without calling the AI (`cases.test.ts`, `setup.test.ts`) |
 | 4.9 | Human review of every case | 1 | Done: every case is queued and offered to an agent whatever its level (`agent.test.ts`) |
 
@@ -102,13 +102,13 @@ Source: the FR headings of the SRS (Assignment 2 copy, 23 Oct 2026).
 | 5.4 | Rank by proximity | 1 | Done: Haversine (`triage.test.ts`) |
 | 5.5 | Immediate guidance for urgent cases | 1 | Done: Urgent patients see the nearest suitable facility, distance, call buttons, 912, and “An agent will contact you.” until it is confirmed (`agent.test.ts`, `cases.test.ts`) |
 | 5.6 | Confirm routing | 1 | Done: confirm or choose another; a reason is required when not the nearest; valid 24 hours (`agent.test.ts`) |
-| 5.7 | Reserve bed | 1–3 | Done: one bed held when the facility is given, kept on confirmation, released on change or cancel (`agent.test.ts`), the patient's on arrival (`clinician.test.ts`), released after 6 hours without arrival while the routing stays valid (`timers.test.ts`) |
+| 5.7 | Reserve bed | 1-3 | Done: one bed held when the facility is given, kept on confirmation, released on change or cancel (`agent.test.ts`), the patient's on arrival (`clinician.test.ts`), released after 6 hours without arrival while the routing stays valid (`timers.test.ts`) |
 | 5.8 | No free bed | 1 | Done: the agent sees “No beds currently available” with the nearest otherwise-suitable facility, and the event is logged |
 | 5.9 | No matching facility | 1 | Done: a non-urgent case that no facility can take right now becomes Urgent and goes to the queue; the patient sees 912 and “An agent will contact you.”; logged (`phase2.test.ts`). Seen live at night, when no general-medicine clinician was on duty |
 | 5.10 | Change routing | 1 | Done: the old routing becomes Changed and its bed is released (`agent.test.ts`) |
 | 5.11 | Routing expiry | 3 | Done: no arrival within 24 hours: Expired, bed released, off the incoming list, no records unlocked, logged (`timers.test.ts`) |
 | 5.12 | Assign attending clinician | 1 | Done: the on-duty clinician of the specialty with the fewest active patients is suggested; red-flag routings are assigned automatically; another specialty needs a reason (`agent.test.ts`). The assigned clinician is notified, saved and live (`clinician.test.ts`). Done |
-| 5.13 | Automatic reassignment | 1–3 | Done: on marking unavailable, deactivation (`phase2.test.ts`) and the end of the shift (`timers.test.ts`): the colleague of the same specialty with the fewest patients, told and logged; with none, the agent is alerted or the case goes back to the front of the queue |
+| 5.13 | Automatic reassignment | 1-3 | Done: on marking unavailable, deactivation (`phase2.test.ts`) and the end of the shift (`timers.test.ts`): the colleague of the same specialty with the fewest patients, told and logged; with none, the agent is alerted or the case goes back to the front of the queue |
 
 ### FR 6 Human agent handling
 
@@ -119,7 +119,7 @@ Source: the FR headings of the SRS (Assignment 2 copy, 23 Oct 2026).
 | 6.3 | Offer a case | 1 | Done: offered to the Available agent free the longest; 30 s to accept; then the next agent; only one can accept (`agent.test.ts`) |
 | 6.4 | One active case | 1 | Done (`agent.test.ts`) |
 | 6.5 | Review and confirm | 1 | Done: full case, photo, AI result and reason, earlier requests; every change saved with name and time (`agent.test.ts`). The patient's prescription history is shown too (`records.test.ts`) |
-| 6.6 | Chat with patients | 1–3 | Done: live chat both ways under 3 s, with quick replies, saved with the case (`agent.test.ts`); when the patient doesn't have the app open, a Web Push notification, opened on the case (`push.test.ts`) |
+| 6.6 | Chat with patients | 1-3 | Done: live chat both ways under 3 s, with quick replies, saved with the case (`agent.test.ts`); when the patient doesn't have the app open, a Web Push notification, opened on the case (`push.test.ts`) |
 | 6.7 | Call patients | 1 | Done: number and whose it is, date of birth confirmed first when not the patient’s, call notes, closes as No response after 3 missed calls in 10 minutes (`agent.test.ts`) |
 | 6.8 | Handle minor cases remotely | 1 | Done: advice in the chat, and a prescription from the case; closing as Prescription issued needs one (`records.test.ts`) |
 | 6.9 | Patient not responding | 3 | Done: No response only for a Minor case silent for 10 minutes; Urgent and Uncertain stay open (`agent.test.ts`) |
@@ -128,7 +128,7 @@ Source: the FR headings of the SRS (Assignment 2 copy, 23 Oct 2026).
 | 6.12 | Pause for an urgent case | 1 | Done: after a level 1 alert (an Urgent or Uncertain case waiting 2 minutes), a Minor or Uncertain case can be paused; it goes to the front and the patient is told (`agent.test.ts`) |
 | 6.13 | No agent online | 3 | Done: Urgent patients see the facility and 912; Uncertain the nearest suitable facility, 912 and “No agent is online right now”; Minor the SRS message; the administrator is alerted after 5 minutes, by app and email (`timers.test.ts`). Checked in the browser at 375 px |
 | 6.14 | Lost connection | 3 | Done: 60 s without the agent’s live connection → Offline; the case goes back to the front with all its history; the patient is told (`agent.test.ts`) |
-| 6.15 | Close a case | 1 | Done: one outcome and a note; the agent loses access; the patient rates 1–5 once (`agent.test.ts`) |
+| 6.15 | Close a case | 1 | Done: one outcome and a note; the agent loses access; the patient rates 1-5 once (`agent.test.ts`) |
 | 6.16 | End of shift | 3 | Done: no Away or Offline with an open case; Give back puts it at the front (`agent.test.ts`) |
 
 ### FR 7 Connected patient records
@@ -161,18 +161,18 @@ Source: the FR headings of the SRS (Assignment 2 copy, 23 Oct 2026).
 
 | FR | Requirement | Phase | Status | Where |
 |---|---|---|---|---|
-| 9.1 | Patient access | 0–1 | Done | Own records and children's (FR 1.3); none of the staff endpoints (`phase2.test.ts`, `records.test.ts`) |
-| 9.2 | Agent access | 0–1 | Done | Full case and history only while handling it; waiting cases show no names; access ends on closing (`agent.test.ts`) |
-| 9.3 | Clinician access | 0–1 | Done | A summary of incoming patients to on-duty clinicians at the facility; full records only to the attending clinician during the visit (`clinician.test.ts`) |
-| 9.4 | Facility manager access | 0–3 | Done | Own facility's profile, beds, schedule, clinicians, staff activity and reports; never patient records (`phase2.test.ts`, `reports.test.ts`) |
-| 9.5 | Administrator access | 0–3 | Done | Accounts, schedules, settings, alerts, reports, activity logs and the on-duty dashboard; never patient records (`phase2.test.ts`, `timers.test.ts`, `reports.test.ts`) |
+| 9.1 | Patient access | 0-1 | Done | Own records and children's (FR 1.3); none of the staff endpoints (`phase2.test.ts`, `records.test.ts`) |
+| 9.2 | Agent access | 0-1 | Done | Full case and history only while handling it; waiting cases show no names; access ends on closing (`agent.test.ts`) |
+| 9.3 | Clinician access | 0-1 | Done | A summary of incoming patients to on-duty clinicians at the facility; full records only to the attending clinician during the visit (`clinician.test.ts`) |
+| 9.4 | Facility manager access | 0-3 | Done | Own facility's profile, beds, schedule, clinicians, staff activity and reports; never patient records (`phase2.test.ts`, `reports.test.ts`) |
+| 9.5 | Administrator access | 0-3 | Done | Accounts, schedules, settings, alerts, reports, activity logs and the on-duty dashboard; never patient records (`phase2.test.ts`, `timers.test.ts`, `reports.test.ts`) |
 | 9.6 | Public access | 0 | Done | Emergency page and the prescription check page, no login |
 
 ### FR 10 Access logging
 
 | FR | Requirement | Phase | Status |
 |---|---|---|---|
-| 10.1 | Log access | 0–3 | Done: logins with device type, failed logins, locks, unlocks, record views (once per 10-minute sitting), triage, routings, beds, arrivals, handovers, transfers, discharges, prescriptions and checks, AI failures, expiries, escalations, delay incidents, alerts, account and settings changes |
+| 10.1 | Log access | 0-3 | Done: logins with device type, failed logins, locks, unlocks, record views (once per 10-minute sitting), triage, routings, beds, arrivals, handovers, transfers, discharges, prescriptions and checks, AI failures, expiries, escalations, delay incidents, alerts, account and settings changes |
 | 10.2 | Patient activity list | 1 | Done: `/records/[id]/activity`: date, time, who (with role), what, device for logins; parents see their children's (`records.test.ts`). Checked in the browser at 1280 px (24 Oct 2026) |
 | 10.3 | Staff activity | 1 | Done: `/staff/activity`: a manager sees their facility's staff, the administrator everyone, with a filter by person (`records.test.ts`) |
 
@@ -192,7 +192,7 @@ Source: the FR headings of the SRS (Assignment 2 copy, 23 Oct 2026).
 
 | FR | Requirement | Phase | Status |
 |---|---|---|---|
-| 12.1 | Create accounts | 0–1 | Done: facilities (`/staff/facilities`) and agent and facility manager accounts (`/staff/team`) (`setup.test.ts`, `auth.test.ts`) |
+| 12.1 | Create accounts | 0-1 | Done: facilities (`/staff/facilities`) and agent and facility manager accounts (`/staff/team`) (`setup.test.ts`, `auth.test.ts`) |
 | 12.2 | Deactivate accounts | 1 | Done: accounts turned off, never deleted, logged out at once; an agent’s active case returns to the front of the queue |
 | 12.3 | Change staff email | 1 | Done: new address used for codes and links; old links cancelled (`setup.test.ts`) |
 | 12.4 | Agent schedule | 1 | Done: `/staff/schedule` for the administrator shows agents, and any shift with no agent (`setup.test.ts`) |
@@ -211,15 +211,15 @@ Source: the three use case tables in the SRS (Assignment 2 copy), read on 24 Oct
 
 | # | Use case | Actor | FR | Phase | Status |
 |---|---|---|---|---|---|
-| 1 | Use emergency screen | Visitor | 1.9 | 0–3 | Done |
-| 2 | Log in with national ID | Patient | 1.1–1.8 | 0 | Done |
+| 1 | Use emergency screen | Visitor | 1.9 | 0-3 | Done |
+| 2 | Log in with national ID | Patient | 1.1-1.8 | 0 | Done |
 | 3 | Verify identity (included) | Mock NIDA | 1.1, 1.2, 1.10 | 0 | Done |
 | 4 | Choose who is sick (extends Start a case) | Parent | 3.1 | 1 | Done |
-| 5 | Start a case | Patient | 3.2, 3.10 | 1–3 | Done: started without a connection, it waits on the screen and starts when the connection returns |
-| 6 | Share location (included) | Patient | 3.3–3.5 | 1 | Done |
+| 5 | Start a case | Patient | 3.2, 3.10 | 1-3 | Done: started without a connection, it waits on the screen and starts when the connection returns |
+| 6 | Share location (included) | Patient | 3.3-3.5 | 1 | Done |
 | 7 | Check red flags (included) | Patient | 3.6, 4.1, 4.2 | 1 | Done |
 | 8 | Describe symptoms (extends Start a case) | Patient | 3.7 | 1 | Done |
-| 9 | Get AI triage (included) | AI service | 4.3–4.7 | 1 | Done |
+| 9 | Get AI triage (included) | AI service | 4.3-4.7 | 1 | Done |
 | 10 | View routing result | Patient | 5.5 | 1 | Done |
 | 11 | Request a call | Patient | 3.8, 3.9 | 1 | Done |
 | 12 | Chat about the case | Patient, agent | 6.6 | 1 | Done |
@@ -236,7 +236,7 @@ Source: the three use case tables in the SRS (Assignment 2 copy), read on 24 Oct
 | # | Use case | Actor | FR | Phase | Status |
 |---|---|---|---|---|---|
 | 20 | Set agent status | Agent | 6.1 | 1 | Done |
-| 21 | Accept offered case | Agent | 4.9, 6.2–6.4 | 1 | Done |
+| 21 | Accept offered case | Agent | 4.9, 6.2-6.4 | 1 | Done |
 | 22 | Review and confirm triage | Agent | 6.5, 11.6 | 1 | Done |
 | 23 | Pause case for urgent case | Agent | 6.12 | 1 | Done |
 | 24 | Chat about the case | Agent, patient | 6.6, 6.8, 6.9 | 1 | Done |
@@ -274,7 +274,7 @@ Source: the three use case tables in the SRS (Assignment 2 copy), read on 24 Oct
 | 51 | Manage clinician accounts | Facility manager | 8.2, 2.6 | 1 | Done |
 | 52 | Prepare clinician schedule | Facility manager | 8.4 | 1 | Done |
 | 53 | View staff activity | Facility manager, administrator | 10.3 | 1 | Done |
-| 54 | Create facilities and staff accounts | Administrator | 12.1, 2.6 | 0–1 | Done |
+| 54 | Create facilities and staff accounts | Administrator | 12.1, 2.6 | 0-1 | Done |
 | 55 | Deactivate account or change email | Administrator | 12.2, 12.3 | 1 | Done |
 | 56 | Prepare agent schedule | Administrator | 12.4 | 1 | Done |
 | 57 | Monitor on-duty agents | Administrator | 12.5 | 1 | Done |
@@ -292,16 +292,16 @@ Source: the three use case tables in the SRS (Assignment 2 copy), read on 24 Oct
 |---|---|---|---|---|
 | 1 | Data protection | HTTPS everywhere, data encrypted at rest (Supabase), Law No. 058/2021 | 4 | Partly: national ID stored only as a keyed hash; HTTPS comes with deployment |
 | 2 | Authentication strength | 2FA, 15-minute sessions, both lock rules | 0 | Done (`auth.test.ts`) |
-| 3 | Confidentiality | Role-based access, synthetic data and photos only, no identity sent to the AI | 0–1 | Done: role guards (`phase2.test.ts`), synthetic data, and no name, ID or location sent to the AI (FR 4.6, `cases.test.ts`) |
+| 3 | Confidentiality | Role-based access, synthetic data and photos only, no identity sent to the AI | 0-1 | Done: role guards (`phase2.test.ts`), synthetic data, and no name, ID or location sent to the AI (FR 4.6, `cases.test.ts`) |
 | 4 | Performance | 95% of common actions in 3 s on 3G; AI in 10 s; chat in 3 s | 3 | Partly: at the SRS's scale with 20 people at once, 95% of API answers in 15 to 77 ms; modelled on 3G, common actions take about 0.6 to 0.7 s; chat under 3 s and the AI limit of 10 s are tested; a first page visit is about 3 s on 3G, repeat visits about 1.5 s ([`docs/PERFORMANCE.md`](PERFORMANCE.md), `scale.test.ts`). Still to do: a check on a real phone over a real 3G line (phase 4) |
 | 5 | Scalability | 1,000 patients a day, 50 facilities, 100 staff; more instances behind the load balancer | 3 | Done: one instance handles 50 facilities, 100 staff and 30,000 requests a month with a wide margin (`scale.test.ts`); live events cross instances through Postgres LISTEN/NOTIFY and a second instance delivers chat within 3 s (`instances.test.ts`, D70); the dispatcher and timers run once across instances |
 | 6 | Reliability | 99% a month; works without AI, GPS or connection | 3 | Partly: works without the AI (FR 4.7), without GPS (sector list, FR 3.4) and without a connection (FR 3.10, 1.9). The 99% monthly figure can only be measured once deployed (phase 4) |
 | 7 | Usability | Kinyarwanda and English; a case in 3 minutes or less; "Prefer a call" | 3 | Partly: every patient and pharmacy screen in Kinyarwanda or English, chosen on any screen and kept on the record (red flags, notifications); dates with Kinyarwanda month names; screen readers told the language (`i18n.test.ts`, `cases.test.ts`); "Prefer a call" built. Waiting on: the native-speaker review of the drafts, and timing a case with real users (phase 4) |
 | 8 | Compatibility | PWA on Chrome, Edge, Safari, Brave, phone and computer | 3 | Partly: installable (manifest, icons, service worker, Install button on Chrome, Edge and Android, Home Screen hint on iPhone), squircle fallback for Safari and Firefox; checked in Chromium only. Installing on a real iPhone and Android phone is part of the phase 4 device checks |
-| 9 | Auditability | Logs complete, kept 5 years, never editable or deletable | 0–3 | Done: a database rule refuses any update or delete of `AuditEvent` (`phase2.test.ts`); nothing ever removes rows, so they are kept well beyond 5 years |
-| 10 | Maintainability | Mock NIDA replaceable with little change; red flags and AI settings without code | 0–1 | Done: NIDA behind one client (`nida.client.ts`); red flags and the AI switch are edited on screens (`setup.test.ts`) |
+| 9 | Auditability | Logs complete, kept 5 years, never editable or deletable | 0-3 | Done: a database rule refuses any update or delete of `AuditEvent` (`phase2.test.ts`); nothing ever removes rows, so they are kept well beyond 5 years |
+| 10 | Maintainability | Mock NIDA replaceable with little change; red flags and AI settings without code | 0-1 | Done: NIDA behind one client (`nida.client.ts`); red flags and the AI switch are edited on screens (`setup.test.ts`) |
 | 11 | Ownership | Standard Node.js and PostgreSQL; works without AI | 0 | Done (stack) |
-| 12 | Staffing | At least 1 agent online 24/7 through the schedule | 1–3 | Done: the agent schedule shows every shift with nobody on it (`setup.test.ts`); the on-duty dashboard flags scheduled agents who are Offline (`records.test.ts`); the administrator is alerted and emailed after 5 minutes with no agent online (`timers.test.ts`). Filling the schedule is the service's job |
+| 12 | Staffing | At least 1 agent online 24/7 through the schedule | 1-3 | Done: the agent schedule shows every shift with nobody on it (`setup.test.ts`); the on-duty dashboard flags scheduled agents who are Offline (`records.test.ts`); the administrator is alerted and emailed after 5 minutes with no agent online (`timers.test.ts`). Filling the schedule is the service's job |
 | 13 | Notification privacy | Notifications never contain medical details | 3 | Done: every notification says only “You have a new message.”; proved by decrypting what the API sends, as a browser would (`push.test.ts`) |
 
 ## Added after the SRS review (25 and 26 October 2026)
@@ -310,18 +310,18 @@ Features added after the live testing and Wilson's review. Each has its decision
 
 | Addition | Requirement | Decision | Proof |
 |---|---|---|---|
-| Red-flag checklist on one screen; a tap is Yes, "None of these" after the last sign | FR 3.6 (SRS revised 25 Oct), Appendix C rule 2 | – | `cases.test.ts` (one-screen checklist); live check B3 |
+| Red-flag checklist on one screen; a tap is Yes, "None of these" after the last sign | FR 3.6 (SRS revised 25 Oct), Appendix C rule 2 | - | `cases.test.ts` (one-screen checklist); live check B3 |
 | Live events across API instances (Postgres LISTEN/NOTIFY) | NFR 5 | D70 | `instances.test.ts`: a second API instance delivers chat both ways within 3 s |
 | Demo schedule for 12 weeks, with day and night cover at Kacyiru | FR 5.3, 8.4 (demo data) | D69 | Live check D1: a child can be routed |
 | Mock NIDA at `nida.ubuzima.wilsonn.tech` with its own certificate | SRS deployment diagram (Figure 11) | D67 | Live login through the new address |
-| Closed cases keep the conversation readable | FR 6.9 (final advice), FR 7.2 | – | Screen test: the patient reads the agent's last advice after closing |
-| Prescription: copy the code, download as an image with the QR code, in the app's fonts | FR 11.2 | – | Screen test: the downloaded image's QR code decodes to the check page |
+| Closed cases keep the conversation readable | FR 6.9 (final advice), FR 7.2 | - | Screen test: the patient reads the agent's last advice after closing |
+| Prescription: copy the code, download as an image with the QR code, in the app's fonts | FR 11.2 | - | Screen test: the downloaded image's QR code decodes to the check page |
 | Pasting a code ("616 260") fills all six boxes | FR 2.2 | D41 | Screen test on the live site |
 | Staff menu folds to icons, with a sliding animation | DESIGN | D71 | Screen test: widths 76 → 248 → 240 px while sliding |
 | Tabs on the agent's case and the clinician's visit | FR 6.5, 7.7 (usability) | D72 | Screen test on the case screen |
 | Administrator adds made-up people to the mock NIDA, stored with parameterised queries under its own database user | FR 1.1 to 1.3 (demo) | D73 | `nida-admin.test.ts` (admin only, login with the new ID, child under a parent, SQL and fake photos refused); live test |
 | Voice notes in the chat, up to two minutes, with a live waveform and a player (ElevenLabs UI) | FR 6.6, NFR 7 | D74, D78 | `voice.test.ts`; live test (patient's note played by the agent); screen test |
-| Login pages say "this page is for staff/patients" to someone logged in to the other app | FR 1.7, 2.5 | – | Screen test |
+| Login pages say "this page is for staff/patients" to someone logged in to the other app | FR 1.7, 2.5 | - | Screen test |
 | One session cookie per app, so a patient tab can't end a staff login | FR 1.7, 2.5, NFR 9 | D76 | `two-apps.test.ts`; live check |
 | Schedule as a calendar: add, drag to move, remove; copy last week; own shifts as a week calendar | FR 8.4, 8.5, 12.4 | D77 | `setup.test.ts` (copying last week); screen test |
 
@@ -330,7 +330,7 @@ Features added after the live testing and Wilson's review. Each has its decision
 | Rubric line | Where | Status |
 |---|---|---|
 | Code availability: public GitHub, clear setup | https://github.com/nshizirunguwilson/ubuzimaconnect, README (setup, tests, deployment, known limitations) | Done |
-| Solution deployment: public URL | https://ubuzima.wilsonn.tech, following [`docs/DEPLOY.md`](DEPLOY.md) (D67) | — waiting on the sign-ins to Azure, Supabase, Vercel, Resend and get.tech |
+| Solution deployment: public URL | https://ubuzima.wilsonn.tech, following [`docs/DEPLOY.md`](DEPLOY.md) (D67) | - waiting on the sign-ins to Azure, Supabase, Vercel, Resend and get.tech |
 | Operation: login, sign-up, buttons, redirects | Staff can log in on the live site through the demo inbox (D66) | Partly: built and tested locally; to check on the live site |
 | Presentation video, and every user's functions visible | [`docs/VIDEO.md`](VIDEO.md): one patient's story across all six roles | Partly: plan written; recording after deployment |
 

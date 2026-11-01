@@ -59,7 +59,7 @@ export function provinceOf(district: string) {
 export const SHIFTS = ["DAY", "NIGHT"] as const;
 export type ShiftType = (typeof SHIFTS)[number];
 export const SHIFT_LABEL: Record<ShiftType, string> = { DAY: "Day", NIGHT: "Night" };
-export const SHIFT_HOURS: Record<ShiftType, string> = { DAY: "07:00–19:00", NIGHT: "19:00–07:00" };
+export const SHIFT_HOURS: Record<ShiftType, string> = { DAY: "07:00-19:00", NIGHT: "19:00-07:00" };
 
 const KIGALI_OFFSET_MS = 2 * 3_600_000;
 const DAY_SHIFT_STARTS = 7;

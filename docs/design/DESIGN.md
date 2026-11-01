@@ -1,7 +1,7 @@
 # UbuzimaConnect: Design Rules (Stage 2)
 
 Status: Draft for approval
-Built from: [`RESEARCH.md`](./RESEARCH.md). References are cited as R1–R5 and sections 2.x of that file.
+Built from: [`RESEARCH.md`](./RESEARCH.md). References are cited as R1-R5 and sections 2.x of that file.
 
 Every screen must pass the checklist in section 12 before it is shown.
 
@@ -140,7 +140,7 @@ Headings use **Outfit**; everything else uses **Google Sans Flex** (optical size
 | **Input / Select / Textarea** | A label always above (never placeholder-only); helper text below; an error state with icon + message in red-700. |
 | **Choice row** | A full-width row with an icon, a label and an optional one-line explanation; the selected row is tinted. Used for red-flag answers and triage confirmation (R1). |
 | **Checkbox / Radio** | 20 px controls inside a 44 px target. |
-| **Card** | Surface, 1 px border, lg squircle, 16–24 padding. The "highlighted" variant uses accent-soft, **at most one per screen**. |
+| **Card** | Surface, 1 px border, lg squircle, 16-24 padding. The "highlighted" variant uses accent-soft, **at most one per screen**. |
 | **Status badge** | Icon + label + tint (section 2). Never colour-only. |
 | **Tabs with counts** | e.g. "Urgent 3" (R2). The active tab is underlined in blue. |
 | **Queue row / table row** | Primary text, one status badge, time on the right (R2, R3). Hover = sunken. The whole row is clickable. |

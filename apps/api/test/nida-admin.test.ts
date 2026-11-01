@@ -28,14 +28,14 @@ describe("adding a person to the mock NIDA (D73)", () => {
 
   it("adds an adult with a valid ID who can then log in, with their own photo, and logs it", async () => {
     const admin = await staffLogin("admin@ubuzima.test");
-    const r = await admin("/staff/nida/people", ADULT);
-    expect(r.status).toBe(201);
-    expect(r.body.nationalId).toMatch(/^119947\d{7}1\d{2}$/); // 1 · 1994 · 7 (female) · birth order · 1 · check
+    const added = await admin("/staff/nida/people", ADULT);
+    expect(added.status).toBe(201);
+    expect(added.body.nationalId).toMatch(/^119947\d{7}1\d{2}$/); // 1 · 1994 · 7 (female) · birth order · 1 · check
     const patient = browser();
     expect(
       (
         await patient("/auth/patient/login", {
-          nationalId: r.body.nationalId,
+          nationalId: added.body.nationalId,
           dateOfBirth: "1994-08-12",
           name: "Josiane",
         })
@@ -43,7 +43,7 @@ describe("adding a person to the mock NIDA (D73)", () => {
     ).toBe(200);
     const me = (await patient("/auth/me")).body;
     const photo = await fetch(`${API}/patients/${me.id}/photo`, {
-      headers: { cookie: await cookieOf(r.body.nationalId) },
+      headers: { cookie: await cookieOf(added.body.nationalId) },
     });
     expect(photo.headers.get("content-type")).toContain("image/png");
     const log = await db.query(`select count(*)::int as n from "AuditEvent" where action = 'nida.person.added'`);
@@ -71,9 +71,15 @@ describe("adding a person to the mock NIDA (D73)", () => {
     });
     expect(child.status).toBe(201);
     expect(child.body.nationalId).toBeNull();
-    const p = browser();
-    await p("/auth/patient/login", { nationalId: parent.nationalId, dateOfBirth: "1988-01-20", name: "Theogene" });
-    expect((await p("/cases/mine")).body.people.map((x: { firstName: string }) => x.firstName)).toContain("Ishimwe");
+    const parentBrowser = browser();
+    await parentBrowser("/auth/patient/login", {
+      nationalId: parent.nationalId,
+      dateOfBirth: "1988-01-20",
+      name: "Theogene",
+    });
+    expect(
+      (await parentBrowser("/cases/mine")).body.people.map((person: { firstName: string }) => person.firstName),
+    ).toContain("Ishimwe");
   });
 
   it("refuses SQL in names or the parent, a fake photo, and a child without a parent", async () => {
@@ -98,15 +104,15 @@ describe("adding a person to the mock NIDA (D73)", () => {
     const admin = await staffLogin("admin@ubuzima.test");
     const list = (await admin("/staff/nida/people")).body;
     expect(list[0].addedAt).toBeTruthy();
-    expect(list.some((x: { ref: string }) => x.ref === "NIDA-0001")).toBe(true);
+    expect(list.some((person: { ref: string }) => person.ref === "NIDA-0001")).toBe(true);
   });
 });
 
 async function cookieOf(nationalId: string) {
-  const res = await fetch(`${API}/auth/patient/login`, {
+  const response = await fetch(`${API}/auth/patient/login`, {
     method: "POST",
     headers: { "content-type": "application/json" },
     body: JSON.stringify({ nationalId, dateOfBirth: "1994-08-12", name: "Josiane" }),
   });
-  return res.headers.get("set-cookie")!.split(";")[0];
+  return response.headers.get("set-cookie")!.split(";")[0];
 }

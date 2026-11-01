@@ -4,10 +4,10 @@ import { clearOutboxes, flushOutbox, queueStep, readOutbox } from "./outbox";
 // A stand-in for the browser's localStorage.
 const data = new Map<string, string>();
 globalThis.localStorage = {
-  getItem: (k: string) => data.get(k) ?? null,
-  setItem: (k: string, v: string) => void data.set(k, v),
-  removeItem: (k: string) => void data.delete(k),
-  key: (i: number) => [...data.keys()][i] ?? null,
+  getItem: (key: string) => data.get(key) ?? null,
+  setItem: (key: string, value: string) => void data.set(key, value),
+  removeItem: (key: string) => void data.delete(key),
+  key: (index: number) => [...data.keys()][index] ?? null,
   get length() {
     return data.size;
   },
@@ -15,7 +15,7 @@ globalThis.localStorage = {
 } as Storage;
 
 const offline = new Error("offline");
-const isOffline = (e: unknown) => e === offline;
+const isOffline = (error: unknown) => error === offline;
 
 describe("the offline outbox (FR 3.10)", () => {
   beforeEach(() => data.clear());

@@ -127,7 +127,7 @@ const DAY_ONLY = new Set([
 
 const iso = (d) => d.toISOString().slice(0, 10);
 function days() {
-  // Kigali is UTC+2; shifts run 07:00–19:00 and 19:00–07:00 local time, dated by the day they start.
+  // Kigali is UTC+2; shifts run 07:00-19:00 and 19:00-07:00 local time, dated by the day they start.
   const now = new Date(Date.now() + 2 * 3600_000);
   const monday = new Date(
     Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - ((now.getUTCDay() + 6) % 7)),
