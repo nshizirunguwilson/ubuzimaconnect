@@ -10,7 +10,7 @@ import { Auth, CurrentSession } from "../auth/guard";
 import type { LiveSession } from "../auth/session.service";
 import { RoutingService } from "../cases/routing.service";
 
-/** FR 8.2: a facility manager creates, edits and deactivates the clinicians of their own facility only. */
+/** A facility manager invites, edits and deactivates the clinicians of their own facility only. */
 @Controller("clinicians")
 @Auth({ kind: "staff", roles: ["FACILITY_MANAGER"] })
 export class CliniciansController {
@@ -22,70 +22,98 @@ export class CliniciansController {
   ) {}
 
   @Get()
-  async list(@CurrentSession() s: LiveSession) {
+  async list(@CurrentSession() session: LiveSession) {
     return this.db.client.staff.findMany({
-      where: { role: "CLINICIAN", facilityId: this.facilityId(s) },
+      where: { role: "CLINICIAN", facilityId: this.facilityId(session) },
       orderBy: [{ status: "asc" }, { name: "asc" }],
       select: { id: true, name: true, email: true, specialty: true, licenceNumber: true, status: true, lastLoginAt: true },
     });
   }
 
   @Post()
-  async create(@Body() body: unknown, @CurrentSession() s: LiveSession, @Req() req: Request) {
+  async create(@Body() body: unknown, @CurrentSession() session: LiveSession, @Req() request: Request) {
     const input = parse(clinicianInvite, body);
-    if (await this.db.client.staff.findUnique({ where: { email: input.email } })) {
-      throw new ApiException(409, "CONFLICT", "Someone already has an account with this email", {
-        fields: { email: "Someone already has an account with this email" },
-      });
+    const emailTaken = (await this.db.client.staff.findUnique({ where: { email: input.email } })) !== null;
+    if (emailTaken) {
+      const message = "Someone already has an account with this email";
+      throw new ApiException(409, "CONFLICT", message, { fields: { email: message } });
     }
-    const c = await this.db.client.staff.create({
-      data: { ...input, role: "CLINICIAN", facilityId: this.facilityId(s), invitedById: s.staffId },
+
+    const clinician = await this.db.client.staff.create({
+      data: { ...input, role: "CLINICIAN", facilityId: this.facilityId(session), invitedById: session.staffId },
     });
-    await this.codes.sendLink(c, "INVITATION", s.staff!.name);
-    await this.audit.record({ type: "staff", id: s.staffId }, "clinician.invited", { staffId: c.id, specialty: c.specialty }, req.ip);
-    return { id: c.id };
+    await this.codes.sendLink(clinician, "INVITATION", session.staff!.name);
+    await this.audit.record(
+      { type: "staff", id: session.staffId },
+      "clinician.invited",
+      { staffId: clinician.id, specialty: clinician.specialty },
+      request.ip,
+    );
+    return { id: clinician.id };
   }
 
   @Put(":id")
-  async update(@Param("id", ParseUUIDPipe) id: string, @Body() body: unknown, @CurrentSession() s: LiveSession, @Req() req: Request) {
-    const c = await this.own(id, s);
+  async update(
+    @Param("id", ParseUUIDPipe) id: string,
+    @Body() body: unknown,
+    @CurrentSession() session: LiveSession,
+    @Req() request: Request,
+  ) {
+    const clinician = await this.own(id, session);
     const input = parse(clinicianInvite.omit({ email: true }), body);
-    await this.db.client.staff.update({ where: { id: c.id }, data: input });
-    await this.audit.record({ type: "staff", id: s.staffId }, "clinician.updated", { staffId: c.id, specialty: input.specialty }, req.ip);
+    await this.db.client.staff.update({ where: { id: clinician.id }, data: input });
+    await this.audit.record(
+      { type: "staff", id: session.staffId },
+      "clinician.updated",
+      { staffId: clinician.id, specialty: input.specialty },
+      request.ip,
+    );
     return { ok: true };
   }
 
-  /** Deactivated accounts are kept, never deleted (FR 8.2). Their sessions end at once. */
+  /** Deactivated accounts are kept, never deleted. Their sessions end at once. */
   @Post(":id/deactivate")
   @HttpCode(200)
-  async deactivate(@Param("id", ParseUUIDPipe) id: string, @CurrentSession() s: LiveSession, @Req() req: Request) {
-    const c = await this.own(id, s);
-    await this.db.client.staff.update({ where: { id: c.id }, data: { status: "DEACTIVATED" } });
-    await this.db.client.session.updateMany({ where: { staffId: c.id, revokedAt: null }, data: { revokedAt: new Date() } });
-    await this.audit.record({ type: "staff", id: s.staffId }, "clinician.deactivated", { staffId: c.id }, req.ip);
-    await this.routing.reassignFrom(c.id, "Account deactivated");
+  async deactivate(@Param("id", ParseUUIDPipe) id: string, @CurrentSession() session: LiveSession, @Req() request: Request) {
+    const clinician = await this.own(id, session);
+    await this.db.client.staff.update({ where: { id: clinician.id }, data: { status: "DEACTIVATED" } });
+    await this.db.client.session.updateMany({
+      where: { staffId: clinician.id, revokedAt: null },
+      data: { revokedAt: new Date() },
+    });
+    await this.audit.record({ type: "staff", id: session.staffId }, "clinician.deactivated", { staffId: clinician.id }, request.ip);
+    // Patients on their way to this clinician go to a colleague.
+    await this.routing.reassignFrom(clinician.id, "Account deactivated");
     return { ok: true };
   }
 
-  /** FR 2.6: the facility manager can send a new invitation. */
+  /** Sends a new invitation when the first one wasn't used. */
   @Post(":id/invitation")
   @HttpCode(200)
-  async resend(@Param("id", ParseUUIDPipe) id: string, @CurrentSession() s: LiveSession, @Req() req: Request) {
-    const c = await this.own(id, s);
-    if (c.status !== "INVITED") throw new ApiException(409, "CONFLICT", "This person has already set a password.");
-    await this.codes.sendLink(c, "INVITATION", s.staff!.name);
-    await this.audit.record({ type: "staff", id: s.staffId }, "staff.invitation.resent", { staffId: c.id }, req.ip);
+  async resend(@Param("id", ParseUUIDPipe) id: string, @CurrentSession() session: LiveSession, @Req() request: Request) {
+    const clinician = await this.own(id, session);
+    if (clinician.status !== "INVITED") throw new ApiException(409, "CONFLICT", "This person has already set a password.");
+    await this.codes.sendLink(clinician, "INVITATION", session.staff!.name);
+    await this.audit.record(
+      { type: "staff", id: session.staffId },
+      "staff.invitation.resent",
+      { staffId: clinician.id },
+      request.ip,
+    );
     return { ok: true };
   }
 
-  private facilityId(s: LiveSession) {
-    if (!s.staff?.facilityId) throw new ApiException(404, "NOT_FOUND", "Your account isn't linked to a facility.");
-    return s.staff.facilityId;
+  private facilityId(session: LiveSession) {
+    if (!session.staff?.facilityId) throw new ApiException(404, "NOT_FOUND", "Your account isn't linked to a facility.");
+    return session.staff.facilityId;
   }
 
-  private async own(id: string, s: LiveSession) {
-    const c = await this.db.client.staff.findFirst({ where: { id, role: "CLINICIAN", facilityId: this.facilityId(s) } });
-    if (!c) throw new ApiException(404, "NOT_FOUND", "This clinician isn't at your facility.");
-    return c;
+  /** A clinician at this manager's facility. */
+  private async own(id: string, session: LiveSession) {
+    const clinician = await this.db.client.staff.findFirst({
+      where: { id, role: "CLINICIAN", facilityId: this.facilityId(session) },
+    });
+    if (!clinician) throw new ApiException(404, "NOT_FOUND", "This clinician isn't at your facility.");
+    return clinician;
   }
 }

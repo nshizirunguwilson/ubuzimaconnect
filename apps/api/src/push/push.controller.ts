@@ -10,7 +10,7 @@ import { Auth, CurrentSession } from "../auth/guard";
 import type { LiveSession } from "../auth/session.service";
 import { PushService } from "./push.service";
 
-/** Turning push notifications on and off for this browser (FR 6.6, 1.8). */
+/** Turning push notifications on and off for this browser. */
 @Controller("push")
 export class PushController {
   constructor(
@@ -27,24 +27,43 @@ export class PushController {
 
   @Post("subscriptions")
   @Auth({ kind: "any" })
-  async subscribe(@Body() body: unknown, @CurrentSession() s: LiveSession, @Req() req: Request) {
-    // FR 1.8: "This is not my device" means no notifications on it.
-    if (s.sharedDevice) throw new ApiException(409, "CONFLICT", "Notifications are off on a device that isn't yours.");
+  async subscribe(@Body() body: unknown, @CurrentSession() session: LiveSession, @Req() request: Request) {
+    // "This is not my device" means no notifications on it.
+    if (session.sharedDevice) {
+      throw new ApiException(409, "CONFLICT", "Notifications are off on a device that isn't yours.");
+    }
     const { endpoint, keys } = parse(pushSubscription, body);
-    const owner = s.patientId ? { patientId: s.patientId, staffId: null } : { patientId: null, staffId: s.staffId! };
-    const device = deviceType(req.header("user-agent"));
-    // The same browser may have been someone else's; it now belongs to whoever turned it on.
-    await this.db.client.pushSubscription.upsert({ where: { endpoint }, create: { endpoint, p256dh: keys.p256dh, auth: keys.auth, device, ...owner }, update: { p256dh: keys.p256dh, auth: keys.auth, device, ...owner } });
-    await this.audit.record(s.patientId ? { type: "patient", id: s.patientId } : { type: "staff", id: s.staffId }, "push.on", { device }, req.ip);
+    const owner = session.patientId
+      ? { patientId: session.patientId, staffId: null }
+      : { patientId: null, staffId: session.staffId! };
+    const device = deviceType(request.header("user-agent"));
+    const details = { p256dh: keys.p256dh, auth: keys.auth, device, ...owner };
+
+    // The same browser may have been someone else's: it now belongs to whoever turned notifications on.
+    await this.db.client.pushSubscription.upsert({
+      where: { endpoint },
+      create: { endpoint, ...details },
+      update: details,
+    });
+
+    const actor = session.patientId
+      ? ({ type: "patient", id: session.patientId } as const)
+      : ({ type: "staff", id: session.staffId } as const);
+    await this.audit.record(actor, "push.on", { device }, request.ip);
     return { ok: true };
   }
 
   @Delete("subscriptions")
   @HttpCode(200)
   @Auth({ kind: "any" })
-  async unsubscribe(@Body() body: unknown, @CurrentSession() s: LiveSession) {
+  async unsubscribe(@Body() body: unknown, @CurrentSession() session: LiveSession) {
     const { endpoint } = parse(pushSubscription.pick({ endpoint: true }), body);
-    await this.db.client.pushSubscription.deleteMany({ where: { endpoint, OR: [{ patientId: s.patientId ?? undefined }, { staffId: s.staffId ?? undefined }] } });
+    await this.db.client.pushSubscription.deleteMany({
+      where: {
+        endpoint,
+        OR: [{ patientId: session.patientId ?? undefined }, { staffId: session.staffId ?? undefined }],
+      },
+    });
     return { ok: true };
   }
 }

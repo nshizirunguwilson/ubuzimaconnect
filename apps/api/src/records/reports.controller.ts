@@ -1,15 +1,18 @@
 import { Controller, Get, Header, Query, Req, Res } from "@nestjs/common";
 import { PERIODS, type Period } from "@ubuzima/shared";
 import type { Request, Response } from "express";
-import { AuditService } from "../common/audit.service";
-import { ApiException } from "../common/errors";
 import { Auth, CurrentSession } from "../auth/guard";
 import type { LiveSession } from "../auth/session.service";
+import { AuditService } from "../common/audit.service";
+import { ApiException } from "../common/errors";
 import { reportCsv, ReportsService } from "./reports.service";
 
-const today = () => new Date(Date.now() + 2 * 3_600_000).toISOString().slice(0, 10);
+/** Today's date in Kigali (UTC+2), as YYYY-MM-DD. */
+function kigaliToday() {
+  return new Date(Date.now() + 2 * 3_600_000).toISOString().slice(0, 10);
+}
 
-/** FR 12.8: every staff role gets its own report; patients get the printable summary (FR 7.2). */
+/** Every staff role gets its own report, on screen or as a spreadsheet file. */
 @Controller("reports")
 @Auth({ kind: "staff" })
 export class ReportsController {
@@ -19,25 +22,43 @@ export class ReportsController {
   ) {}
 
   @Get()
-  get(@CurrentSession() s: LiveSession, @Query("period") period?: string, @Query("date") date?: string) {
-    return this.build(s, period, date);
+  get(@CurrentSession() session: LiveSession, @Query("period") period?: string, @Query("date") date?: string) {
+    return this.build(session, period, date);
   }
 
-  /** The same report as a spreadsheet file. Downloads are logged: a report holds staff names and counts. */
+  /** The same report as a spreadsheet file. Downloads are logged, because a report holds staff names and counts. */
   @Get("csv")
   @Header("Content-Type", "text/csv; charset=utf-8")
-  async csv(@CurrentSession() s: LiveSession, @Req() req: Request, @Res({ passthrough: true }) res: Response, @Query("period") period?: string, @Query("date") date?: string) {
-    const rep = await this.build(s, period, date);
-    res.setHeader("Content-Disposition", `attachment; filename="ubuzimaconnect-report-${rep.period}-${rep.start}.csv"`);
-    await this.audit.record({ type: "staff", id: s.staffId }, "report.downloaded", { period: rep.period, start: rep.start }, req.ip);
-    return reportCsv(rep);
+  async csv(
+    @CurrentSession() session: LiveSession,
+    @Req() request: Request,
+    @Res({ passthrough: true }) response: Response,
+    @Query("period") period?: string,
+    @Query("date") date?: string,
+  ) {
+    const report = await this.build(session, period, date);
+    const fileName = `ubuzimaconnect-report-${report.period}-${report.start}.csv`;
+    response.setHeader("Content-Disposition", `attachment; filename="${fileName}"`);
+    await this.audit.record(
+      { type: "staff", id: session.staffId },
+      "report.downloaded",
+      { period: report.period, start: report.start },
+      request.ip,
+    );
+    return reportCsv(report);
   }
 
-  private build(s: LiveSession, period = "week", date = today()) {
-    if (!(PERIODS as readonly string[]).includes(period)) throw new ApiException(400, "VALIDATION", "Choose day, week or month.");
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || Number.isNaN(Date.parse(date))) throw new ApiException(400, "VALIDATION", "Choose a date.");
-    const me = s.staff!;
-    if (me.role === "FACILITY_MANAGER" && !me.facilityId) throw new ApiException(404, "NOT_FOUND", "Your account isn't linked to a facility.");
+  private build(session: LiveSession, period = "week", date = kigaliToday()) {
+    if (!(PERIODS as readonly string[]).includes(period)) {
+      throw new ApiException(400, "VALIDATION", "Choose day, week or month.");
+    }
+    const isValidDate = /^\d{4}-\d{2}-\d{2}$/.test(date) && !Number.isNaN(Date.parse(date));
+    if (!isValidDate) throw new ApiException(400, "VALIDATION", "Choose a date.");
+
+    const me = session.staff!;
+    if (me.role === "FACILITY_MANAGER" && !me.facilityId) {
+      throw new ApiException(404, "NOT_FOUND", "Your account isn't linked to a facility.");
+    }
     return this.reports.build(me.role, me.id, me.facilityId, period as Period, date);
   }
 }

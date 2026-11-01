@@ -2,7 +2,7 @@ import { Controller, Get, Query } from "@nestjs/common";
 import { formatKm, matchFacilities } from "@ubuzima/shared";
 import { FacilityDataService } from "./facilities.service";
 
-/** FR 1.9, 9.6: no login. No case or record is created. */
+/** Public pages that need no login. No case or record is created. */
 @Controller("public")
 export class PublicController {
   constructor(private facilities: FacilityDataService) {}

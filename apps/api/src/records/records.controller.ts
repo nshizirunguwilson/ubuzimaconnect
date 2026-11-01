@@ -12,8 +12,8 @@ import { activityRows } from "./activity";
 const PAGE = 50;
 
 /**
- * FR 7.2, 10.2, 9.1: a patient's own records and activity, at any time; a parent also their children's,
- * at any age (FR 1.3). A child of 16 or more with their own ID logs in and sees only their own.
+ * A patient's own records and activity, at any time. A parent also sees their children's.
+ * A child of 16 or more logs in with their own ID card and sees only their own.
  */
 @Controller("records")
 @Auth({ kind: "patient" })
@@ -25,8 +25,12 @@ export class RecordsController {
   ) {}
 
   @Get(":patientId")
-  async records(@Param("patientId", ParseUUIDPipe) patientId: string, @CurrentSession() s: LiveSession, @Req() req: Request) {
-    const person = await this.allowed(s, patientId);
+  async records(
+    @Param("patientId", ParseUUIDPipe) patientId: string,
+    @CurrentSession() session: LiveSession,
+    @Req() request: Request,
+  ) {
+    const person = await this.allowedPerson(session, patientId);
     const cases = await this.db.client.case.findMany({
       where: { patientId },
       orderBy: { createdAt: "desc" },
@@ -34,60 +38,99 @@ export class RecordsController {
         routings: {
           where: { arrivedAt: { not: null } },
           orderBy: { arrivedAt: "asc" },
-          include: { facility: { select: { name: true } }, entries: { include: { author: { select: { name: true } } }, orderBy: { version: "desc" } } },
+          include: {
+            facility: { select: { name: true } },
+            entries: { include: { author: { select: { name: true } } }, orderBy: { version: "desc" } },
+          },
         },
       },
     });
-    await this.audit.viewed({ type: "patient", id: s.patientId }, "records.viewed", { patientId }, req.ip);
+    await this.audit.viewed({ type: "patient", id: session.patientId }, "records.viewed", { patientId }, request.ip);
+
     return {
-      person: { id: person.id, name: person.fullName, dateOfBirth: person.dateOfBirth, age: age(person.dateOfBirth), sex: person.sex, district: person.district, photoUrl: person.photoUrl },
+      person: {
+        id: person.id,
+        name: person.fullName,
+        dateOfBirth: person.dateOfBirth,
+        age: age(person.dateOfBirth),
+        sex: person.sex,
+        district: person.district,
+        photoUrl: person.photoUrl,
+      },
       prescriptions: await this.prescriptions.forPatient(patientId),
-      cases: cases.map((c) => ({
-        id: c.id,
-        code: c.code,
-        createdAt: c.createdAt,
-        status: c.status,
-        outcome: c.outcome,
-        closingNote: c.closingNote,
-        description: c.description,
-        visits: c.routings.map((r) => ({
-          id: r.id,
-          facility: r.facility.name,
-          status: r.status,
-          arrivedAt: r.arrivedAt,
-          endedAt: r.endedAt,
-          // The current version of each entry; earlier versions stay for the clinicians (FR 7.7)
-          entries: latestVersions(r.entries).map((e) => ({ id: e.id, diagnosis: e.diagnosis, treatment: e.treatment, notes: e.notes, by: e.author.name, at: e.createdAt })),
+      cases: cases.map((found) => ({
+        id: found.id,
+        code: found.code,
+        createdAt: found.createdAt,
+        status: found.status,
+        outcome: found.outcome,
+        closingNote: found.closingNote,
+        description: found.description,
+        visits: found.routings.map((visit) => ({
+          id: visit.id,
+          facility: visit.facility.name,
+          status: visit.status,
+          arrivedAt: visit.arrivedAt,
+          endedAt: visit.endedAt,
+          // The current version of each entry. Earlier versions are kept for the clinicians.
+          entries: latestVersions(visit.entries).map((entry) => ({
+            id: entry.id,
+            diagnosis: entry.diagnosis,
+            treatment: entry.treatment,
+            notes: entry.notes,
+            by: entry.author.name,
+            at: entry.createdAt,
+          })),
         })),
       })),
     };
   }
 
-  /** FR 10.2: every action on the record, by anyone including the patient, newest first. */
+  /** Every action on the record, by anyone including the patient, newest first, a page at a time. */
   @Get(":patientId/activity")
-  async activity(@Param("patientId", ParseUUIDPipe) patientId: string, @Query("before") before: string | undefined, @CurrentSession() s: LiveSession) {
-    await this.allowed(s, patientId);
+  async activity(
+    @Param("patientId", ParseUUIDPipe) patientId: string,
+    @Query("before") before: string | undefined,
+    @CurrentSession() session: LiveSession,
+  ) {
+    await this.allowedPerson(session, patientId);
+    // One more than a page is loaded, to know whether there is a next page.
     const events = await this.db.client.auditEvent.findMany({
       where: { patientId, ...(before ? { id: { lt: before } } : {}) },
       orderBy: { id: "desc" },
       take: PAGE + 1,
     });
-    const rows = await activityRows(this.db.client, events.slice(0, PAGE), s.patientId!);
-    return { rows, next: events.length > PAGE ? events[PAGE - 1].id : null };
+    const rows = await activityRows(this.db.client, events.slice(0, PAGE), session.patientId!);
+    const hasNextPage = events.length > PAGE;
+    return { rows, next: hasNextPage ? events[PAGE - 1].id : null };
   }
 
-  private async allowed(s: LiveSession, patientId: string) {
-    const ok =
-      s.patientId === patientId ||
-      !!(await this.db.client.familyLink.findUnique({ where: { guardianId_dependantId: { guardianId: s.patientId!, dependantId: patientId } } }));
-    const p = ok ? await this.db.client.patient.findUnique({ where: { id: patientId } }) : null;
-    if (!p) throw new ApiException(403, "FORBIDDEN", "You can see only your own records and your children's.");
-    return p;
+  /** The patient themself, or one of their children. Anyone else is refused. */
+  private async allowedPerson(session: LiveSession, patientId: string) {
+    const isSelf = session.patientId === patientId;
+    const isTheirChild =
+      !isSelf &&
+      (await this.db.client.familyLink.findUnique({
+        where: { guardianId_dependantId: { guardianId: session.patientId!, dependantId: patientId } },
+      })) !== null;
+
+    const person = isSelf || isTheirChild ? await this.db.client.patient.findUnique({ where: { id: patientId } }) : null;
+    if (!person) throw new ApiException(403, "FORBIDDEN", "You can see only your own records and your children's.");
+    return person;
   }
 }
 
-/** Entries come newest version first; keep the first one seen of each, in the order they were written. */
+/**
+ * The latest version of each entry, in the order the entries were first written.
+ * The entries arrive newest version first, so the first one seen for each rootId is the latest.
+ */
 function latestVersions<T extends { rootId: string; createdAt: Date }>(entries: T[]) {
-  const seen = new Set<string>();
-  return entries.filter((e) => !seen.has(e.rootId) && seen.add(e.rootId)).sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
+  const seenRoots = new Set<string>();
+  const latest: T[] = [];
+  for (const entry of entries) {
+    if (seenRoots.has(entry.rootId)) continue;
+    seenRoots.add(entry.rootId);
+    latest.push(entry);
+  }
+  return latest.sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
 }
