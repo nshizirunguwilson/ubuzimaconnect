@@ -11,7 +11,17 @@ const PEOPLE = {
   ange: { nationalId: "1200970031504128", dateOfBirth: "2009-05-21", name: "Ange" },
 };
 type B = ReturnType<typeof browser>;
-const MEDS = { items: [{ medicine: "Amoxicillin 500 mg capsules", dose: "1 capsule", frequency: "3 times a day", days: 5, instructions: "After meals" }] };
+const MEDS = {
+  items: [
+    {
+      medicine: "Amoxicillin 500 mg capsules",
+      dose: "1 capsule",
+      frequency: "3 times a day",
+      days: 5,
+      instructions: "After meals",
+    },
+  ],
+};
 
 let gemini: ReturnType<typeof startFakeGemini>;
 let agent: B;
@@ -30,8 +40,12 @@ beforeAll(async () => {
      select gen_random_uuid(), s.id, $1::date, $2::"ShiftType", s.id from "Staff" s where s.role in ('CLINICIAN', 'AGENT') on conflict do nothing`,
     [date, shift],
   );
-  ids = Object.fromEntries((await db.query(`select id, email from "Staff"`)).rows.map((r) => [r.email.split("@")[0], r.id]));
-  [agent, agent2, er, manager, admin] = await Promise.all(["agent", "agent2", "clinician", "manager", "admin"].map((n) => staffLogin(`${n}@ubuzima.test`)));
+  ids = Object.fromEntries(
+    (await db.query(`select id, email from "Staff"`)).rows.map((r) => [r.email.split("@")[0], r.id]),
+  );
+  [agent, agent2, er, manager, admin] = await Promise.all(
+    ["agent", "agent2", "clinician", "manager", "admin"].map((n) => staffLogin(`${n}@ubuzima.test`)),
+  );
 });
 afterAll(async () => {
   await gemini.close();
@@ -49,9 +63,14 @@ async function handledCase(subject?: string) {
   await db.query(`update "Case" set status = 'CLOSED' where status <> 'CLOSED'`);
   const { b, me } = await patient("aline");
   const id = (await b("/cases", { subjectId: subject ?? me.id, location: KIGALI })).body.id as string;
-  await db.query(`update "Case" set status = 'ASSIGNED', "agentId" = $2, "triageLevel" = 'MINOR', "assignedAt" = now() where id = $1`, [id, ids.agent]);
+  await db.query(
+    `update "Case" set status = 'ASSIGNED', "agentId" = $2, "triageLevel" = 'MINOR', "assignedAt" = now() where id = $1`,
+    [id, ids.agent],
+  );
   // The agent counts as connected, or the dispatcher would rightly give the case back (FR 6.14).
-  await db.query(`update "Staff" set "agentStatus" = 'BUSY', "lastSeenAt" = now() + interval '1 hour' where id = $1`, [ids.agent]);
+  await db.query(`update "Staff" set "agentStatus" = 'BUSY', "lastSeenAt" = now() + interval '1 hour' where id = $1`, [
+    ids.agent,
+  ]);
   return { b, me, id };
 }
 
@@ -60,7 +79,9 @@ describe("issuing prescriptions (FR 11.1, 11.2, 11.6)", () => {
     const { b, me, id } = await handledCase();
     expect((await agent2(`/agent/cases/${id}/prescriptions`, MEDS)).status).toBe(403);
     expect((await agent(`/agent/cases/${id}/prescriptions`, { items: [] })).status).toBe(400);
-    expect((await agent(`/agent/cases/${id}/prescriptions`, { items: [{ ...MEDS.items[0], days: 0 }] })).status).toBe(400);
+    expect((await agent(`/agent/cases/${id}/prescriptions`, { items: [{ ...MEDS.items[0], days: 0 }] })).status).toBe(
+      400,
+    );
 
     const p = (await agent(`/agent/cases/${id}/prescriptions`, MEDS)).body;
     expect(p.code).toMatch(/^RX-[0-9A-HJKMNP-TV-Z]{4}-[0-9A-HJKMNP-TV-Z]{4}$/);
@@ -77,9 +98,15 @@ describe("issuing prescriptions (FR 11.1, 11.2, 11.6)", () => {
 
   it("only closes as Prescription issued when one was issued in the case", async () => {
     const { id } = await handledCase();
-    expect((await agent(`/agent/cases/${id}/close`, { outcome: "PRESCRIPTION_ISSUED", note: "Advised and prescribed" })).status).toBe(409);
+    expect(
+      (await agent(`/agent/cases/${id}/close`, { outcome: "PRESCRIPTION_ISSUED", note: "Advised and prescribed" }))
+        .status,
+    ).toBe(409);
     await agent(`/agent/cases/${id}/prescriptions`, MEDS);
-    expect((await agent(`/agent/cases/${id}/close`, { outcome: "PRESCRIPTION_ISSUED", note: "Advised and prescribed" })).status).toBe(200);
+    expect(
+      (await agent(`/agent/cases/${id}/close`, { outcome: "PRESCRIPTION_ISSUED", note: "Advised and prescribed" }))
+        .status,
+    ).toBe(200);
   });
 
   it("lets the attending clinician prescribe during the visit, and no one else", async () => {
@@ -111,7 +138,9 @@ describe("after issuing (FR 11.3, 11.4, 11.5)", () => {
     expect((await agent(`/prescriptions/${p.id}/cancel`, { reason: "x" })).status).toBe(400);
     expect((await agent(`/prescriptions/${p.id}/cancel`, { reason: "Wrong dose written" })).status).toBe(200);
     expect((await agent(`/prescriptions/${p.id}/cancel`, { reason: "Again" })).status).toBe(409);
-    expect((await agent("/prescriptions/mine")).body.find((x: { id: string }) => x.id === p.id).status).toBe("CANCELLED");
+    expect((await agent("/prescriptions/mine")).body.find((x: { id: string }) => x.id === p.id).status).toBe(
+      "CANCELLED",
+    );
   });
 
   it("keeps an expired prescription in the record, marked Expired", async () => {
@@ -129,7 +158,13 @@ describe("the public check page (FR 11.7)", () => {
     const p = (await agent(`/agent/cases/${id}/prescriptions`, MEDS)).body;
     const res = await fetch(`${API}/public/prescriptions/${p.code.toLowerCase().replace(/-/g, "")}`);
     const body = await res.json();
-    expect(body).toMatchObject({ found: true, code: p.code, status: "VALID", patient: "Aline Uwase", prescriber: { name: "Diane Umutoni", licence: "RNMC-22817" } });
+    expect(body).toMatchObject({
+      found: true,
+      code: p.code,
+      status: "VALID",
+      patient: "Aline Uwase",
+      prescriber: { name: "Diane Umutoni", licence: "RNMC-22817" },
+    });
     expect(body.items[0]).toMatchObject({ medicine: "Amoxicillin 500 mg capsules", dose: "1 capsule", days: 5 });
     const text = JSON.stringify(body);
     expect(text).not.toMatch(/1199|nationalId|diagnosis|dateOfBirth/);
@@ -139,7 +174,6 @@ describe("the public check page (FR 11.7)", () => {
     const logged = await db.query(`select count(*)::int as n from "AuditEvent" where action = 'prescription.checked'`);
     expect(logged.rows[0].n).toBeGreaterThanOrEqual(2);
   });
-
 });
 
 describe("patient records and activity (FR 7.2, 10.2, 1.3)", () => {
@@ -160,14 +194,30 @@ describe("patient records and activity (FR 7.2, 10.2, 1.3)", () => {
     const { b, me, id } = await handledCase();
     const p = (await agent(`/agent/cases/${id}/prescriptions`, MEDS)).body;
     await fetch(`${API}/public/prescriptions/${p.code}`);
-    const rows = (await b(`/records/${me.id}/activity`)).body.rows as { action: string; who: { name: string; role: string | null }; device: string | null; what: string }[];
-    expect(rows.find((r) => r.action === "patient.login")).toMatchObject({ who: { name: "You" }, device: expect.any(String) });
-    expect(rows.find((r) => r.action === "prescription.issued")).toMatchObject({ who: { name: "Diane Umutoni", role: "Health agent" }, what: `Issued a prescription: ${p.code}` });
-    expect(rows.find((r) => r.action === "prescription.checked")).toMatchObject({ who: { name: "A pharmacy" }, what: `Checked at a pharmacy: ${p.code}` });
+    const rows = (await b(`/records/${me.id}/activity`)).body.rows as {
+      action: string;
+      who: { name: string; role: string | null };
+      device: string | null;
+      what: string;
+    }[];
+    expect(rows.find((r) => r.action === "patient.login")).toMatchObject({
+      who: { name: "You" },
+      device: expect.any(String),
+    });
+    expect(rows.find((r) => r.action === "prescription.issued")).toMatchObject({
+      who: { name: "Diane Umutoni", role: "Health agent" },
+      what: `Issued a prescription: ${p.code}`,
+    });
+    expect(rows.find((r) => r.action === "prescription.checked")).toMatchObject({
+      who: { name: "A pharmacy" },
+      what: `Checked at a pharmacy: ${p.code}`,
+    });
     // Opening the same record again soon after is one visit, not two (FR 10.1).
     await b(`/records/${me.id}`);
     await b(`/records/${me.id}`);
-    const views = (await b(`/records/${me.id}/activity`)).body.rows.filter((r: { action: string }) => r.action === "records.viewed");
+    const views = (await b(`/records/${me.id}/activity`)).body.rows.filter(
+      (r: { action: string }) => r.action === "records.viewed",
+    );
     expect(views).toHaveLength(1);
   });
 });
@@ -191,8 +241,16 @@ describe("staff activity and the on-duty dashboard (FR 10.3, 12.5)", () => {
     await agent("/agent/status", { status: "AVAILABLE" }, "PUT");
     await agent2("/agent/status", { status: "OFFLINE" }, "PUT");
     const d = (await admin("/on-duty")).body;
-    expect(d.rows.find((r: { id: string }) => r.id === ids.agent2)).toMatchObject({ scheduled: true, status: "OFFLINE", alert: true });
-    expect(d.rows.find((r: { id: string }) => r.id === ids.agent)).toMatchObject({ scheduled: true, status: "AVAILABLE", alert: false });
+    expect(d.rows.find((r: { id: string }) => r.id === ids.agent2)).toMatchObject({
+      scheduled: true,
+      status: "OFFLINE",
+      alert: true,
+    });
+    expect(d.rows.find((r: { id: string }) => r.id === ids.agent)).toMatchObject({
+      scheduled: true,
+      status: "AVAILABLE",
+      alert: false,
+    });
     expect(d.rows[0].alert).toBe(true);
     expect((await manager("/on-duty")).status).toBe(403);
   });

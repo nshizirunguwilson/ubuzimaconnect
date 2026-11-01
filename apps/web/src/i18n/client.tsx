@@ -48,7 +48,7 @@ function rememberLang(lang: Lang) {
 }
 
 /**
- * NFR 7: English or Kinyarwanda, remembered on this device for a year. A logged-in patient's choice is also
+ * English or Kinyarwanda, remembered on this device for a year. A logged-in patient's choice is also
  * saved on their record, so red-flag questions and notifications follow it.
  */
 export function LanguageSwitch({ className }: { className?: string }) {
@@ -57,20 +57,31 @@ export function LanguageSwitch({ className }: { className?: string }) {
   async function choose(next: Lang) {
     if (next === lang) return;
     rememberLang(next);
-    await fetch("/api/me/lang", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ lang: next }) }).catch(() => null);
+    await fetch("/api/me/lang", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ lang: next }),
+    }).catch(() => null);
     router.refresh();
   }
   return (
     <div role="group" aria-label={t.lang.label} className={cn("flex items-center gap-1 text-small", className)}>
-      {(["rw", "en"] as const).map((l, i) => (
+      {(["rw", "en"] as const).map((l, index) => (
         <span key={l} className="flex items-center gap-1">
-          {i > 0 && <span aria-hidden className="text-fg-muted">·</span>}
+          {index > 0 && (
+            <span aria-hidden className="text-fg-muted">
+              ·
+            </span>
+          )}
           <button
             type="button"
             lang={l}
             aria-pressed={lang === l}
             onClick={() => choose(l)}
-            className={cn("min-h-11 cursor-pointer px-1.5 font-medium", lang === l ? "text-fg underline decoration-2 underline-offset-4" : "text-link")}
+            className={cn(
+              "min-h-11 cursor-pointer px-1.5 font-medium",
+              lang === l ? "text-fg underline decoration-2 underline-offset-4" : "text-link",
+            )}
           >
             {messages[l].lang[l]}
           </button>

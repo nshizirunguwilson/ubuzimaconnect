@@ -54,7 +54,8 @@ export class StaffController {
   async invite(@Body() body: unknown, @CurrentSession() session: LiveSession, @Req() request: Request) {
     const input = parse(invitation, body);
     const needsFacility = input.role === "FACILITY_MANAGER";
-    const facilityExists = needsFacility && (await this.db.client.facility.findUnique({ where: { id: input.facilityId! } })) !== null;
+    const facilityExists =
+      needsFacility && (await this.db.client.facility.findUnique({ where: { id: input.facilityId! } })) !== null;
     if (needsFacility && !facilityExists) {
       throw new ApiException(400, "VALIDATION", "Choose the facility this person manages", {
         fields: { facilityId: "Choose the facility this person manages" },
@@ -91,19 +92,32 @@ export class StaffController {
    */
   @Post(":id/deactivate")
   @HttpCode(200)
-  async deactivate(@Param("id", ParseUUIDPipe) id: string, @CurrentSession() session: LiveSession, @Req() request: Request) {
+  async deactivate(
+    @Param("id", ParseUUIDPipe) id: string,
+    @CurrentSession() session: LiveSession,
+    @Req() request: Request,
+  ) {
     if (id === session.staffId) throw new ApiException(400, "VALIDATION", "You can't turn off your own account.");
     const staff = await this.db.client.staff.findUnique({ where: { id } });
     if (!staff) throw new ApiException(404, "NOT_FOUND", "This account doesn't exist.");
 
     await this.db.client.staff.update({ where: { id }, data: { status: "DEACTIVATED" } });
-    await this.db.client.session.updateMany({ where: { staffId: id, revokedAt: null }, data: { revokedAt: new Date() } });
+    await this.db.client.session.updateMany({
+      where: { staffId: id, revokedAt: null },
+      data: { revokedAt: new Date() },
+    });
 
-    const activeCases = await this.db.client.case.findMany({ where: { agentId: id, status: "ASSIGNED" }, select: { id: true } });
+    const activeCases = await this.db.client.case.findMany({
+      where: { agentId: id, status: "ASSIGNED" },
+      select: { id: true },
+    });
     for (const activeCase of activeCases) {
       await this.dispatcher.requeue(activeCase.id, "Another agent will continue with you.");
     }
-    await this.db.client.staff.update({ where: { id }, data: { agentStatus: "OFFLINE", agentStatusSince: new Date() } });
+    await this.db.client.staff.update({
+      where: { id },
+      data: { agentStatus: "OFFLINE", agentStatusSince: new Date() },
+    });
     await this.audit.record({ type: "staff", id: session.staffId }, "staff.deactivated", { staffId: id }, request.ip);
 
     if (staff.role === "CLINICIAN") {
@@ -142,7 +156,11 @@ export class StaffController {
   /** Sends a new invitation when the first one wasn't used. The old link stops working. */
   @Post(":id/invitation")
   @HttpCode(200)
-  async resend(@Param("id", ParseUUIDPipe) id: string, @CurrentSession() session: LiveSession, @Req() request: Request) {
+  async resend(
+    @Param("id", ParseUUIDPipe) id: string,
+    @CurrentSession() session: LiveSession,
+    @Req() request: Request,
+  ) {
     const staff = await this.db.client.staff.findUnique({ where: { id } });
     if (!staff) throw new ApiException(404, "NOT_FOUND", "This account doesn't exist.");
     if (staff.status !== "INVITED") {

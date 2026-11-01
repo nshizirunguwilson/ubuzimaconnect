@@ -6,7 +6,7 @@ import { cn } from "@/lib/cn";
 import { Squircle } from "./squircle";
 
 /**
- * Choice row (DESIGN.md §9, RESEARCH R1): a full-width row with an icon, a label and an
+ * Choice row: a full-width row with an icon, a label and an
  * optional one-line explanation. The chosen row is tinted. It is a real radio or checkbox,
  * so keyboard and screen readers work without extra code.
  */
@@ -64,7 +64,7 @@ function Indicator({ type }: { type: "radio" | "checkbox" }) {
 }
 
 /**
- * Checkbox and radio for plain lists (DESIGN.md §9): a 20 px control inside a 44 px target.
+ * Checkbox and radio for plain lists: a 20 px control inside a 44 px target.
  */
 type CheckProps = Omit<ComponentPropsWithoutRef<"input">, "type"> & { label: string };
 

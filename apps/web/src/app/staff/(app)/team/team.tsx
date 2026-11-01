@@ -33,8 +33,7 @@ const status: Record<Row["status"], { tone: Tone; label: string }> = {
   DEACTIVATED: { tone: "neutral", label: "Turned off" },
 };
 
-
-/** FR 12.1 and 2.6: the administrator sees every staff account and invites agents and facility managers. */
+/** The administrator sees every staff account and invites agents and facility managers. */
 export function Team({ meId }: { meId: string }) {
   const [rows, setRows] = useState<Row[] | null>(null);
   const [facilities, setFacilities] = useState<Facility[]>([]);
@@ -73,25 +72,30 @@ export function Team({ meId }: { meId: string }) {
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
-              {rows.map((r) => (
-                <tr key={r.id} className="max-md:flex max-md:flex-wrap max-md:items-center max-md:gap-x-3 max-md:gap-y-1 max-md:px-4 max-md:py-3">
+              {rows.map((member) => (
+                <tr
+                  key={member.id}
+                  className="max-md:flex max-md:flex-wrap max-md:items-center max-md:gap-x-3 max-md:gap-y-1 max-md:px-4 max-md:py-3"
+                >
                   <td className="md:px-6 md:py-3 max-md:w-full">
-                    <span className="block font-semibold text-fg">{r.name}</span>
-                    <span className="block text-fg-secondary">{r.email}</span>
+                    <span className="block font-semibold text-fg">{member.name}</span>
+                    <span className="block text-fg-secondary">{member.email}</span>
                   </td>
                   <td className="text-fg md:px-4 md:py-3">
-                    {ROLE_LABEL[r.role]}
-                    {r.facility && <span className="block text-fg-secondary">{r.facility.name}</span>}
+                    {ROLE_LABEL[member.role]}
+                    {member.facility && <span className="block text-fg-secondary">{member.facility.name}</span>}
                   </td>
                   <td className="md:px-4 md:py-3">
                     <div className="flex flex-wrap items-center gap-2">
-                      <StatusBadge tone={status[r.status].tone}>{status[r.status].label}</StatusBadge>
-                      {r.status === "INVITED" && <ResendInvitation id={r.id} email={r.email} />}
-                      {r.status !== "DEACTIVATED" && r.id !== meId && <AccountActions row={r} onDone={load} />}
+                      <StatusBadge tone={status[member.status].tone}>{status[member.status].label}</StatusBadge>
+                      {member.status === "INVITED" && <ResendInvitation id={member.id} email={member.email} />}
+                      {member.status !== "DEACTIVATED" && member.id !== meId && (
+                        <AccountActions row={member} onDone={load} />
+                      )}
                     </div>
                   </td>
                   <td className="text-fg-secondary tabular-nums md:px-6 md:py-3 md:text-right max-md:w-full">
-                    {r.lastLoginAt ? formatDateTime(r.lastLoginAt) : "Never"}
+                    {member.lastLoginAt ? formatDateTime(member.lastLoginAt) : "Never"}
                   </td>
                 </tr>
               ))}
@@ -103,7 +107,7 @@ export function Team({ meId }: { meId: string }) {
   );
 }
 
-/** FR 12.2 and 12.3: turn an account off (kept, never deleted) or move it to a new email. */
+/** Turn an account off (kept, never deleted) or move it to a new email. */
 function AccountActions({ row, onDone }: { row: Row; onDone: () => Promise<unknown> }) {
   const [open, setOpen] = useState(false);
   const [email, setEmail] = useState(row.email);
@@ -134,8 +138,8 @@ function AccountActions({ row, onDone }: { row: Row; onDone: () => Promise<unkno
           <form
             id={`email-${row.id}`}
             noValidate
-            onSubmit={async (e) => {
-              e.preventDefault();
+            onSubmit={async (event) => {
+              event.preventDefault();
               setPending(true);
               try {
                 await api(`/staff/${row.id}/email`, { email }, { method: "PUT" });
@@ -149,7 +153,14 @@ function AccountActions({ row, onDone }: { row: Row; onDone: () => Promise<unkno
               }
             }}
           >
-            <Input label="New email" type="email" autoComplete="off" value={email} onChange={(e) => setEmail(e.target.value)} error={error} />
+            <Input
+              label="New email"
+              type="email"
+              autoComplete="off"
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
+              error={error}
+            />
           </form>
         </DialogContent>
       </Dialog>
@@ -172,7 +183,7 @@ function AccountActions({ row, onDone }: { row: Row; onDone: () => Promise<unkno
   );
 }
 
-/** FR 2.6: a new link when the first one wasn't used within 48 hours. */
+/** A new link when the first one wasn't used within 48 hours. */
 function ResendInvitation({ id, email }: { id: string; email: string }) {
   const [pending, setPending] = useState(false);
   return (
@@ -203,24 +214,25 @@ function InviteDialog({ facilities, onInvited }: { facilities: Facility[]; onInv
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [pending, setPending] = useState(false);
   const role = form.role as StaffRole | "";
-  const set = (k: keyof typeof form) => (e: { target: { value: string } }) => setForm((f) => ({ ...f, [k]: e.target.value }));
+  const set = (k: keyof typeof form) => (e: { target: { value: string } }) =>
+    setForm((previous) => ({ ...previous, [k]: e.target.value }));
 
   async function submit(e: FormEvent) {
     e.preventDefault();
-    const r = check(invitation, {
+    const result = check(invitation, {
       ...form,
       role: form.role || undefined,
       facilityId: role === "FACILITY_MANAGER" ? form.facilityId || undefined : undefined,
       licenceNumber: role === "AGENT" ? form.licenceNumber || undefined : undefined,
     });
-    if (!r.data) return setErrors(r.errors);
+    if (!result.data) return setErrors(result.errors);
     setErrors({});
     setPending(true);
     try {
-      await api("/staff/invitations", r.data);
+      await api("/staff/invitations", result.data);
       setOpen(false);
       setForm({ name: "", email: "", role: "", facilityId: "", licenceNumber: "" });
-      toast.success(`Invitation sent to ${r.data.email}`);
+      toast.success(`Invitation sent to ${result.data.email}`);
       onInvited();
     } catch (err) {
       if (err instanceof ApiFailure) setErrors(err.error.fields ?? { form: err.error.message });
@@ -252,11 +264,18 @@ function InviteDialog({ facilities, onInvited }: { facilities: Facility[]; onInv
       >
         <form id="invite" onSubmit={submit} noValidate className="flex flex-col gap-5">
           <Input label="Full name" autoComplete="off" value={form.name} onChange={set("name")} error={errors.name} />
-          <Input label="Work email" type="email" autoComplete="off" value={form.email} onChange={set("email")} error={errors.email} />
+          <Input
+            label="Work email"
+            type="email"
+            autoComplete="off"
+            value={form.email}
+            onChange={set("email")}
+            error={errors.email}
+          />
           <Select
             label="Role"
             placeholder="Choose a role"
-            options={ADMIN_INVITE_ROLES.map((r) => ({ value: r, label: ROLE_LABEL[r] }))}
+            options={ADMIN_INVITE_ROLES.map((role) => ({ value: role, label: ROLE_LABEL[role] }))}
             value={form.role}
             onChange={set("role")}
             error={errors.role}
@@ -265,7 +284,10 @@ function InviteDialog({ facilities, onInvited }: { facilities: Facility[]; onInv
             <Select
               label="Facility"
               placeholder="Choose a facility"
-              options={facilities.map((f) => ({ value: f.id, label: `${f.name} · ${f.district}` }))}
+              options={facilities.map((facility) => ({
+                value: facility.id,
+                label: `${facility.name} · ${facility.district}`,
+              }))}
               value={form.facilityId}
               onChange={set("facilityId")}
               error={errors.facilityId}

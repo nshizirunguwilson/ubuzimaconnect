@@ -28,7 +28,10 @@ function device(name: string, status = 201) {
   const auth = randomBytes(16);
   statuses.set(`/push/${name}`, status);
   return {
-    sub: { endpoint: `http://127.0.0.1:${PUSH_PORT}/push/${name}`, keys: { p256dh: b64u(ecdh.getPublicKey()), auth: b64u(auth) } },
+    sub: {
+      endpoint: `http://127.0.0.1:${PUSH_PORT}/push/${name}`,
+      keys: { p256dh: b64u(ecdh.getPublicKey()), auth: b64u(auth) },
+    },
     /** RFC 8291 + RFC 8188 (aes128gcm): what the browser does before showing the notification. */
     open(body: Buffer) {
       const salt = body.subarray(0, 16);
@@ -36,7 +39,10 @@ function device(name: string, status = 201) {
       const serverKey = body.subarray(21, 21 + idlen);
       const cipher = body.subarray(21 + idlen);
       const shared = ecdh.computeSecret(serverKey);
-      const ikm = hmac(hmac(auth, shared), Buffer.concat([Buffer.from("WebPush: info\0"), ecdh.getPublicKey(), serverKey, Buffer.from([1])]));
+      const ikm = hmac(
+        hmac(auth, shared),
+        Buffer.concat([Buffer.from("WebPush: info\0"), ecdh.getPublicKey(), serverKey, Buffer.from([1])]),
+      );
       const prk = hmac(salt, ikm);
       const cek = hmac(prk, Buffer.from("Content-Encoding: aes128gcm\0\x01")).subarray(0, 16);
       const nonce = hmac(prk, Buffer.from("Content-Encoding: nonce\0\x01")).subarray(0, 12);
@@ -93,18 +99,31 @@ beforeEach(async () => {
 
 /** Logs Aline in and keeps her cookie, so the test can also open her live stream like the app does. */
 async function aline(shared = false) {
-  const res = await fetch(`${API}/auth/patient/login`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ ...ALINE, sharedDevice: shared }) });
+  const res = await fetch(`${API}/auth/patient/login`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ ...ALINE, sharedDevice: shared }),
+  });
   const cookie = res.headers.get("set-cookie")!.split(";")[0];
   const call = (path: string, body?: unknown, method?: string) =>
-    fetch(API + path, { method: method ?? (body === undefined ? "GET" : "POST"), headers: { "content-type": "application/json", cookie }, body: body === undefined ? undefined : JSON.stringify(body) }).then(async (r) => ({ status: r.status, body: await r.json().catch(() => null) }));
+    fetch(API + path, {
+      method: method ?? (body === undefined ? "GET" : "POST"),
+      headers: { "content-type": "application/json", cookie },
+      body: body === undefined ? undefined : JSON.stringify(body),
+    }).then(async (r) => ({ status: r.status, body: await r.json().catch(() => null) }));
   return { call, cookie, me: (await call("/auth/me")).body };
 }
 
 /** A case Aline opened, handled by agent@ (given directly, with the agent counted as connected). */
 async function handled(a: Awaited<ReturnType<typeof aline>>) {
   const id = (await a.call("/cases", { subjectId: a.me.id, location: KIGALI })).body.id as string;
-  await db.query(`update "Case" set status = 'ASSIGNED', "triageLevel" = 'MINOR', "agentId" = (select id from "Staff" where email = 'agent@ubuzima.test'), "assignedAt" = now() where id = $1`, [id]);
-  await db.query(`update "Staff" set "agentStatus" = 'BUSY', "lastSeenAt" = (now() at time zone 'utc') + interval '1 hour' where email = 'agent@ubuzima.test'`);
+  await db.query(
+    `update "Case" set status = 'ASSIGNED', "triageLevel" = 'MINOR', "agentId" = (select id from "Staff" where email = 'agent@ubuzima.test'), "assignedAt" = now() where id = $1`,
+    [id],
+  );
+  await db.query(
+    `update "Staff" set "agentStatus" = 'BUSY', "lastSeenAt" = (now() at time zone 'utc') + interval '1 hour' where email = 'agent@ubuzima.test'`,
+  );
   return id;
 }
 
@@ -120,7 +139,9 @@ describe("push notifications (FR 6.6, NFR 13, FR 1.8)", () => {
     expect((await a.call("/push/subscriptions", phone.sub)).status).toBe(201);
     const id = await handled(a);
     const agent = await staffLogin("agent@ubuzima.test");
-    await agent(`/agent/cases/${id}/messages`, { text: "Your malaria test is positive; take the medicine I prescribe." });
+    await agent(`/agent/cases/${id}/messages`, {
+      text: "Your malaria test is positive; take the medicine I prescribe.",
+    });
 
     const got = await until(() => received.find((r) => r.path === "/push/aline-phone"));
     expect(got.headers["content-encoding"]).toBe("aes128gcm");
@@ -169,6 +190,8 @@ describe("push notifications (FR 6.6, NFR 13, FR 1.8)", () => {
     expect(laptop.open(got.body)).toEqual({ ...PUSH_TEXT, url: "/staff/patients" });
     await until(async () => true);
     await wait(300);
-    expect((await db.query(`select count(*)::int as n from "PushSubscription" where endpoint like '%er-laptop'`)).rows[0].n).toBe(0);
+    expect(
+      (await db.query(`select count(*)::int as n from "PushSubscription" where endpoint like '%er-laptop'`)).rows[0].n,
+    ).toBe(0);
   });
 });

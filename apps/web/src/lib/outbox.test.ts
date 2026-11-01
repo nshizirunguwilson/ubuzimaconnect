@@ -25,7 +25,9 @@ describe("the offline outbox (FR 3.10)", () => {
     queueStep("c1", { path: "/answers", body: { q: 2 } });
     queueStep("c1", { path: "/symptoms", body: { d: "cough" } });
     const sent: string[] = [];
-    expect(await flushOutbox("c1", async (s) => void sent.push(`${s.path}:${JSON.stringify(s.body)}`), isOffline)).toBe("sent");
+    expect(
+      await flushOutbox("c1", async (step) => void sent.push(`${step.path}:${JSON.stringify(step.body)}`), isOffline),
+    ).toBe("sent");
     expect(sent).toEqual(['/answers:{"q":1}', '/answers:{"q":2}', '/symptoms:{"d":"cough"}']);
     expect(readOutbox("c1")).toEqual([]);
   });

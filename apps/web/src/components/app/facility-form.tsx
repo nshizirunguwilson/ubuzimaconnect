@@ -43,10 +43,12 @@ export const emptyFacility: FacilityValues = {
   active: true,
 };
 
-const districtOptions = Object.entries(DISTRICTS).flatMap(([province, ds]) => ds.map((d) => ({ value: d, label: `${d} · ${province}` })));
+const districtOptions = Object.entries(DISTRICTS).flatMap(([province, ds]) =>
+  ds.map((district) => ({ value: district, label: `${district} · ${province}` })),
+);
 
 /**
- * FR 8.1 and 12.1: the capability profile that routing uses. Services from the fixed list,
+ * The capability profile that routing uses. Services from the fixed list,
  * level of care, location, active or inactive.
  */
 export function FacilityForm({
@@ -66,14 +68,19 @@ export function FacilityForm({
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [locating, setLocating] = useState(false);
   const all = { ...errors, ...serverErrors };
-  const set = (k: keyof FacilityValues) => (e: { target: { value: string } }) => setV((x) => ({ ...x, [k]: e.target.value }));
+  const set = (k: keyof FacilityValues) => (e: { target: { value: string } }) =>
+    setV((previous) => ({ ...previous, [k]: e.target.value }));
 
   function locate() {
     if (!navigator.geolocation) return setErrors({ latitude: "This browser can't share a location. Type it instead." });
     setLocating(true);
     navigator.geolocation.getCurrentPosition(
-      (p) => {
-        setV((x) => ({ ...x, latitude: p.coords.latitude.toFixed(5), longitude: p.coords.longitude.toFixed(5) }));
+      (position) => {
+        setV((previous) => ({
+          ...previous,
+          latitude: position.coords.latitude.toFixed(5),
+          longitude: position.coords.longitude.toFixed(5),
+        }));
         setLocating(false);
       },
       () => {
@@ -86,10 +93,15 @@ export function FacilityForm({
 
   async function submit(e: FormEvent) {
     e.preventDefault();
-    const r = check(facilityProfile, { ...v, level: v.level || undefined, sector: v.sector || undefined, phone: v.phone || undefined });
-    if (!r.data) return setErrors(r.errors);
+    const result = check(facilityProfile, {
+      ...v,
+      level: v.level || undefined,
+      sector: v.sector || undefined,
+      phone: v.phone || undefined,
+    });
+    if (!result.data) return setErrors(result.errors);
     setErrors({});
-    await onSubmit(r.data);
+    await onSubmit(result.data);
   }
 
   return (
@@ -98,7 +110,7 @@ export function FacilityForm({
       <Select
         label="Level of care"
         placeholder="Choose a level"
-        options={FACILITY_LEVELS.map((l) => ({ value: l, label: LEVEL_LABEL[l] }))}
+        options={FACILITY_LEVELS.map((level) => ({ value: level, label: LEVEL_LABEL[level] }))}
         value={v.level}
         onChange={set("level")}
         error={all.level}
@@ -113,8 +125,13 @@ export function FacilityForm({
               key={svc}
               label={SERVICE_LABEL[svc]}
               checked={v.services.includes(svc)}
-              onChange={(e) =>
-                setV((x) => ({ ...x, services: e.target.checked ? [...x.services, svc] : x.services.filter((s) => s !== svc) }))
+              onChange={(event) =>
+                setV((previous) => ({
+                  ...previous,
+                  services: event.target.checked
+                    ? [...previous.services, svc]
+                    : previous.services.filter((service) => service !== svc),
+                }))
               }
             />
           ))}
@@ -123,23 +140,70 @@ export function FacilityForm({
       </fieldset>
 
       <div className="grid gap-6 sm:grid-cols-2">
-        <Select label="District" placeholder="Choose a district" options={districtOptions} value={v.district} onChange={set("district")} error={all.district} />
-        <Input label="Sector" optional value={v.sector} onChange={set("sector")} error={all.sector} autoComplete="off" />
+        <Select
+          label="District"
+          placeholder="Choose a district"
+          options={districtOptions}
+          value={v.district}
+          onChange={set("district")}
+          error={all.district}
+        />
+        <Input
+          label="Sector"
+          optional
+          value={v.sector}
+          onChange={set("sector")}
+          error={all.sector}
+          autoComplete="off"
+        />
       </div>
 
       <fieldset className="flex flex-col gap-3">
         <legend className="mb-1 text-small font-medium text-fg">Location</legend>
-        <p className="text-small text-fg-secondary">Used to find the nearest facility for a patient (straight-line distance).</p>
+        <p className="text-small text-fg-secondary">
+          Used to find the nearest facility for a patient (straight-line distance).
+        </p>
         <div className="grid gap-6 sm:grid-cols-2">
-          <Input label="Latitude" inputMode="decimal" mono value={v.latitude} onChange={set("latitude")} error={all.latitude} placeholder="-1.94410" />
-          <Input label="Longitude" inputMode="decimal" mono value={v.longitude} onChange={set("longitude")} error={all.longitude} placeholder="30.06190" />
+          <Input
+            label="Latitude"
+            inputMode="decimal"
+            mono
+            value={v.latitude}
+            onChange={set("latitude")}
+            error={all.latitude}
+            placeholder="-1.94410"
+          />
+          <Input
+            label="Longitude"
+            inputMode="decimal"
+            mono
+            value={v.longitude}
+            onChange={set("longitude")}
+            error={all.longitude}
+            placeholder="30.06190"
+          />
         </div>
-        <Button variant="secondary" size="compact" icon={<LuLocateFixed />} onClick={locate} loading={locating} className="self-start">
+        <Button
+          variant="secondary"
+          size="compact"
+          icon={<LuLocateFixed />}
+          onClick={locate}
+          loading={locating}
+          className="self-start"
+        >
           Use my current location
         </Button>
       </fieldset>
 
-      <Input label="Phone number" optional type="tel" value={v.phone} onChange={set("phone")} error={all.phone} hint="Shown to patients routed here" />
+      <Input
+        label="Phone number"
+        optional
+        type="tel"
+        value={v.phone}
+        onChange={set("phone")}
+        error={all.phone}
+        hint="Shown to patients routed here"
+      />
 
       {showActive && (
         <div className="flex items-center justify-between gap-4 border-t border-border pt-4">
@@ -147,7 +211,11 @@ export function FacilityForm({
             <span className="text-body font-medium text-fg">Accepting patients</span>
             <span className="text-small text-fg-secondary">When off, no patient is routed here.</span>
           </div>
-          <Switch label="Accepting patients" checked={v.active} onChange={(active) => setV((x) => ({ ...x, active }))} />
+          <Switch
+            label="Accepting patients"
+            checked={v.active}
+            onChange={(active) => setV((previous) => ({ ...previous, active }))}
+          />
         </div>
       )}
     </form>

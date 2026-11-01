@@ -5,7 +5,7 @@ import type { ComponentPropsWithoutRef } from "react";
 import { cn } from "@/lib/cn";
 import { Squircle } from "./squircle";
 
-/** Tabs with counts (DESIGN.md §9, RESEARCH R2), e.g. "Urgent 3". The active tab is underlined in blue. */
+/** Tabs with counts, e.g. "Urgent 3". The active tab is underlined in blue. */
 export const Tabs = RadixTabs.Root;
 export const TabsContent = RadixTabs.Content;
 

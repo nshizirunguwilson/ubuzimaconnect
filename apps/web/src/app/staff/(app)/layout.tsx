@@ -1,6 +1,23 @@
 import { ROLE_LABEL, type StaffMe } from "@ubuzima/shared";
 import { Suspense } from "react";
-import { LuBuilding2, LuCalendarDays, LuCalendarClock, LuHouse, LuInbox, LuListChecks, LuSettings, LuStethoscope, LuUsers, LuUsersRound, LuPill, LuHistory, LuActivity, LuBell, LuChartColumn, LuIdCard } from "react-icons/lu";
+import {
+  LuBuilding2,
+  LuCalendarDays,
+  LuCalendarClock,
+  LuHouse,
+  LuInbox,
+  LuListChecks,
+  LuSettings,
+  LuStethoscope,
+  LuUsers,
+  LuUsersRound,
+  LuPill,
+  LuHistory,
+  LuActivity,
+  LuBell,
+  LuChartColumn,
+  LuIdCard,
+} from "react-icons/lu";
 import { AgentPresence } from "@/components/app/agent-presence";
 import { AdminAlerts } from "@/components/app/admin-alerts";
 import { ClinicianNotices } from "@/components/app/clinician-notices";
@@ -53,7 +70,7 @@ function navFor(role: StaffMe["role"]): NavItem[] {
   }
 }
 
-/** DESIGN.md §4: a 240 px navigation panel on the left, content up to 1200 px. */
+/** A 240 px navigation panel on the left, content up to 1200 px. */
 export default function StaffAppLayout({ children }: LayoutProps<"/staff">) {
   return (
     <Suspense fallback={<div className="min-h-dvh" aria-busy />}>
@@ -67,7 +84,7 @@ async function Shell({ children }: { children: React.ReactNode }) {
   const me = await requireStaff();
   const items = navFor(me.role);
   return (
-    // DECISIONS.md D18, D71: the floating navigation panel, foldable to its icons from 768 px.
+    // The floating navigation panel, foldable to its icons from 768 px.
     <StaffFrame items={items} name={me.name} role={ROLE_LABEL[me.role]}>
       <main className="mx-auto w-full max-w-[1200px] px-1 py-6 md:px-6 md:py-7">{children}</main>
       {me.role === "AGENT" && <AgentPresence />}

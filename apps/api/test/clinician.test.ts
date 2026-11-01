@@ -27,7 +27,9 @@ beforeAll(async () => {
   );
   const staff = await db.query(`select id, email from "Staff"`);
   ids = Object.fromEntries(staff.rows.map((r) => [r.email.split("@")[0], r.id]));
-  [er, paeds, gp, kibEr] = await Promise.all(["clinician", "paeds", "gp", "kib.er"].map((n) => staffLogin(`${n}@ubuzima.test`)));
+  [er, paeds, gp, kibEr] = await Promise.all(
+    ["clinician", "paeds", "gp", "kib.er"].map((n) => staffLogin(`${n}@ubuzima.test`)),
+  );
 });
 afterAll(async () => {
   await gemini.close();
@@ -63,28 +65,51 @@ async function arrived() {
 }
 
 const usedBeds = async () =>
-  Number((await db.query(`select count(*) from "BedReservation" b join "Routing" r on r.id = b."routingId" where b.status = 'USED' and r.status = 'ARRIVED'`)).rows[0].count);
+  Number(
+    (
+      await db.query(
+        `select count(*) from "BedReservation" b join "Routing" r on r.id = b."routingId" where b.status = 'USED' and r.status = 'ARRIVED'`,
+      )
+    ).rows[0].count,
+  );
 
 describe("incoming patients (FR 7.4, 5.12)", () => {
   it("tells the assigned clinician and shows a summary to every on-duty clinician at the facility", async () => {
     const { routingId } = await urgentCase();
-    const notice = await db.query(`select kind from "Notification" where "staffId" = $1 and "routingId" = $2`, [ids.clinician, routingId]);
+    const notice = await db.query(`select kind from "Notification" where "staffId" = $1 and "routingId" = $2`, [
+      ids.clinician,
+      routingId,
+    ]);
     expect(notice.rows).toEqual([{ kind: "INCOMING" }]);
 
     const mine = (await er("/clinician/patients")).body;
     const row = mine.incoming.find((x: { id: string }) => x.id === routingId);
-    expect(row).toMatchObject({ level: "URGENT", service: expect.any(String), sex: "FEMALE", age: expect.stringMatching(/years/), isNew: true, attending: { me: true } });
+    expect(row).toMatchObject({
+      level: "URGENT",
+      service: expect.any(String),
+      sex: "FEMALE",
+      age: expect.stringMatching(/years/),
+      isNew: true,
+      attending: { me: true },
+    });
     expect(row.redFlags.length).toBe(1);
     // A summary only: no name or national ID before arrival.
     expect(JSON.stringify(row)).not.toMatch(/Aline|Uwase|1199/);
 
     const other = (await paeds("/clinician/patients")).body;
-    expect(other.incoming.find((x: { id: string }) => x.id === routingId)).toMatchObject({ attending: { me: false }, isNew: false });
-    expect((await kibEr("/clinician/patients")).body.incoming.find((x: { id: string }) => x.id === routingId)).toBeUndefined();
+    expect(other.incoming.find((x: { id: string }) => x.id === routingId)).toMatchObject({
+      attending: { me: false },
+      isNew: false,
+    });
+    expect(
+      (await kibEr("/clinician/patients")).body.incoming.find((x: { id: string }) => x.id === routingId),
+    ).toBeUndefined();
 
     // Opening it marks the notice read.
     await er(`/clinician/incoming/${routingId}`);
-    expect((await er("/clinician/patients")).body.incoming.find((x: { id: string }) => x.id === routingId).isNew).toBe(false);
+    expect((await er("/clinician/patients")).body.incoming.find((x: { id: string }) => x.id === routingId).isNew).toBe(
+      false,
+    );
   });
 
   it("shows nothing to a clinician who is off duty", async () => {
@@ -101,7 +126,9 @@ describe("arrival (FR 7.5)", () => {
   it("records a photo mismatch and leaves the patient incoming", async () => {
     const { routingId } = await urgentCase();
     expect((await er(`/clinician/incoming/${routingId}/issue`, { note: "x" })).status).toBe(400);
-    expect((await er(`/clinician/incoming/${routingId}/issue`, { note: "Face doesn't match the ID photo" })).status).toBe(201);
+    expect(
+      (await er(`/clinician/incoming/${routingId}/issue`, { note: "Face doesn't match the ID photo" })).status,
+    ).toBe(201);
     const r = await db.query(`select status from "Routing" where id = $1`, [routingId]);
     expect(r.rows[0].status).toBe("SUGGESTED");
     expect((await er(`/clinician/incoming/${routingId}`)).body.issues).toHaveLength(1);
@@ -135,23 +162,45 @@ describe("the visit (FR 7.6, 7.7, 7.3)", () => {
     expect(v.body.patient.name).toBe("Aline Uwase");
     expect(v.body.bed).toBe("USED");
     expect((await paeds(`/clinician/visits/${routingId}`)).status).toBe(403);
-    const audit = await db.query(`select 1 from "AuditEvent" where action = 'record.viewed' and "actorId" = $1 and detail->>'routingId' = $2`, [ids.clinician, routingId]);
+    const audit = await db.query(
+      `select 1 from "AuditEvent" where action = 'record.viewed' and "actorId" = $1 and detail->>'routingId' = $2`,
+      [ids.clinician, routingId],
+    );
     expect(audit.rowCount).toBe(1);
   });
 
   it("versions every update, keeps earlier versions, and locks entries when the visit ends", async () => {
     const { routingId } = await arrived();
     expect((await er(`/clinician/visits/${routingId}/entries`, {})).status).toBe(400);
-    const first = (await er(`/clinician/visits/${routingId}/entries`, { diagnosis: "Acute asthma", treatment: "Salbutamol nebuliser" })).body;
-    expect((await er(`/clinician/visits/${routingId}/entries/${first.rootId}`, { diagnosis: "Acute asthma, moderate", treatment: "Salbutamol nebuliser, prednisolone" }, "PUT")).body.version).toBe(2);
+    const first = (
+      await er(`/clinician/visits/${routingId}/entries`, {
+        diagnosis: "Acute asthma",
+        treatment: "Salbutamol nebuliser",
+      })
+    ).body;
+    expect(
+      (
+        await er(
+          `/clinician/visits/${routingId}/entries/${first.rootId}`,
+          { diagnosis: "Acute asthma, moderate", treatment: "Salbutamol nebuliser, prednisolone" },
+          "PUT",
+        )
+      ).body.version,
+    ).toBe(2);
 
     const v = (await er(`/clinician/visits/${routingId}`)).body;
     expect(v.entries).toHaveLength(1);
-    expect(v.entries[0].latest).toMatchObject({ version: 2, diagnosis: "Acute asthma, moderate", by: "Dr. Samuel Mugisha" });
+    expect(v.entries[0].latest).toMatchObject({
+      version: 2,
+      diagnosis: "Acute asthma, moderate",
+      by: "Dr. Samuel Mugisha",
+    });
     expect(v.entries[0].earlier).toEqual([expect.objectContaining({ version: 1, diagnosis: "Acute asthma" })]);
 
     expect((await er(`/clinician/visits/${routingId}/finish`, {})).body.status).toBe("DISCHARGED");
-    expect((await er(`/clinician/visits/${routingId}/entries/${first.rootId}`, { notes: "late" }, "PUT")).status).toBe(403);
+    expect((await er(`/clinician/visits/${routingId}/entries/${first.rootId}`, { notes: "late" }, "PUT")).status).toBe(
+      403,
+    );
     expect((await er(`/clinician/visits/${routingId}`)).status).toBe(403);
   });
 
@@ -161,7 +210,11 @@ describe("the visit (FR 7.6, 7.7, 7.3)", () => {
     await er(`/clinician/visits/${one.routingId}/finish`, {});
     const two = await arrived();
     const v = (await er(`/clinician/visits/${two.routingId}`)).body;
-    expect(v.entries.some((e: { thisVisit: boolean; latest: { notes: string } }) => !e.thisVisit && e.latest.notes === "Known asthmatic")).toBe(true);
+    expect(
+      v.entries.some(
+        (e: { thisVisit: boolean; latest: { notes: string } }) => !e.thisVisit && e.latest.notes === "Known asthmatic",
+      ),
+    ).toBe(true);
     expect(v.history.some((h: { id: string }) => h.id === one.caseId)).toBe(true);
   });
 });
@@ -213,9 +266,14 @@ describe("beds, discharge and transfer (FR 7.8, 7.9, 7.10)", () => {
       [t.routingId],
     );
     expect(next.rows[0]).toEqual({ status: "CONFIRMED", clinicianId: ids["kib.er"], bed: "HELD" });
-    expect((await kibEr("/clinician/patients")).body.incoming.find((x: { id: string }) => x.id === t.routingId)).toMatchObject({ isNew: true, transferredFrom: expect.stringContaining("Kacyiru") });
+    expect(
+      (await kibEr("/clinician/patients")).body.incoming.find((x: { id: string }) => x.id === t.routingId),
+    ).toMatchObject({ isNew: true, transferredFrom: expect.stringContaining("Kacyiru") });
     expect((await er(`/clinician/visits/${routingId}`)).status).toBe(403);
-    const audit = await db.query(`select 1 from "AuditEvent" where action = 'patient.transferred' and detail->>'caseId' = $1`, [caseId]);
+    const audit = await db.query(
+      `select 1 from "AuditEvent" where action = 'patient.transferred' and detail->>'caseId' = $1`,
+      [caseId],
+    );
     expect(audit.rowCount).toBe(1);
   });
 });
@@ -230,9 +288,15 @@ describe("handover (FR 7.11)", () => {
     expect((await er(`/clinician/visits/${routingId}/handover`, { clinicianId: ids.gp })).status).toBe(200);
     expect((await er(`/clinician/visits/${routingId}`)).status).toBe(403);
     expect((await gp(`/clinician/visits/${routingId}`)).status).toBe(200);
-    const notice = await db.query(`select kind from "Notification" where "staffId" = $1 and "routingId" = $2`, [ids.gp, routingId]);
+    const notice = await db.query(`select kind from "Notification" where "staffId" = $1 and "routingId" = $2`, [
+      ids.gp,
+      routingId,
+    ]);
     expect(notice.rows).toEqual([{ kind: "HANDOVER" }]);
-    const audit = await db.query(`select 1 from "AuditEvent" where action = 'patient.handed_over' and detail->>'routingId' = $1`, [routingId]);
+    const audit = await db.query(
+      `select 1 from "AuditEvent" where action = 'patient.handed_over' and detail->>'routingId' = $1`,
+      [routingId],
+    );
     expect(audit.rowCount).toBe(1);
   });
 });

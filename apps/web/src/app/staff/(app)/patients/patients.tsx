@@ -49,8 +49,8 @@ const sexAge = (p: { sex: "FEMALE" | "MALE"; age: string }) => `${p.sex === "FEM
 const rowClass = "flex min-h-16 items-center gap-3 px-4 py-3 hover:bg-sunken focus-visible:-outline-offset-2 md:px-6";
 
 /**
- * FR 7.4: patients on their way to this facility, as a summary only, to every clinician on duty here.
- * FR 7.6: patients in my care open the full record. Both lists update live.
+ * Patients on their way to this facility, as a summary only, to every clinician on duty here.
+ * Patients in my care open the full record. Both lists update live.
  */
 export function Patients({ facility }: { facility: string | null }) {
   const { data, reload } = useApi<Data>("/clinician/patients");
@@ -64,7 +64,10 @@ export function Patients({ facility }: { facility: string | null }) {
 
   return (
     <div className="flex flex-col gap-8">
-      <PageHeader title="Patients" intro={facility ? `Patients in your care, and patients on their way to ${facility}.` : "Patients in your care."} />
+      <PageHeader
+        title="Patients"
+        intro={facility ? `Patients in your care, and patients on their way to ${facility}.` : "Patients in your care."}
+      />
       <NotifyToggle who="clinician" />
 
       <section className="flex flex-col gap-3" aria-labelledby="in-care">
@@ -73,21 +76,24 @@ export function Patients({ facility }: { facility: string | null }) {
         </h2>
         <Card className="p-0 md:p-0">
           {data.visits.length === 0 ? (
-            <EmptyState icon={LuUsersRound} message="No patients in your care. When you mark a patient arrived, they appear here." />
+            <EmptyState
+              icon={LuUsersRound}
+              message="No patients in your care. When you mark a patient arrived, they appear here."
+            />
           ) : (
             <ul className="divide-y divide-border">
-              {data.visits.map((v) => (
-                <li key={v.id}>
-                  <Link href={`/staff/visits/${v.id}`} className={rowClass}>
-                    <Avatar src={v.photoUrl} name={v.name} size={40} />
+              {data.visits.map((visit) => (
+                <li key={visit.id}>
+                  <Link href={`/staff/visits/${visit.id}`} className={rowClass}>
+                    <Avatar src={visit.photoUrl} name={visit.name} size={40} />
                     <div className="flex min-w-0 flex-1 flex-col">
-                      <span className="truncate text-body font-semibold text-fg">{v.name}</span>
+                      <span className="truncate text-body font-semibold text-fg">{visit.name}</span>
                       <span className="truncate text-small text-fg-secondary">
-                        {sexAge(v)} · {SERVICE_LABEL[v.service]} · arrived {formatTime(v.arrivedAt)}
+                        {sexAge(visit)} · {SERVICE_LABEL[visit.service]} · arrived {formatTime(visit.arrivedAt)}
                       </span>
                     </div>
-                    {v.handedOver && <StatusBadge tone="info">Handed over to you</StatusBadge>}
-                    {v.hasBed && (
+                    {visit.handedOver && <StatusBadge tone="info">Handed over to you</StatusBadge>}
+                    {visit.hasBed && (
                       <StatusBadge tone="neutral" icon={<LuBedDouble aria-hidden />} className="max-sm:hidden">
                         Bed
                       </StatusBadge>
@@ -115,33 +121,42 @@ export function Patients({ facility }: { facility: string | null }) {
               <EmptyState icon={LuUsersRound} message="Nobody is on the way right now." />
             ) : (
               <ul className="divide-y divide-border">
-                {data.incoming.map((p) => (
-                  <li key={p.id}>
-                    <Link href={`/staff/incoming/${p.id}`} className={rowClass}>
-                      {p.level === "URGENT" ? (
+                {data.incoming.map((patient) => (
+                  <li key={patient.id}>
+                    <Link href={`/staff/incoming/${patient.id}`} className={rowClass}>
+                      {patient.level === "URGENT" ? (
                         <LuTriangleAlert className="size-5 shrink-0 text-urgent" aria-hidden />
                       ) : (
                         <span className="size-5 shrink-0" aria-hidden />
                       )}
                       <div className="flex min-w-0 flex-1 flex-col">
                         <span className="flex items-center gap-2 truncate text-body font-semibold text-fg">
-                          {sexAge(p)}
-                          {p.isNew && <StatusBadge tone="info">New</StatusBadge>}
+                          {sexAge(patient)}
+                          {patient.isNew && <StatusBadge tone="info">New</StatusBadge>}
                         </span>
                         <span className="truncate text-small text-fg-secondary">
                           {[
-                            SERVICE_LABEL[p.service],
-                            p.redFlags[0] ? `Red flag ${p.redFlags[0].code}` : p.description,
-                            p.attending ? (p.attending.me ? "Yours" : p.attending.name) : "No clinician assigned",
-                            p.transferredFrom ? "Transfer" : null,
+                            SERVICE_LABEL[patient.service],
+                            patient.redFlags[0] ? `Red flag ${patient.redFlags[0].code}` : patient.description,
+                            patient.attending
+                              ? patient.attending.me
+                                ? "Yours"
+                                : patient.attending.name
+                              : "No clinician assigned",
+                            patient.transferredFrom ? "Transfer" : null,
                           ]
                             .filter(Boolean)
                             .join(" · ")}
                         </span>
                       </div>
-                      {p.level && <TriageBadge level={p.level.toLowerCase() as TriageLevel} className="max-sm:hidden" />}
-                      <span className="shrink-0 text-small text-fg-secondary tabular-nums" title="When the facility was given">
-                        {formatTime(p.sentAt)}
+                      {patient.level && (
+                        <TriageBadge level={patient.level.toLowerCase() as TriageLevel} className="max-sm:hidden" />
+                      )}
+                      <span
+                        className="shrink-0 text-small text-fg-secondary tabular-nums"
+                        title="When the facility was given"
+                      >
+                        {formatTime(patient.sentAt)}
                       </span>
                       <LuChevronRight className="size-5 shrink-0 text-fg-muted" aria-hidden />
                     </Link>

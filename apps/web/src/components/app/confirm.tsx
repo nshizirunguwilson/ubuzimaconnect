@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { useT } from "@/i18n/client";
 
-/** An action behind a dialog that says what will happen (DESIGN.md §9). */
+/** An action behind a dialog that says what will happen. */
 export function Confirm({
   trigger,
   title,

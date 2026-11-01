@@ -41,7 +41,8 @@ export class PushService implements OnModuleInit, OnModuleDestroy {
     webpush.setVapidDetails(env.vapid.subject, env.vapid.publicKey, env.vapid.privateKey);
 
     this.listening = this.events.all().subscribe(({ channel, event }) => {
-      const isCaseMessageForPatient = event.type === "message" && event.message.sender !== "PATIENT" && channel.startsWith("case:");
+      const isCaseMessageForPatient =
+        event.type === "message" && event.message.sender !== "PATIENT" && channel.startsWith("case:");
       if (isCaseMessageForPatient) void this.notifyPatientOfCase(event.caseId);
 
       if (event.type === "notice" && channel.startsWith("staff:")) {
@@ -88,7 +89,10 @@ export class PushService implements OnModuleInit, OnModuleDestroy {
       }).catch(() => null);
 
       if (response?.ok) {
-        await this.db.client.pushSubscription.update({ where: { id: subscription.id }, data: { lastUsedAt: new Date() } });
+        await this.db.client.pushSubscription.update({
+          where: { id: subscription.id },
+          data: { lastUsedAt: new Date() },
+        });
       } else if (response?.status === 404 || response?.status === 410) {
         // The browser unsubscribed or was reset: forget it.
         await this.db.client.pushSubscription.delete({ where: { id: subscription.id } }).catch(() => null);

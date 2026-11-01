@@ -1,6 +1,14 @@
 "use client";
 
-import { AGENT_STATUS_LABEL, CATEGORY_LABEL, SERVICE_LABEL, type AgentStatus, type Category, type Service } from "@ubuzima/shared";
+import {
+  AGENT_STATUS_LABEL,
+  CATEGORY_LABEL,
+  SERVICE_LABEL,
+  type AgentStatus,
+  type Category,
+  type Service,
+  TRIAGE_LABEL,
+} from "@ubuzima/shared";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { LuInbox, LuPhoneCall, LuTriangleAlert } from "react-icons/lu";
@@ -44,20 +52,39 @@ type State = {
 
 const LEVELS = ["URGENT", "UNCERTAIN", "MINOR"] as const;
 
-/** Each status has its own colour and dot, so it reads at a glance (DESIGN.md §2: never colour alone, the word is there too). */
+/** Each status has its own colour and dot, so it reads at a glance. Never colour alone: the word is there too. */
 const STATUS_STYLE = {
-  AVAILABLE: { on: "sq-bg-success-soft sq-border-success text-success-fg", dot: "bg-success", means: "Cases will be offered to you, one at a time. You have 30 seconds to accept each one." },
-  AWAY: { on: "sq-bg-warning-soft sq-border-warning text-warning-fg", dot: "bg-warning", means: "You won't be offered new cases until you choose Available again." },
-  OFFLINE: { on: "sq-bg-sunken sq-border-border-strong text-fg-secondary", dot: "bg-fg-muted", means: "You won't be offered cases. Use this at the end of your shift." },
+  AVAILABLE: {
+    on: "sq-bg-success-soft sq-border-success text-success-fg",
+    dot: "bg-success",
+    means: "Cases will be offered to you, one at a time. You have 30 seconds to accept each one.",
+  },
+  AWAY: {
+    on: "sq-bg-warning-soft sq-border-warning text-warning-fg",
+    dot: "bg-warning",
+    means: "You won't be offered new cases until you choose Available again.",
+  },
+  OFFLINE: {
+    on: "sq-bg-sunken sq-border-border-strong text-fg-secondary",
+    dot: "bg-fg-muted",
+    means: "You won't be offered cases. Use this at the end of your shift.",
+  },
 } as const;
-const triage = (l: Summary["level"]) => l.toLowerCase() as TriageLevel;
+/** The badge takes the level in lower case: "URGENT" becomes "urgent". */
+const triage = (level: Summary["level"]) => level.toLowerCase() as TriageLevel;
 const minutes = (iso: string, now: number) => Math.max(0, Math.floor((now - new Date(iso).getTime()) / 60_000));
-const what = (c: Summary) =>
-  [c.redFlag ? `Red flag ${c.redFlag}` : c.category ? CATEGORY_LABEL[c.category] : null, c.service ? SERVICE_LABEL[c.service] : null].filter(Boolean).join(" · ");
+/** What the case is about, for its queue row: "Red flag A2 · Emergency care" or "Fever or infection · General medicine". */
+function what(waitingCase: Summary) {
+  let reason: string | null = null;
+  if (waitingCase.redFlag) reason = `Red flag ${waitingCase.redFlag}`;
+  else if (waitingCase.category) reason = CATEGORY_LABEL[waitingCase.category];
+  const service = waitingCase.service ? SERVICE_LABEL[waitingCase.service] : null;
+  return [reason, service].filter(Boolean).join(" · ");
+}
 
 /**
- * FR 6.1 to 6.4 and RESEARCH R2: the agent's status, the case offered to them (30 seconds to accept),
- * and the waiting cases by level with counts. Waiting cases show no names (FR 9.2).
+ * The agent's status, the case offered to them (30 seconds to accept),
+ * and the waiting cases by level with counts. Waiting cases show no names.
  */
 export function Queue({ firstName }: { firstName: string }) {
   const router = useRouter();
@@ -66,7 +93,11 @@ export function Queue({ firstName }: { firstName: string }) {
   const [pending, setPending] = usePending<string | null>(null);
   const [ask, setAsk] = useState<"AVAILABLE" | "AWAY" | "OFFLINE" | null>(null);
 
-  useLive("/events/agent", () => void reload(), () => void reload());
+  useLive(
+    "/events/agent",
+    () => void reload(),
+    () => void reload(),
+  );
   useEffect(() => {
     const t = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(t);
@@ -79,8 +110,8 @@ export function Queue({ firstName }: { firstName: string }) {
     try {
       await api("/agent/status", { status }, { method: "PUT" });
       await reload();
-    } catch (e) {
-      toast.error(e instanceof ApiFailure ? e.error.message : "Couldn't change your status.");
+    } catch (error) {
+      toast.error(error instanceof ApiFailure ? error.error.message : "Couldn't change your status.");
     } finally {
       setPending(null);
     }
@@ -91,15 +122,20 @@ export function Queue({ firstName }: { firstName: string }) {
     try {
       await api(`/agent/offers/${id}/accept`, {});
       router.push(`/staff/cases/${id}`);
-    } catch (e) {
+    } catch (error) {
       setPending(null);
-      toast.error(e instanceof ApiFailure ? e.error.message : "Couldn't accept.");
+      toast.error(error instanceof ApiFailure ? error.error.message : "Couldn't accept.");
       await reload();
     }
   }
 
   const secondsLeft = data.offer ? Math.max(0, Math.ceil((new Date(data.offer.expiresAt).getTime() - now) / 1000)) : 0;
-  const counts = Object.fromEntries(LEVELS.map((l) => [l, data.waiting.filter((c) => c.level === l).length])) as Record<Summary["level"], number>;
+  const counts = Object.fromEntries(
+    LEVELS.map((levelName) => [
+      levelName,
+      data.waiting.filter((waitingCase) => waitingCase.level === levelName).length,
+    ]),
+  ) as Record<Summary["level"], number>;
 
   return (
     <div className="flex flex-col gap-6">
@@ -112,37 +148,39 @@ export function Queue({ firstName }: { firstName: string }) {
         }
       />
 
-      {/* FR 6.1: Busy is set by the system while a case is open */}
+      {/* Busy is set by the system while a case is open */}
       <div className="flex flex-wrap items-center gap-3">
         <span className="text-small font-medium text-fg">Your status</span>
         {data.status === "BUSY" ? (
           <StatusBadge tone="info">Busy with a case</StatusBadge>
         ) : (
           <div role="radiogroup" aria-label="Your status" className="flex gap-1">
-            {(["AVAILABLE", "AWAY", "OFFLINE"] as const).map((s) => (
+            {(["AVAILABLE", "AWAY", "OFFLINE"] as const).map((option) => (
               <Squircle
-                key={s}
+                key={option}
                 as="button"
                 type="button"
                 role="radio"
-                aria-checked={data.status === s}
+                aria-checked={data.status === option}
                 radius="md"
                 focus="self"
                 disabled={pending !== null}
-                onClick={() => data.status !== s && setAsk(s)}
+                onClick={() => data.status !== option && setAsk(option)}
                 className={cn(
                   "inline-flex h-10 cursor-pointer items-center gap-2 px-3.5 text-small font-medium",
-                  data.status === s ? STATUS_STYLE[s].on : "sq-bg-surface sq-border-border-strong text-fg hover:sq-bg-sunken",
+                  data.status === option
+                    ? STATUS_STYLE[option].on
+                    : "sq-bg-surface sq-border-border-strong text-fg hover:sq-bg-sunken",
                 )}
               >
-                <span aria-hidden className={cn("size-2 rounded-full", STATUS_STYLE[s].dot)} />
-                {AGENT_STATUS_LABEL[s]}
+                <span aria-hidden className={cn("size-2 rounded-full", STATUS_STYLE[option].dot)} />
+                {AGENT_STATUS_LABEL[option]}
               </Squircle>
             ))}
           </div>
         )}
       </div>
-      <Dialog open={ask !== null} onOpenChange={(o) => !o && setAsk(null)}>
+      <Dialog open={ask !== null} onOpenChange={(open) => !open && setAsk(null)}>
         {ask && (
           <DialogContent
             title={`Change to ${AGENT_STATUS_LABEL[ask]}?`}
@@ -224,42 +262,49 @@ export function Queue({ firstName }: { firstName: string }) {
       <Card className="p-0 md:p-0">
         <Tabs defaultValue="URGENT">
           <TabsList className="px-4 md:px-6">
-            {LEVELS.map((l) => (
-              <Tab key={l} value={l} count={counts[l]}>
-                {l === "URGENT" ? "Urgent" : l === "UNCERTAIN" ? "Uncertain" : "Minor"}
+            {LEVELS.map((level) => (
+              <Tab key={level} value={level} count={counts[level]}>
+                {TRIAGE_LABEL[level]}
               </Tab>
             ))}
           </TabsList>
-          {LEVELS.map((l) => {
-            const rows = data.waiting.filter((c) => c.level === l);
+          {LEVELS.map((levelName) => {
+            const rows = data.waiting.filter((waitingCase) => waitingCase.level === levelName);
             return (
-              <TabsContent key={l} value={l} className="outline-none">
+              <TabsContent key={levelName} value={levelName} className="outline-none">
                 {rows.length === 0 ? (
-                  <EmptyState icon={LuInbox} message={`No ${l.toLowerCase()} cases waiting.`} />
+                  <EmptyState icon={LuInbox} message={`No ${levelName.toLowerCase()} cases waiting.`} />
                 ) : (
                   <ul className="divide-y divide-border">
-                    {rows.map((c) => {
-                      const waited = minutes(c.queuedAt, now);
+                    {rows.map((waitingCase) => {
+                      const waited = minutes(waitingCase.queuedAt, now);
                       return (
-                        <li key={c.id} className="flex items-center gap-3 px-4 py-3 md:px-6">
-                          {c.level === "URGENT" ? (
+                        <li key={waitingCase.id} className="flex items-center gap-3 px-4 py-3 md:px-6">
+                          {waitingCase.level === "URGENT" ? (
                             <LuTriangleAlert className="size-5 shrink-0 text-urgent" aria-hidden />
-                          ) : c.callRequested ? (
+                          ) : waitingCase.callRequested ? (
                             <LuPhoneCall className="size-5 shrink-0 text-fg-secondary" aria-hidden />
                           ) : (
                             <span className="size-5 shrink-0" aria-hidden />
                           )}
                           <div className="flex min-w-0 flex-1 flex-col">
                             <span className="truncate text-body font-semibold text-fg">
-                              {c.sex === "FEMALE" ? "Female" : "Male"}, {c.age}
+                              {waitingCase.sex === "FEMALE" ? "Female" : "Male"}, {waitingCase.age}
                             </span>
                             <span className="truncate text-small text-fg-secondary">
-                              {[what(c), c.callRequested ? "Call requested" : null].filter(Boolean).join(" · ") || c.code}
+                              {[what(waitingCase), waitingCase.callRequested ? "Call requested" : null]
+                                .filter(Boolean)
+                                .join(" · ") || waitingCase.code}
                             </span>
                           </div>
                           <span
-                            className={cn("shrink-0 text-small tabular-nums", waited >= 2 && l !== "MINOR" ? "font-semibold text-urgent-fg" : "text-fg-secondary")}
-                            title={`Waiting since ${new Date(c.queuedAt).toLocaleTimeString("en-GB", { timeZone: "Africa/Kigali" })}`}
+                            className={cn(
+                              "shrink-0 text-small tabular-nums",
+                              waited >= 2 && levelName !== "MINOR"
+                                ? "font-semibold text-urgent-fg"
+                                : "text-fg-secondary",
+                            )}
+                            title={`Waiting since ${new Date(waitingCase.queuedAt).toLocaleTimeString("en-GB", { timeZone: "Africa/Kigali" })}`}
                           >
                             {waited < 1 ? "Just now" : `${waited} min`}
                           </span>

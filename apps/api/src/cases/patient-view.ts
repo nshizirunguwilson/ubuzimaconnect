@@ -60,7 +60,11 @@ export class PatientViewService {
             text: questionText(next.question),
             index: next.index,
             total: next.total,
-            after: next.after.map((question) => ({ id: question.id, code: question.code, text: questionText(question) })),
+            after: next.after.map((question) => ({
+              id: question.id,
+              code: question.code,
+              text: questionText(question),
+            })),
           }
         : null,
       redFlagsAnswered: details.answers.length,
@@ -99,7 +103,11 @@ export class PatientViewService {
     noAgentOnline: boolean,
   ): Promise<Guidance | null> {
     const needsFallback =
-      !arrived && !routing && isWaiting && details.triageLevel === "UNCERTAIN" && (noAgentOnline || details.escalationLevel >= 2);
+      !arrived &&
+      !routing &&
+      isWaiting &&
+      details.triageLevel === "UNCERTAIN" &&
+      (noAgentOnline || details.escalationLevel >= 2);
     if (needsFallback) {
       const nearest = await this.flow.nearestFacilityFor(details);
       if (nearest) return { facility: nearest, noBeds: false, confirmed: false, expiresAt: null };

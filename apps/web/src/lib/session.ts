@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 
 const apiUrl = process.env.API_URL ?? "http://localhost:4000";
 
-/** D76: one session cookie per app, so a patient and a staff member can be logged in side by side. */
+/** One session cookie per app, so a patient and a staff member can be logged in side by side. */
 export const COOKIE = { patient: "uc_patient", staff: "uc_staff" } as const;
 type App = keyof typeof COOKIE;
 
@@ -36,7 +36,9 @@ async function loginUrl(app: App, path: string) {
   if (await getMe(app === "staff" ? "patient" : "staff")) return `${path}?other=1`;
   const cookie = await sessionCookie(app);
   if (!cookie) return path;
-  const res = await fetch(`${apiUrl}/auth/session`, { headers: { cookie, "x-uc-app": app }, cache: "no-store" }).catch(() => null);
+  const res = await fetch(`${apiUrl}/auth/session`, { headers: { cookie, "x-uc-app": app }, cache: "no-store" }).catch(
+    () => null,
+  );
   const { state } = res?.ok ? ((await res.json()) as { state: string }) : { state: "none" };
   if (state === "unfinished" && app === "staff") return "/staff/login/code";
   return state === "ended" ? `${path}?ended=1` : path;
@@ -54,7 +56,7 @@ export async function requireStaff() {
   return me;
 }
 
-/** For staff pages that belong to some roles only (FR 9). Others go back to their home. */
+/** For staff pages that belong to some roles only. Others go back to their home. */
 export async function requireRole(...roles: import("@ubuzima/shared").StaffRole[]) {
   const me = await requireStaff();
   if (!roles.includes(me.role)) redirect("/staff");
@@ -65,6 +67,8 @@ export async function requireRole(...roles: import("@ubuzima/shared").StaffRole[
 export async function apiGet<T>(path: string, app: App = "patient"): Promise<T | null> {
   const cookie = await sessionCookie(app);
   if (!cookie) return null;
-  const res = await fetch(`${apiUrl}${path}`, { headers: { cookie, "x-uc-app": app }, cache: "no-store" }).catch(() => null);
+  const res = await fetch(`${apiUrl}${path}`, { headers: { cookie, "x-uc-app": app }, cache: "no-store" }).catch(
+    () => null,
+  );
   return res?.ok ? res.json() : null;
 }

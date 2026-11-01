@@ -10,36 +10,35 @@ import { StatusBadge } from "@/components/ui/status";
 import type { Records } from "./load";
 import { useT } from "@/i18n/client";
 
-
 /**
- * FR 7.2: everything kept about one person, at any time: prescriptions (expired ones too, FR 11.4),
+ * Everything kept about one person, at any time: prescriptions (expired ones too),
  * visits with what the clinicians wrote, and every request for help. Valid prescriptions show their
  * QR code first, because that is what a pharmacy scans.
  */
 export function RecordsView({ data }: { data: Records }) {
   const { t, date, dateTime } = useT();
-  const p = data.person;
-  const visits = data.cases.flatMap((c) => c.visits.map((v) => ({ ...v, code: c.code })));
-  const valid = data.prescriptions.filter((x) => x.status === "VALID");
-  const past = data.prescriptions.filter((x) => x.status !== "VALID");
+  const person = data.person;
+  const visits = data.cases.flatMap((found) => found.visits.map((visit) => ({ ...visit, code: found.code })));
+  const valid = data.prescriptions.filter((prescription) => prescription.status === "VALID");
+  const past = data.prescriptions.filter((prescription) => prescription.status !== "VALID");
   return (
     <main className="flex flex-1 flex-col gap-8 lg:mx-auto lg:w-full lg:max-w-[720px]">
       <BackLink href="/home" label={t.common.home} />
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-center gap-4">
-          <Avatar src={p.photoUrl} name={p.name} size={56} />
+          <Avatar src={person.photoUrl} name={person.name} size={56} />
           <div className="flex flex-col gap-0.5">
-            <h1 className="text-h1 text-fg">{p.name}</h1>
+            <h1 className="text-h1 text-fg">{person.name}</h1>
             <p className="text-small text-fg-secondary">
-              {t.records.sexAge(p.sex === "FEMALE", t.records.age(p.age), date(p.dateOfBirth))}
+              {t.records.sexAge(person.sex === "FEMALE", t.records.age(person.age), date(person.dateOfBirth))}
             </p>
           </div>
         </div>
         <div className="flex gap-2">
-          <ButtonLink href={`/records/${p.id}/activity`} variant="secondary" size="compact" icon={<LuHistory />}>
+          <ButtonLink href={`/records/${person.id}/activity`} variant="secondary" size="compact" icon={<LuHistory />}>
             {t.records.activity}
           </ButtonLink>
-          <ButtonLink href={`/records/${p.id}/print`} variant="secondary" size="compact" icon={<LuPrinter />}>
+          <ButtonLink href={`/records/${person.id}/print`} variant="secondary" size="compact" icon={<LuPrinter />}>
             {t.records.print}
           </ButtonLink>
         </div>
@@ -51,11 +50,11 @@ export function RecordsView({ data }: { data: Records }) {
         </h2>
         {data.prescriptions.length === 0 && <p className="text-body text-fg-secondary">{t.records.noPrescriptions}</p>}
         {valid.length > 0 && <p className="text-small text-fg-secondary">{t.records.showCode}</p>}
-        {valid.map((x) => (
-          <PrescriptionCard key={x.id} p={x} qr />
+        {valid.map((prescription) => (
+          <PrescriptionCard key={prescription.id} prescription={prescription} qr />
         ))}
-        {past.map((x) => (
-          <PrescriptionCard key={x.id} p={x} />
+        {past.map((prescription) => (
+          <PrescriptionCard key={prescription.id} prescription={prescription} />
         ))}
       </section>
 
@@ -64,39 +63,41 @@ export function RecordsView({ data }: { data: Records }) {
           {t.records.visits}
         </h2>
         {visits.length === 0 && <p className="text-body text-fg-secondary">{t.records.noVisits}</p>}
-        {visits.map((v) => (
-          <Card key={v.id} className="flex flex-col gap-4">
+        {visits.map((visit) => (
+          <Card key={visit.id} className="flex flex-col gap-4">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div className="flex flex-col gap-0.5">
-                <span className="text-body font-semibold text-fg">{v.facility}</span>
+                <span className="text-body font-semibold text-fg">{visit.facility}</span>
                 <span className="text-caption text-fg-muted">
-                  {t.records.arrived(dateTime(v.arrivedAt))}
-                  {v.endedAt ? ` · ${t.records.ended(dateTime(v.endedAt))}` : ""}
+                  {t.records.arrived(dateTime(visit.arrivedAt))}
+                  {visit.endedAt ? ` · ${t.records.ended(dateTime(visit.endedAt))}` : ""}
                 </span>
               </div>
-              <StatusBadge tone={v.status === "ARRIVED" ? "info" : "neutral"}>{t.records.visitStatus[v.status] ?? v.status}</StatusBadge>
+              <StatusBadge tone={visit.status === "ARRIVED" ? "info" : "neutral"}>
+                {t.records.visitStatus[visit.status] ?? visit.status}
+              </StatusBadge>
             </div>
-            {v.entries.length === 0 ? (
+            {visit.entries.length === 0 ? (
               <p className="text-small text-fg-secondary">{t.records.nothingWritten}</p>
             ) : (
-              v.entries.map((e) => (
-                <div key={e.id} className="flex flex-col gap-1 border-t border-border pt-3 text-small">
+              visit.entries.map((entry) => (
+                <div key={entry.id} className="flex flex-col gap-1 border-t border-border pt-3 text-small">
                   <span className="text-caption text-fg-muted">
-                    {e.by} · {dateTime(e.at)}
+                    {entry.by} · {dateTime(entry.at)}
                   </span>
-                  {e.diagnosis && (
+                  {entry.diagnosis && (
                     <p>
                       <span className="text-fg-secondary">{t.records.diagnosis}: </span>
-                      <span className="text-fg">{e.diagnosis}</span>
+                      <span className="text-fg">{entry.diagnosis}</span>
                     </p>
                   )}
-                  {e.treatment && (
+                  {entry.treatment && (
                     <p>
                       <span className="text-fg-secondary">{t.records.treatment}: </span>
-                      <span className="text-fg">{e.treatment}</span>
+                      <span className="text-fg">{entry.treatment}</span>
                     </p>
                   )}
-                  {e.notes && <p className="whitespace-pre-wrap text-fg">{e.notes}</p>}
+                  {entry.notes && <p className="whitespace-pre-wrap text-fg">{entry.notes}</p>}
                 </div>
               ))
             )}
@@ -113,14 +114,16 @@ export function RecordsView({ data }: { data: Records }) {
         ) : (
           <Card className="p-0 md:p-0">
             <ul className="divide-y divide-border">
-              {data.cases.map((c) => (
-                <li key={c.id} className="flex flex-col gap-0.5 px-4 py-3 md:px-6">
+              {data.cases.map((found) => (
+                <li key={found.id} className="flex flex-col gap-0.5 px-4 py-3 md:px-6">
                   <span className="text-body font-semibold text-fg">
-                    {date(c.createdAt)} · {c.outcome ? t.records.outcomes[c.outcome] : t.records.open}
+                    {date(found.createdAt)} · {found.outcome ? t.records.outcomes[found.outcome] : t.records.open}
                   </span>
-                  <span className="font-mono text-caption text-fg-muted">{c.code}</span>
-                  {c.description && <span className="text-small text-fg-secondary">“{c.description}”</span>}
-                  {c.closingNote && c.outcome !== "CANCELLED_BY_PATIENT" && <span className="text-small text-fg-secondary">{c.closingNote}</span>}
+                  <span className="font-mono text-caption text-fg-muted">{found.code}</span>
+                  {found.description && <span className="text-small text-fg-secondary">“{found.description}”</span>}
+                  {found.closingNote && found.outcome !== "CANCELLED_BY_PATIENT" && (
+                    <span className="text-small text-fg-secondary">{found.closingNote}</span>
+                  )}
                 </li>
               ))}
             </ul>

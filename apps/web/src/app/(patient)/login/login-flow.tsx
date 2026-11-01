@@ -27,10 +27,15 @@ function EmergencyButton() {
   );
 }
 
-type Problem = { kind: "locked"; until: string } | { kind: "unavailable" } | { kind: "ended" } | { kind: "other" } | null;
+type Problem =
+  | { kind: "locked"; until: string }
+  | { kind: "unavailable" }
+  | { kind: "ended" }
+  | { kind: "other" }
+  | null;
 
 /**
- * FR 1.1 to 1.8, one thing per page (RESEARCH §2.1): first the ID, then the two facts
+ * One thing per page: first the ID, then the two facts
  * that prove it is you. Nothing is stored on the device.
  */
 export function LoginFlow({ ended, other = false }: { ended: boolean; other?: boolean }) {
@@ -56,8 +61,8 @@ export function LoginFlow({ ended, other = false }: { ended: boolean; other?: bo
 
   function next(e: FormEvent) {
     e.preventDefault();
-    const r = nationalIdSchema.safeParse(id);
-    if (!r.success) return setErrors({ nationalId: tr(r.error.issues[0].message) });
+    const result = nationalIdSchema.safeParse(id);
+    if (!result.success) return setErrors({ nationalId: tr(result.error.issues[0].message) });
     setErrors({});
     setProblem(null);
     setStep(2);
@@ -65,16 +70,16 @@ export function LoginFlow({ ended, other = false }: { ended: boolean; other?: bo
 
   async function submit(e: FormEvent) {
     e.preventDefault();
-    const r = patientLogin.safeParse({ nationalId: id, dateOfBirth: dob, name, sharedDevice: shared });
-    if (!r.success) {
+    const result = patientLogin.safeParse({ nationalId: id, dateOfBirth: dob, name, sharedDevice: shared });
+    if (!result.success) {
       const f: Record<string, string> = {};
-      for (const i of r.error.issues) f[String(i.path[0])] ??= tr(i.message);
+      for (const i of result.error.issues) f[String(i.path[0])] ??= tr(i.message);
       return setErrors(f);
     }
     setErrors({});
     setPending(true);
     try {
-      await api("/auth/patient/login", r.data);
+      await api("/auth/patient/login", result.data);
       router.replace("/home");
     } catch (err) {
       setPending(false);
@@ -84,7 +89,7 @@ export function LoginFlow({ ended, other = false }: { ended: boolean; other?: bo
       if (code === "NIDA_UNAVAILABLE") return setProblem({ kind: "unavailable" });
       if (code !== "INVALID_CREDENTIALS") return setErrors({ form: tr(message) });
       const left = Number(fields?.attemptsLeft);
-      // Warn before the lock, not after (FR 1.6).
+      // Warn before the lock, not after.
       const warning = left && left <= 2 ? ` ${t.login.triesLeft(left)}` : "";
       setErrors({ form: `${t.login.checkDetails}${warning}` });
     }
@@ -129,13 +134,13 @@ export function LoginFlow({ ended, other = false }: { ended: boolean; other?: bo
           {t.login.endedBody}
         </Notice>
       )}
-      {/* FR 1.6: the lock shows the Emergency button */}
+      {/* The lock shows the Emergency button */}
       {problem?.kind === "locked" && (
         <Notice tone="urgent" title={t.login.lockedTitle} action={<EmergencyButton />}>
           {t.login.lockedBody(time(problem.until))}
         </Notice>
       )}
-      {/* FR 1.5: the SRS wording, with the Emergency button */}
+      {/* The SRS wording, with the Emergency button */}
       {problem?.kind === "unavailable" && (
         <Notice tone="warning" title={t.login.unavailableTitle} action={<EmergencyButton />}>
           {t.login.unavailableBody}
@@ -154,7 +159,7 @@ export function LoginFlow({ ended, other = false }: { ended: boolean; other?: bo
             autoComplete="off"
             autoFocus
             value={id}
-            onChange={(e) => setId(formatNationalId(e.target.value))}
+            onChange={(event) => setId(formatNationalId(event.target.value))}
             error={errors.nationalId}
           />
           <div className="flex-1" />
@@ -182,7 +187,7 @@ export function LoginFlow({ ended, other = false }: { ended: boolean; other?: bo
             type="date"
             max={new Date().toISOString().slice(0, 10)}
             value={dob}
-            onChange={(e) => setDob(e.target.value)}
+            onChange={(event) => setDob(event.target.value)}
             error={errors.dateOfBirth}
           />
           <Input
@@ -191,15 +196,13 @@ export function LoginFlow({ ended, other = false }: { ended: boolean; other?: bo
             autoComplete="off"
             autoCapitalize="words"
             value={name}
-            onChange={(e) => setName(e.target.value)}
+            onChange={(event) => setName(event.target.value)}
             error={errors.name}
           />
           <div className="flex flex-col">
-            {/* FR 1.8: the SRS label */}
-            <Checkbox label={t.login.shared} checked={shared} onChange={(e) => setShared(e.target.checked)} />
-            <p className="pl-8 text-small text-fg-secondary">
-              {t.login.sharedHint}
-            </p>
+            {/* The SRS label */}
+            <Checkbox label={t.login.shared} checked={shared} onChange={(event) => setShared(event.target.checked)} />
+            <p className="pl-8 text-small text-fg-secondary">{t.login.sharedHint}</p>
           </div>
           <div className="flex-1" />
           <BottomBar>

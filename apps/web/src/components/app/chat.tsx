@@ -1,13 +1,7 @@
 "use client";
 
 import { QUICK_REPLIES, VOICE_MAX_MS } from "@ubuzima/shared";
-import {
-  useCallback,
-  useEffect,
-  useRef,
-  useState,
-  type FormEvent,
-} from "react";
+import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
 import { LuMic, LuSendHorizontal, LuX } from "react-icons/lu";
 import {
   AudioPlayerButton,
@@ -19,9 +13,9 @@ import { Button } from "@/components/ui/button";
 import { LiveWaveform } from "@/components/ui/live-waveform";
 import { Squircle } from "@/components/ui/squircle";
 import { cn } from "@/lib/cn";
-import { formatTime } from "@/lib/time";
+import { formatDuration, formatTime } from "@/lib/time";
 
-/** The chat's own words; the patient app passes them in the patient's language (NFR 7). Staff use the English defaults. */
+/** The chat's own words; the patient app passes them in the patient's language. Staff use the English defaults. */
 export type ChatLabels = {
   messages: string;
   empty: string;
@@ -32,7 +26,7 @@ export type ChatLabels = {
   quick: Record<string, string>;
   /** Server sentences (system notes) in the reader's language. */
   system: (text: string) => string;
-  /** D74: voice notes. Optional; English when not given. */
+  /** Voice notes. Optional; English when not given. */
   record?: string;
   recording?: string;
   sendVoice?: string;
@@ -50,7 +44,7 @@ const EN: Required<ChatLabels> = {
   send: "Send",
   quickReplies: "Quick replies",
   quick: {},
-  system: (t) => t,
+  system: (text) => text,
   record: "Record a voice note",
   recording: "Recording",
   sendVoice: "Send the voice note",
@@ -70,23 +64,17 @@ export type ChatMsg = {
   audioMs?: number | null;
 };
 
-/** D74: how to send and play voice notes in this chat. */
+/** How to send and play voice notes in this chat. */
 export type ChatVoice = {
   send: (dataUrl: string, durationMs: number) => Promise<void>;
   url: (messageId: string) => string;
 };
 
-const clock = (ms: number) =>
-  `${Math.floor(ms / 60_000)}:${String(Math.floor((ms % 60_000) / 1000)).padStart(2, "0")}`;
-
 /**
- * D74, D78: records up to two minutes with the browser's own recorder (WebM/Opus, or MP4 on Safari), then hands back a
+ * Records up to two minutes with the browser's own recorder (WebM/Opus, or MP4 on Safari), then hands back a
  * data URL. The live waveform opens the microphone; the recorder records that same stream, so the browser asks once.
  */
-function useRecorder(
-  onDone: (dataUrl: string, ms: number) => void,
-  onBlocked: () => void,
-) {
+function useRecorder(onDone: (dataUrl: string, ms: number) => void, onBlocked: () => void) {
   const [ms, setMs] = useState<number | null>(null);
   const rec = useRef<{
     mr: MediaRecorder;
@@ -103,48 +91,42 @@ function useRecorder(
   });
 
   const stop = useCallback((keep: boolean) => {
-    const r = rec.current;
-    if (!r || r.mr.state === "inactive") return setMs(null); // the microphone wasn't ready yet: nothing to keep
-    r.keep = keep;
-    r.mr.stop();
+    const recording = rec.current;
+    if (!recording || recording.mr.state === "inactive") return setMs(null); // the microphone wasn't ready yet: nothing to keep
+    recording.keep = keep;
+    recording.mr.stop();
   }, []);
 
   /** Called by the waveform once the microphone is open. */
   const onStream = useCallback(
     (stream: MediaStream) => {
       if (rec.current) return; // one recording at a time
-      const type = [
-        "audio/webm;codecs=opus",
-        "audio/webm",
-        "audio/mp4",
-        "audio/ogg;codecs=opus",
-      ].find((t) => MediaRecorder.isTypeSupported(t));
-      const mr = new MediaRecorder(
-        stream,
-        type ? { mimeType: type, audioBitsPerSecond: 32_000 } : undefined,
+      const type = ["audio/webm;codecs=opus", "audio/webm", "audio/mp4", "audio/ogg;codecs=opus"].find((type) =>
+        MediaRecorder.isTypeSupported(type),
       );
-      const r = {
+      const mr = new MediaRecorder(stream, type ? { mimeType: type, audioBitsPerSecond: 32_000 } : undefined);
+      const recording = {
         mr,
         chunks: [] as Blob[],
         start: Date.now(),
         keep: true,
         timer: setInterval(() => {
-          const t = Date.now() - r.start;
+          const t = Date.now() - recording.start;
           setMs(t);
           if (t >= VOICE_MAX_MS) stop(true); // two minutes at most: send what was said
         }, 200),
       };
-      rec.current = r;
-      mr.ondataavailable = (e) => e.data.size && r.chunks.push(e.data);
+      rec.current = recording;
+      mr.ondataavailable = (event) => event.data.size && recording.chunks.push(event.data);
       mr.onstop = () => {
-        clearInterval(r.timer);
-        const length = Math.min(Date.now() - r.start, VOICE_MAX_MS);
+        clearInterval(recording.timer);
+        const length = Math.min(Date.now() - recording.start, VOICE_MAX_MS);
         rec.current = null;
         setMs(null); // closes the waveform, which closes the microphone
-        if (!r.keep || length < 500) return;
+        if (!recording.keep || length < 500) return;
         const reader = new FileReader();
         reader.onload = () => done.current(String(reader.result), length);
-        reader.readAsDataURL(new Blob(r.chunks, { type: mr.mimeType }));
+        reader.readAsDataURL(new Blob(recording.chunks, { type: mr.mimeType }));
       };
       mr.start(250);
     },
@@ -160,7 +142,7 @@ function useRecorder(
 }
 
 /**
- * FR 6.6: text chat with quick replies. New messages are announced to screen readers (DESIGN.md §8),
+ * Text chat with quick replies. New messages are announced to screen readers,
  * not animated. Messages from me are on the right; system notes are centred and quiet.
  */
 export function Chat({
@@ -181,10 +163,10 @@ export function Chat({
   disabled?: boolean;
   placeholder?: string;
   quickReplies?: boolean;
-  /** One primary button per screen (DESIGN.md §1): secondary where something else is primary. */
+  /** One primary button per screen: secondary where something else is primary. */
   sendVariant?: "primary" | "secondary";
   labels?: ChatLabels;
-  /** D74: voice notes, where this chat allows them. */
+  /** Voice notes, where this chat allows them. */
   voice?: ChatVoice;
   className?: string;
 }) {
@@ -229,56 +211,40 @@ export function Chat({
           aria-live="polite"
           aria-label={labels.messages}
         >
-          {messages.length === 0 && (
-            <p className="py-6 text-center text-small text-fg-muted">
-              {labels.empty}
-            </p>
-          )}
-          {messages.map((m) =>
-            m.sender === "SYSTEM" ? (
-              <p
-                key={m.id}
-                className="mx-auto max-w-[80%] py-1 text-center text-caption text-fg-secondary"
-              >
-                {labels.system(m.text)}
+          {messages.length === 0 && <p className="py-6 text-center text-small text-fg-muted">{labels.empty}</p>}
+          {messages.map((message) =>
+            message.sender === "SYSTEM" ? (
+              <p key={message.id} className="mx-auto max-w-[80%] py-1 text-center text-caption text-fg-secondary">
+                {labels.system(message.text)}
               </p>
             ) : (
               <div
-                key={m.id}
+                key={message.id}
                 className={cn(
                   "flex max-w-[85%] flex-col gap-1",
-                  m.sender === me
-                    ? "items-end self-end"
-                    : "items-start self-start",
+                  message.sender === me ? "items-end self-end" : "items-start self-start",
                 )}
               >
                 <Squircle
                   radius="lg"
                   className={cn(
                     "px-3.5 py-2 text-body whitespace-pre-wrap",
-                    m.sender === me
-                      ? "sq-bg-accent-soft text-fg"
-                      : "sq-bg-surface sq-border-border text-fg",
+                    message.sender === me ? "sq-bg-accent-soft text-fg" : "sq-bg-surface sq-border-border text-fg",
                   )}
                 >
-                  {m.audioMs && voice ? (
-                    <VoiceNote
-                      id={m.id}
-                      src={voice.url(m.id)}
-                      ms={m.audioMs}
-                      labels={labels}
-                    />
+                  {message.audioMs && voice ? (
+                    <VoiceNote id={message.id} src={voice.url(message.id)} ms={message.audioMs} labels={labels} />
                   ) : (
-                    m.text
+                    message.text
                   )}
                 </Squircle>
                 <span className="px-1 text-caption text-fg-muted">
-                  {m.sender === me
+                  {message.sender === me
                     ? labels.you
-                    : m.sender === "AGENT"
-                      ? (m.staffName ?? labels.agent)
+                    : message.sender === "AGENT"
+                      ? (message.staffName ?? labels.agent)
                       : "Patient"}{" "}
-                  · {formatTime(m.createdAt)}
+                  · {formatTime(message.createdAt)}
                 </span>
               </div>
             ),
@@ -292,31 +258,25 @@ export function Chat({
                 className="-mx-1 flex gap-2 overflow-x-auto px-1 py-1 [scrollbar-width:none]"
                 aria-label={labels.quickReplies}
               >
-                {QUICK_REPLIES.map((q) => (
+                {QUICK_REPLIES.map((reply) => (
                   <Squircle
-                    key={q}
+                    key={reply}
                     as="button"
                     type="button"
                     radius="md"
                     focus="self"
-                    onClick={() => send(labels.quick[q] ?? q)}
+                    onClick={() => send(labels.quick[reply] ?? reply)}
                     className="h-10 shrink-0 cursor-pointer px-3.5 text-small font-medium text-fg sq-bg-surface sq-border-border-strong hover:sq-bg-sunken"
                   >
-                    {labels.quick[q] ?? q}
+                    {labels.quick[reply] ?? reply}
                   </Squircle>
                 ))}
               </div>
             )}
-            {blocked && (
-              <p className="text-caption text-urgent-fg">{labels.micBlocked}</p>
-            )}
+            {blocked && <p className="text-caption text-urgent-fg">{labels.micBlocked}</p>}
             {recorder.ms !== null ? (
-              // D78: while recording, the waveform follows the voice, with the time, cancel and send.
-              <div
-                className="flex items-center gap-2"
-                role="group"
-                aria-label={labels.recording}
-              >
+              // While recording, the waveform follows the voice, with the time, cancel and send.
+              <div className="flex items-center gap-2" role="group" aria-label={labels.recording}>
                 <Button
                   type="button"
                   variant="ghost"
@@ -326,14 +286,8 @@ export function Chat({
                 >
                   <LuX />
                 </Button>
-                <Squircle
-                  radius="md"
-                  className="flex h-11 min-w-0 flex-1 items-center gap-3 px-3 sq-bg-urgent-soft"
-                >
-                  <span
-                    className="size-2.5 shrink-0 animate-pulse rounded-full bg-urgent"
-                    aria-hidden
-                  />
+                <Squircle radius="md" className="flex h-11 min-w-0 flex-1 items-center gap-3 px-3 sq-bg-urgent-soft">
+                  <span className="size-2.5 shrink-0 animate-pulse rounded-full bg-urgent" aria-hidden />
                   <span className="sr-only">{labels.recording}</span>
                   <LiveWaveform
                     active
@@ -347,11 +301,8 @@ export function Chat({
                     onError={recorder.onError}
                     className="min-w-0 flex-1 text-urgent"
                   />
-                  <span
-                    className="shrink-0 font-mono text-small text-fg-secondary tabular-nums"
-                    aria-live="off"
-                  >
-                    {clock(recorder.ms)} / {clock(VOICE_MAX_MS)}
+                  <span className="shrink-0 font-mono text-small text-fg-secondary tabular-nums" aria-live="off">
+                    {formatDuration(recorder.ms)} / {formatDuration(VOICE_MAX_MS)}
                   </span>
                 </Squircle>
                 <Button
@@ -384,10 +335,10 @@ export function Chat({
                     id="chat-input"
                     rows={1}
                     value={text}
-                    onChange={(e) => setText(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" && !e.shiftKey) {
-                        e.preventDefault();
+                    onChange={(event) => setText(event.target.value)}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter" && !event.shiftKey) {
+                        event.preventDefault();
                         void send(text);
                       }
                     }}
@@ -395,7 +346,7 @@ export function Chat({
                     className="max-h-32 min-h-11 w-full resize-none bg-transparent py-2.5 text-body text-fg outline-none placeholder:text-fg-muted"
                   />
                 </Squircle>
-                {/* Nothing typed: the microphone; something typed: send (D74) */}
+                {/* Nothing typed: the microphone; something typed: send */}
                 {voice && !text.trim() && !sending ? (
                   <Button
                     type="button"
@@ -431,24 +382,14 @@ export function Chat({
   );
 }
 
-/** D78: a voice note in a bubble: play or pause, a seek bar and the time. One note plays at a time in a chat. */
-function VoiceNote({
-  id,
-  src,
-  ms,
-  labels,
-}: {
-  id: string;
-  src: string;
-  ms: number;
-  labels: Required<ChatLabels>;
-}) {
+/** A voice note in a bubble: play or pause, a seek bar and the time. One note plays at a time in a chat. */
+function VoiceNote({ id, src, ms, labels }: { id: string; src: string; ms: number; labels: Required<ChatLabels> }) {
   const item = { id, src };
   return (
     <span
       className="flex w-60 max-w-full items-center gap-2"
       role="group"
-      aria-label={`${labels.voiceNote}, ${clock(ms)}`}
+      aria-label={`${labels.voiceNote}, ${formatDuration(ms)}`}
     >
       <AudioPlayerButton
         item={item}
@@ -458,11 +399,7 @@ function VoiceNote({
         labels={{ play: labels.play, pause: labels.pause }}
       />
       <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-        <AudioPlayerProgress
-          item={item}
-          duration={ms / 1000}
-          aria-label={labels.voiceNote}
-        />
+        <AudioPlayerProgress item={item} duration={ms / 1000} aria-label={labels.voiceNote} />
         <AudioPlayerTime item={item} duration={ms / 1000} />
       </span>
     </span>

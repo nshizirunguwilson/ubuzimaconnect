@@ -40,7 +40,12 @@ export class PatientAuthController {
 
     if (!result.match) {
       const failure = await this.throttle.fail(key);
-      await this.audit.record({ type: "anonymous" }, "patient.login.failed", { locked: failure.locked, device }, request.ip);
+      await this.audit.record(
+        { type: "anonymous" },
+        "patient.login.failed",
+        { locked: failure.locked, device },
+        request.ip,
+      );
       if (failure.locked) throw locked(failure.until);
       throw new ApiException(
         401,
@@ -67,7 +72,10 @@ export class PatientAuthController {
   }
 
   /** Asks NIDA. When NIDA can't be reached, the failure is logged and the patient is told to try later. */
-  private async verifyWithNida(input: { nationalId: string; dateOfBirth: string; name: string }, ip?: string): Promise<NidaResult> {
+  private async verifyWithNida(
+    input: { nationalId: string; dateOfBirth: string; name: string },
+    ip?: string,
+  ): Promise<NidaResult> {
     try {
       return await this.nida.verify(input.nationalId, input.dateOfBirth, input.name);
     } catch (error) {

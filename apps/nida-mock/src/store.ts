@@ -8,7 +8,12 @@ import { citizens, type Citizen } from "./citizens";
  * citizens stay in code; a lookup checks both. Every query passes its values as parameters ($1, $2, ...), never
  * joined into the SQL text, so nothing a user types can change a query.
  */
-export type StoredCitizen = Citizen & { phone: string | null; photo: Buffer | null; photoType: string | null; addedAt: string | null };
+export type StoredCitizen = Citizen & {
+  phone: string | null;
+  photo: Buffer | null;
+  photoType: string | null;
+  addedAt: string | null;
+};
 
 const url = process.env.NIDA_DATABASE_URL;
 const pool = url ? new pg.Pool({ connectionString: url, max: 3 }) : null;

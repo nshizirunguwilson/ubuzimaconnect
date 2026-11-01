@@ -8,14 +8,17 @@ import { getT } from "@/i18n/server";
 export const metadata: Metadata = { title: "Emergency" };
 
 /**
- * FR 1.9: emergency help without logging in. 912 is Rwanda's free ambulance number (SAMU).
- * This is the only page that uses the Display size and a red primary action (DESIGN.md §2, §3).
+ * Emergency help without logging in. 912 is Rwanda's free ambulance number (SAMU).
+ * This is the only page that uses the Display text size and a red primary action.
  */
 export default async function Emergency() {
   const t = await getT();
   return (
     <main className="flex flex-1 flex-col gap-8 lg:mx-auto lg:w-full lg:max-w-[480px]">
-      <Link href="/" className="-ml-2 inline-flex min-h-11 w-fit items-center gap-2 px-2 text-small font-medium text-fg">
+      <Link
+        href="/"
+        className="-ml-2 inline-flex min-h-11 w-fit items-center gap-2 px-2 text-small font-medium text-fg"
+      >
         <LuArrowLeft className="size-5" aria-hidden />
         {t.common.back}
       </Link>

@@ -13,7 +13,7 @@ export type ActivityRow = {
   at: string;
   action: string;
   what: string;
-  /** The action in words, without the code, so the patient app can translate it (NFR 7) */
+  /** The action in words, without the code, so the patient app can translate it */
   label: string;
   code: string | null;
   who: { name: string; role: string | null };
@@ -21,7 +21,7 @@ export type ActivityRow = {
 };
 type Page = { rows: ActivityRow[]; next: string | null };
 
-/** Loads an activity list 50 rows at a time, newest first (FR 10.2, 10.3). */
+/** Loads an activity list 50 rows at a time, newest first. */
 export function useActivity(path: string) {
   const [rows, setRows] = useState<ActivityRow[] | null>(null);
   const [next, setNext] = useState<string | null>(null);
@@ -30,10 +30,10 @@ export function useActivity(path: string) {
   useEffect(() => {
     let live = true;
     api<Page>(path).then(
-      (p) => {
+      (page) => {
         if (!live) return;
-        setRows(p.rows);
-        setNext(p.next);
+        setRows(page.rows);
+        setNext(page.next);
       },
       () => live && setRows([]),
     );
@@ -46,9 +46,9 @@ export function useActivity(path: string) {
     if (!next) return;
     setLoading(true);
     try {
-      const p = await api<Page>(`${path}${path.includes("?") ? "&" : "?"}before=${next}`);
-      setRows((r) => [...(r ?? []), ...p.rows]);
-      setNext(p.next);
+      const page = await api<Page>(`${path}${path.includes("?") ? "&" : "?"}before=${next}`);
+      setRows((previous) => [...(previous ?? []), ...page.rows]);
+      setNext(page.next);
     } finally {
       setLoading(false);
     }
@@ -57,7 +57,11 @@ export function useActivity(path: string) {
   return { rows, hasMore: !!next, loading, more };
 }
 
-const DEVICE = { phone: { Icon: LuSmartphone, label: "Phone" }, tablet: { Icon: LuTablet, label: "Tablet" }, computer: { Icon: LuLaptop, label: "Computer" } } as const;
+const DEVICE = {
+  phone: { Icon: LuSmartphone, label: "Phone" },
+  tablet: { Icon: LuTablet, label: "Tablet" },
+  computer: { Icon: LuLaptop, label: "Computer" },
+} as const;
 
 /** When, what and who, grouped by day; logins show the device type. */
 export function ActivityList({ feed }: { feed: ReturnType<typeof useActivity> }) {
@@ -80,25 +84,27 @@ export function ActivityList({ feed }: { feed: ReturnType<typeof useActivity> })
           <h2 className="text-small font-semibold text-fg-secondary">{day}</h2>
           <Card className="p-0 md:p-0">
             <ul className="divide-y divide-border">
-              {rows.map((r) => {
-                const d = r.device && r.device in DEVICE ? DEVICE[r.device as keyof typeof DEVICE] : null;
+              {rows.map((row) => {
+                const device = row.device && row.device in DEVICE ? DEVICE[row.device as keyof typeof DEVICE] : null;
                 return (
-                  <li key={r.id} className="flex items-start gap-4 px-4 py-3 md:px-6">
-                    <span className="w-12 shrink-0 pt-0.5 text-small text-fg-secondary tabular-nums">{time(r.at)}</span>
+                  <li key={row.id} className="flex items-start gap-4 px-4 py-3 md:px-6">
+                    <span className="w-12 shrink-0 pt-0.5 text-small text-fg-secondary tabular-nums">
+                      {time(row.at)}
+                    </span>
                     <div className="flex min-w-0 flex-1 flex-col">
                       <span className="text-body text-fg">
-                        {tr(r.label)}
-                        {r.code ? ` ${r.code}` : ""}
+                        {tr(row.label)}
+                        {row.code ? ` ${row.code}` : ""}
                       </span>
                       <span className="text-small text-fg-secondary">
-                        {tr(r.who.name)}
-                        {r.who.role ? ` · ${tr(r.who.role)}` : ""}
+                        {tr(row.who.name)}
+                        {row.who.role ? ` · ${tr(row.who.role)}` : ""}
                       </span>
                     </div>
-                    {d && (
+                    {device && (
                       <span className="flex shrink-0 items-center gap-1.5 text-small text-fg-secondary">
-                        <d.Icon className="size-4" aria-hidden />
-                        {t.activity.devices[r.device!] ?? d.label}
+                        <device.Icon className="size-4" aria-hidden />
+                        {t.activity.devices[row.device!] ?? device.label}
                       </span>
                     )}
                   </li>

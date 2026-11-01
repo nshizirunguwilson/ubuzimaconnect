@@ -6,14 +6,12 @@ import { cn } from "@/lib/cn";
 import { Squircle } from "./squircle";
 
 /**
- * DESIGN.md §9. Primary is the only blue button on a screen.
+ * Buttons. Primary is the only blue button on a screen.
  * Heights: 48 px on phones, 40 px from md up (§4). Labels are verbs.
  */
 const variants = {
-  primary:
-    "sq-bg-primary text-white hover:sq-bg-primary-hover active:sq-bg-primary-pressed",
-  secondary:
-    "sq-bg-surface sq-border-border-strong text-fg hover:sq-bg-sunken active:sq-bg-gray-200",
+  primary: "sq-bg-primary text-white hover:sq-bg-primary-hover active:sq-bg-primary-pressed",
+  secondary: "sq-bg-surface sq-border-border-strong text-fg hover:sq-bg-sunken active:sq-bg-gray-200",
   ghost: "text-fg hover:sq-bg-sunken active:sq-bg-gray-200",
   danger: "sq-bg-urgent text-white hover:sq-bg-urgent-fg active:sq-bg-urgent-fg",
 } as const;

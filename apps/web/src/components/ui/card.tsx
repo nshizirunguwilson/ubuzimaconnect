@@ -3,7 +3,7 @@ import { cn } from "@/lib/cn";
 import { Squircle } from "./squircle";
 
 /**
- * DESIGN.md §9. `highlighted` is the one blue card a screen may have (RESEARCH R4),
+ * A card. `highlighted` is the one blue card a screen may have,
  * for example the patient's current case.
  */
 export function Card({

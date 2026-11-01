@@ -7,8 +7,12 @@ import { translate } from "./sentences";
 /** Every text, with functions called with a sample value, keyed by its path. */
 function flatten(o: unknown, path = ""): Record<string, string> {
   if (typeof o === "string") return { [path]: o };
-  if (typeof o === "function") return { [path]: String((o as (...a: unknown[]) => unknown)(...sampleArgs(o as (...a: unknown[]) => unknown))) };
-  return Object.assign({}, ...Object.entries(o as object).map(([k, v]) => flatten(v, path ? `${path}.${k}` : k)));
+  if (typeof o === "function")
+    return { [path]: String((o as (...a: unknown[]) => unknown)(...sampleArgs(o as (...a: unknown[]) => unknown))) };
+  return Object.assign(
+    {},
+    ...Object.entries(o as object).map(([key, value]) => flatten(value, path ? `${path}.${key}` : key)),
+  );
 }
 function sampleArgs(f: (...a: unknown[]) => unknown) {
   // Numbers for counts, a string for names and dates, a boolean for sex, an age object for records.age.
@@ -31,14 +35,18 @@ describe("Kinyarwanda catalogue (NFR 7)", () => {
   });
 
   it("leaves nothing in English by mistake", () => {
-    const same = Object.keys(E).filter((k) => E[k] === R[k] && !SAME_TEXT.has(E[k]) && !/^\d/.test(E[k]));
+    const same = Object.keys(E).filter((key) => E[key] === R[key] && !SAME_TEXT.has(E[key]) && !/^\d/.test(E[key]));
     expect(same).toEqual([]);
   });
 
   it("translates messages written by the server, with their values", () => {
     expect(translate("rw", "Another agent will continue with you.")).toBe("Undi mukozi w'ubuzima azakomezanya nawe.");
-    expect(translate("rw", "Diane, a health agent, is now looking at your request.")).toBe("Diane, umukozi w'ubuzima, ari kureba ubusabe bwawe.");
-    expect(translate("rw", "Go to Kacyiru District Hospital (0788 300 101). They are expecting you for the next 24 hours.")).toContain("Jya kuri Kacyiru District Hospital (0788 300 101)");
+    expect(translate("rw", "Diane, a health agent, is now looking at your request.")).toBe(
+      "Diane, umukozi w'ubuzima, ari kureba ubusabe bwawe.",
+    );
+    expect(
+      translate("rw", "Go to Kacyiru District Hospital (0788 300 101). They are expecting you for the next 24 hours."),
+    ).toContain("Jya kuri Kacyiru District Hospital (0788 300 101)");
     expect(translate("rw", "A sentence nobody translated.")).toBe("A sentence nobody translated.");
     expect(translate("en", "Another agent will continue with you.")).toBe("Another agent will continue with you.");
   });

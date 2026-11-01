@@ -2,8 +2,8 @@ import Image from "next/image";
 import Link from "next/link";
 
 /**
- * The UbuzimaConnect Logo Pack, converted from its .ai files to SVG and cropped to the artwork
- * (docs/design/DECISIONS.md, D68). Sizes are set by height, so every variant lines up with the text next to it.
+ * The UbuzimaConnect Logo Pack, converted from its .ai files to SVG and cropped to the artwork.
+ * Sizes are set by height, so every variant lines up with the text next to it.
  *
  * - hero: symbol, name and tagline in one line, centred on the pages where the brand is seen first.
  * - header: the name alone, inside the app, where the symbol would only repeat what the page already says.
@@ -22,10 +22,27 @@ type Variant = "hero" | "header" | "compact" | "symbol";
 
 function Art({ art, height, className }: { art: keyof typeof ART; height: number; className?: string }) {
   const { src, ratio } = ART[art];
-  return <Image src={src} alt="UbuzimaConnect" width={Math.round(height * ratio)} height={height} className={className} priority />;
+  return (
+    <Image
+      src={src}
+      alt="UbuzimaConnect"
+      width={Math.round(height * ratio)}
+      height={height}
+      className={className}
+      priority
+    />
+  );
 }
 
-export function Logo({ href = "/", variant = "header", height }: { href?: string; variant?: Variant; height?: number }) {
+export function Logo({
+  href = "/",
+  variant = "header",
+  height,
+}: {
+  href?: string;
+  variant?: Variant;
+  height?: number;
+}) {
   if (variant === "hero") {
     return (
       <Link href={href} className="inline-flex shrink-0 self-center" aria-label="UbuzimaConnect home">
@@ -40,17 +57,21 @@ export function Logo({ href = "/", variant = "header", height }: { href?: string
       </Link>
     );
   }
-  const h = height ?? 22;
+  const pixelHeight = height ?? 22;
   return (
     <Link href={href} className="inline-flex shrink-0 items-center" aria-label="UbuzimaConnect home">
       {variant === "compact" && <Art art="symbol" height={32} className="sm:hidden print:hidden" />}
-      <Art art="wordmark" height={h} className={variant === "compact" ? "max-sm:hidden print:hidden" : "print:hidden"} />
-      <Art art="black" height={h} className="hidden print:block" />
+      <Art
+        art="wordmark"
+        height={pixelHeight}
+        className={variant === "compact" ? "max-sm:hidden print:hidden" : "print:hidden"}
+      />
+      <Art art="black" height={pixelHeight} className="hidden print:block" />
     </Link>
   );
 }
 
-/** The black name, for printed pages only (FR 7.2 summary). */
+/** The black name, for printed pages only (the printable records summary). */
 export function PrintLogo() {
   return <Art art="black" height={20} className="mb-2" />;
 }

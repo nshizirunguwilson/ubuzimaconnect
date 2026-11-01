@@ -12,10 +12,19 @@ import { LanguageSwitch, useT } from "@/i18n/client";
 
 type Result =
   | { found: false }
-  | { found: true; code: string; status: PrescriptionStatus; patient: string; items: Prescription["items"]; prescriber: { name: string; licence: string | null }; issuedAt: string; validUntil: string };
+  | {
+      found: true;
+      code: string;
+      status: PrescriptionStatus;
+      patient: string;
+      items: Prescription["items"];
+      prescriber: { name: string; licence: string | null };
+      issuedAt: string;
+      validUntil: string;
+    };
 
 /**
- * FR 11.7: the answer a pharmacist needs first, as the biggest thing on the page: dispense or not.
+ * The answer a pharmacist needs first, as the biggest thing on the page: dispense or not.
  * Then the patient's name, medicines, prescriber and dates. Never the national ID or a diagnosis.
  */
 export function CheckResult({ code }: { code: string }) {
@@ -29,7 +38,10 @@ export function CheckResult({ code }: { code: string }) {
         <Logo href="/" variant="compact" />
         <LanguageSwitch />
       </div>
-      <Link href="/check" className="-ml-2 inline-flex min-h-11 w-fit items-center gap-2 px-2 text-small font-medium text-fg">
+      <Link
+        href="/check"
+        className="-ml-2 inline-flex min-h-11 w-fit items-center gap-2 px-2 text-small font-medium text-fg"
+      >
         <LuArrowLeft className="size-5" aria-hidden />
         {t.check.another}
       </Link>

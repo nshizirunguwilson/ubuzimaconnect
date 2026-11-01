@@ -43,7 +43,7 @@ type Incoming = {
 };
 
 /**
- * FR 7.4, 7.5: the summary of a patient on the way, and the photo to compare with the person who arrives.
+ * The summary of a patient on the way, and the photo to compare with the person who arrives.
  * A match starts the visit; no match records the issue and the patient stays on the way.
  */
 export function Arrival({ id }: { id: string }) {
@@ -68,12 +68,12 @@ export function Arrival({ id }: { id: string }) {
   async function arrive() {
     setPending(true);
     try {
-      const r = await api<{ attending: boolean }>(`/clinician/incoming/${id}/arrive`, {});
+      const result = await api<{ attending: boolean }>(`/clinician/incoming/${id}/arrive`, {});
       toast.success("Marked arrived");
-      router.push(r.attending ? `/staff/visits/${id}` : "/staff/patients");
-    } catch (e) {
+      router.push(result.attending ? `/staff/visits/${id}` : "/staff/patients");
+    } catch (error) {
       setPending(false);
-      toast.error(e instanceof ApiFailure ? e.error.message : "Couldn't mark arrived.");
+      toast.error(error instanceof ApiFailure ? error.error.message : "Couldn't mark arrived.");
     }
   }
 
@@ -81,7 +81,10 @@ export function Arrival({ id }: { id: string }) {
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <Link href="/staff/patients" className="-ml-2 inline-flex min-h-11 items-center gap-2 px-2 text-small font-medium text-fg">
+        <Link
+          href="/staff/patients"
+          className="-ml-2 inline-flex min-h-11 items-center gap-2 px-2 text-small font-medium text-fg"
+        >
           <LuArrowLeft className="size-5" aria-hidden />
           Patients
         </Link>
@@ -92,21 +95,27 @@ export function Arrival({ id }: { id: string }) {
       </div>
 
       <div className="grid items-start gap-6 lg:grid-cols-[320px_minmax(0,1fr)]">
-        {/* FR 7.5: the identity photo, large enough to compare a face */}
+        {/* The identity photo, large enough to compare a face */}
         <Card className="flex flex-col gap-4">
           <h1 className="text-h2 text-fg">
             {sex}, {data.age}
           </h1>
           {data.photoUrl ? (
             <Squircle radius="lg" className="overflow-hidden sq-bg-sunken">
-              <img src={data.photoUrl} alt="Identity photo of the patient" className="aspect-[4/5] w-full object-cover object-top" />
+              <img
+                src={data.photoUrl}
+                alt="Identity photo of the patient"
+                className="aspect-[4/5] w-full object-cover object-top"
+              />
             </Squircle>
           ) : (
             <Notice tone="warning" title="No identity photo">
               Check an ID document instead.
             </Notice>
           )}
-          <p className="text-small text-fg-secondary">Photo from the national ID record. Compare it with the person in front of you.</p>
+          <p className="text-small text-fg-secondary">
+            Photo from the national ID record. Compare it with the person in front of you.
+          </p>
           <div className="flex flex-col gap-2">
             <Button variant="primary" loading={pending} onClick={arrive} className="w-full">
               Mark arrived
@@ -119,16 +128,21 @@ export function Arrival({ id }: { id: string }) {
           <Card className="flex flex-col gap-4">
             <h2 className="text-h3 text-fg">Summary</h2>
             {data.transferredFrom && <Notice tone="info" title={data.transferredFrom} />}
-            {data.redFlags.map((f) => (
-              <Notice key={f.code} tone="urgent" title={`Red flag ${f.code}: Yes`}>
-                {f.text}
+            {data.redFlags.map((sign) => (
+              <Notice key={sign.code} tone="urgent" title={`Red flag ${sign.code}: Yes`}>
+                {sign.text}
               </Notice>
             ))}
             {data.description && (
               <div className="flex flex-col gap-1">
                 <p className="text-body whitespace-pre-wrap text-fg">“{data.description}”</p>
                 <p className="text-small text-fg-secondary">
-                  {[data.duration ? DURATION_LABEL[data.duration] : null, data.severity ? `${data.severity} out of 10` : null].filter(Boolean).join(" · ")}
+                  {[
+                    data.duration ? DURATION_LABEL[data.duration] : null,
+                    data.severity ? `${data.severity} out of 10` : null,
+                  ]
+                    .filter(Boolean)
+                    .join(" · ")}
                 </p>
               </div>
             )}
@@ -154,7 +168,9 @@ export function Arrival({ id }: { id: string }) {
                 )}
               </dd>
               <dt className="text-fg-secondary">Attending clinician</dt>
-              <dd className="text-fg">{data.attending ? (data.attending.me ? "You" : data.attending.name) : "None yet: whoever marks arrival"}</dd>
+              <dd className="text-fg">
+                {data.attending ? (data.attending.me ? "You" : data.attending.name) : "None yet: whoever marks arrival"}
+              </dd>
               <dt className="text-fg-secondary">Sent</dt>
               <dd className="text-fg">
                 {formatDateTime(data.sentAt)}
@@ -171,12 +187,12 @@ export function Arrival({ id }: { id: string }) {
             <Card className="flex flex-col gap-3">
               <h2 className="text-h3 text-fg">Photo checks that didn&apos;t match</h2>
               <ul className="flex flex-col gap-2 text-small">
-                {data.issues.map((i) => (
-                  <li key={i.id} className="flex flex-col">
+                {data.issues.map((issue) => (
+                  <li key={issue.id} className="flex flex-col">
                     <span className="font-medium text-fg">
-                      {i.by} · {formatDateTime(i.at)}
+                      {issue.by} · {formatDateTime(issue.at)}
                     </span>
-                    <span className="text-fg-secondary">{i.note}</span>
+                    <span className="text-fg-secondary">{issue.note}</span>
                   </li>
                 ))}
               </ul>
@@ -188,7 +204,7 @@ export function Arrival({ id }: { id: string }) {
   );
 }
 
-/** FR 7.5: the person doesn't match the photo. Not marked arrived; the issue is recorded. */
+/** The person doesn't match the photo. Not marked arrived; the issue is recorded. */
 function Mismatch({ id, onSaved }: { id: string; onSaved: () => Promise<void> }) {
   const [open, setOpen] = useState(false);
   const [note, setNote] = useState("");
@@ -217,8 +233,8 @@ function Mismatch({ id, onSaved }: { id: string; onSaved: () => Promise<void> })
       >
         <form
           id="mismatch"
-          onSubmit={async (e) => {
-            e.preventDefault();
+          onSubmit={async (event) => {
+            event.preventDefault();
             setPending(true);
             try {
               await api(`/clinician/incoming/${id}/issue`, { note });
@@ -233,7 +249,13 @@ function Mismatch({ id, onSaved }: { id: string; onSaved: () => Promise<void> })
             }
           }}
         >
-          <Textarea label="What didn't match" rows={3} value={note} onChange={(e) => setNote(e.target.value)} error={error} />
+          <Textarea
+            label="What didn't match"
+            rows={3}
+            value={note}
+            onChange={(event) => setNote(event.target.value)}
+            error={error}
+          />
         </form>
       </DialogContent>
     </Dialog>

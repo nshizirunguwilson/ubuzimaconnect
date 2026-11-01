@@ -195,7 +195,11 @@ export class DispatcherService implements OnModuleInit, OnModuleDestroy {
           offerSkipped: everyoneHasSkipped ? [] : undefined,
         },
       });
-      this.events.emit(`agent:${agent.id}`, { type: "offer", caseId: waitingCase.id, expiresAt: expiresAt.toISOString() });
+      this.events.emit(`agent:${agent.id}`, {
+        type: "offer",
+        caseId: waitingCase.id,
+        expiresAt: expiresAt.toISOString(),
+      });
     }
 
     this.events.emit("agents", { type: "queue" });

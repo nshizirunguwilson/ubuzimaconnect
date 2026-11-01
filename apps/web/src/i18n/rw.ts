@@ -1,8 +1,8 @@
 import type { Messages } from "./en";
 
 /**
- * NFR 7: Kinyarwanda. DRAFT, written by the developer, not a native speaker: every line is to be checked
- * by a Kinyarwanda speaker using docs/translations/kinyarwanda-review.csv (DECISIONS.md D62).
+ * Kinyarwanda. DRAFT, written by the developer, not a native speaker: every line is to be checked
+ * by a Kinyarwanda speaker using docs/translations/kinyarwanda-review.csv.
  * Corrections go here; the shape must match en.ts.
  */
 const years = (n: number) => (n === 1 ? "umwaka 1" : `imyaka ${n}`);
@@ -29,7 +29,7 @@ export const rw: Messages = {
     couldntSend: "Ntibyoherejwe. Reba interineti yawe hanyuma wongere ugerageze.",
     step: (n, total) => `Intambwe ya ${n} kuri ${total}`,
     question: (n, total) => `Ikibazo cya ${n} kuri ${total}`,
-    outOf5: (n) => `${n} kuri 5`,
+    outOf5: (stars) => `${stars} kuri 5`,
   },
   logout: {
     button: "Sohoka",
@@ -44,7 +44,10 @@ export const rw: Messages = {
     healthWorker: "Uri umukozi w'ubuzima?",
     staffLogin: "Kwinjira kw'abakozi",
   },
-  install: { button: "Shyira porogaramu kuri telefoni", iphone: "Kugira ngo uyishyireho: kanda Share, hanyuma Add to Home Screen." },
+  install: {
+    button: "Shyira porogaramu kuri telefoni",
+    iphone: "Kugira ngo uyishyireho: kanda Share, hanyuma Add to Home Screen.",
+  },
   login: {
     idTitle: "Nimero y'indangamuntu yawe ni iyihe?",
     idLabel: "Nimero y'indangamuntu",
@@ -53,7 +56,10 @@ export const rw: Messages = {
     confirmIntro: "Tubigenzura ku makuru y'indangamuntu",
     noMatch: "Ayo makuru ntahura",
     checkDetails: "Reba itariki y'amavuko n'izina, hanyuma wongere ugerageze.",
-    triesLeft: (n) => (n === 1 ? "Usigaje igerageza 1 mbere y'uko indangamuntu ifungwa iminota 15." : `Usigaje amagerageza ${n} mbere y'uko indangamuntu ifungwa iminota 15.`),
+    triesLeft: (count) =>
+      count === 1
+        ? "Usigaje igerageza 1 mbere y'uko indangamuntu ifungwa iminota 15."
+        : `Usigaje amagerageza ${count} mbere y'uko indangamuntu ifungwa iminota 15.`,
     dob: "Itariki y'amavuko",
     name: "Rimwe mu mazina yawe",
     nameHint: "Nk'uko ryanditse ku ndangamuntu",
@@ -83,7 +89,7 @@ export const rw: Messages = {
     notYourDeviceBody: "Ntikizakira ubutumwa, kandi uzasohorwa nufunga mushakisha.",
     people: "Abo ushobora gusabira ubufasha",
     checked: "Byagenzuwe ku makuru y'indangamuntu",
-    district: (d) => `Akarere ka ${d}`,
+    district: (district) => `Akarere ka ${district}`,
     getHelp: "Saba ubufasha",
     preferCall: "Ndashaka guhamagarwa",
   },
@@ -114,8 +120,10 @@ export const rw: Messages = {
   },
   offline: {
     notSent: "Ntibiroherezwa: dutegereje interineti",
-    startsByItself: "Ubusabe bwawe buzatangira ubwabwo interineti nigaruka; ntufunge iyi paji. Niba byihutirwa, ntutegereze.",
-    savedAnswers: "Ibisubizo byawe bibitswe kuri iki gikoresho. Bizoherezwa ubwabyo interineti nigaruka; ntufunge iyi paji.",
+    startsByItself:
+      "Ubusabe bwawe buzatangira ubwabwo interineti nigaruka; ntufunge iyi paji. Niba byihutirwa, ntutegereze.",
+    savedAnswers:
+      "Ibisubizo byawe bibitswe kuri iki gikoresho. Bizoherezwa ubwabyo interineti nigaruka; ntufunge iyi paji.",
     goNow: "Hamagara 912 kandi ujye ku ivuriro rikwegereye",
     notSentShort: "Ntibiroherezwa: dutegereje interineti. Ibisubizo byawe bizoherezwa nigaruka.",
     noConnection: "Nta interineti",
@@ -144,8 +152,14 @@ export const rw: Messages = {
     redFlagHint: "Reba umurwayi. Subiza Yego niba utabizi neza.",
     checklistYou: "Hari kimwe muri ibi bimenyetso ufite ubu?",
     checklistThem: (name: string) => `Hari kimwe muri ibi bimenyetso ${name} afite ubu?`,
-    checklistHint: "Kanda ikimenyetso gihuye, nubwo waba utabizi neza. Niba nta na kimwe gihuye, kanda \"Nta na kimwe\" ku iherezo.",
-    checklistGroups: { A: "Ibimenyetso by'akaga", C: "Ibimenyetso ku bana", N: "Ibimenyetso ku bana bato cyane", P: "Ibimenyetso ku mubyeyi utwite" } as Record<string, string>,
+    checklistHint:
+      'Kanda ikimenyetso gihuye, nubwo waba utabizi neza. Niba nta na kimwe gihuye, kanda "Nta na kimwe" ku iherezo.',
+    checklistGroups: {
+      A: "Ibimenyetso by'akaga",
+      C: "Ibimenyetso ku bana",
+      N: "Ibimenyetso ku bana bato cyane",
+      P: "Ibimenyetso ku mubyeyi utwite",
+    } as Record<string, string>,
     noneOfThese: "Nta na kimwe",
     whatsWrong: "Ikibazo ni ikihe?",
     noDangerSigns: "Nta bimenyetso by'akaga. Tubwire byinshi kugira ngo umukozi w'ubuzima agufashe.",
@@ -153,7 +167,12 @@ export const rw: Messages = {
     describeYou: "Bisobanure mu magambo yawe",
     describeHint: "Mu Kinyarwanda cyangwa mu Cyongereza. Urugero: igihe byatangiriye n'ibituma birushaho.",
     howLong: "Bimaze igihe kingana iki?",
-    durations: { TODAY: "Kuva uyu munsi", ONE_TO_THREE_DAYS: "Iminsi 1 kugeza kuri 3", FOUR_TO_SEVEN_DAYS: "Iminsi 4 kugeza kuri 7", MORE_THAN_A_WEEK: "Birenze icyumweru" },
+    durations: {
+      TODAY: "Kuva uyu munsi",
+      ONE_TO_THREE_DAYS: "Iminsi 1 kugeza kuri 3",
+      FOUR_TO_SEVEN_DAYS: "Iminsi 4 kugeza kuri 7",
+      MORE_THAN_A_WEEK: "Birenze icyumweru",
+    },
     howBad: "Birakomeye bingana iki?",
     howBadHint: "1 ni bike cyane, 10 ni bibi kurusha ibindi byose.",
     howBadAria: "Birakomeye bingana iki, kuva kuri 1 kugeza kuri 10",
@@ -177,8 +196,10 @@ export const rw: Messages = {
     helping: "Umukozi w'ubuzima ari kugufasha",
     noAgent: "Nta mukozi w'ubuzima uri ku murongo ubu",
     willReply: "Umukozi w'ubuzima azagusubiza hano",
-    noAgentBody: "Ubusabe bwawe bwabitswe kandi umukozi w'ubuzima azagusubiza hano akimara kuboneka. Nurushaho kumererwa nabi, kanda Ubutabazi.",
-    delayedBody: "Abakozi bose bafite akazi. Niba ubishoboye, jya ku ivuriro rikwegereye; ubusabe bwawe buguma bufunguye hano.",
+    noAgentBody:
+      "Ubusabe bwawe bwabitswe kandi umukozi w'ubuzima azagusubiza hano akimara kuboneka. Nurushaho kumererwa nabi, kanda Ubutabazi.",
+    delayedBody:
+      "Abakozi bose bafite akazi. Niba ubishoboye, jya ku ivuriro rikwegereye; ubusabe bwawe buguma bufunguye hano.",
     helpingBody: "Azakwandikira hano. Ushobora gufunga porogaramu; ibiganiro bigumaho hano.",
     waitingYou: "Ubusabe bwawe butegereje umukozi w'ubuzima. Ushobora gufunga porogaramu; bwabitswe.",
     waitingThem: (name) => `Ubusabe bwa ${name} butegereje umukozi w'ubuzima. Ushobora gufunga porogaramu; bwabitswe.`,
@@ -195,10 +216,11 @@ export const rw: Messages = {
     addSomething: "Ongeraho icyo umukozi akwiye kumenya",
     noLongerNeed: "Sinkikeneye ubufasha",
     closeQ: "Gufunga ubu busabe?",
-    closeBody: "Umukozi w'ubuzima azamenyeshwa ko utagikeneye ubufasha. Ushobora gutangira ubusabe bushya igihe icyo ari cyo cyose.",
+    closeBody:
+      "Umukozi w'ubuzima azamenyeshwa ko utagikeneye ubufasha. Ushobora gutangira ubusabe bushya igihe icyo ari cyo cyose.",
     closeConfirm: "Funga ubusabe",
     thanks: "Murakoze",
-    rated: (n) => `Mwahaye ubufasha amanota ${n} kuri 5.`,
+    rated: (stars) => `Mwahaye ubufasha amanota ${stars} kuri 5.`,
     rateQ: "Ubu bufasha bwabagiriye akamaro kangana iki?",
     rateHint: "1 ni nta kamaro, 5 ni akamaro kanini cyane.",
     inCare: (name) => `Uri kwitabwaho kuri ${name}`,
@@ -220,7 +242,14 @@ export const rw: Messages = {
     play: "Umva ubutumwa bw'ijwi",
     pause: "Hagarika",
     micBlocked: "Emerera mikoro muri mushakisha kugira ngo wohereze ubutumwa bw'ijwi.",
-    quick: { Yes: "Yego", No: "Oya", Better: "Ndumva meze neza", Worse: "Ndumva meze nabi", Same: "Ntacyahindutse", "I don't know": "Simbizi" },
+    quick: {
+      Yes: "Yego",
+      No: "Oya",
+      Better: "Ndumva meze neza",
+      Worse: "Ndumva meze nabi",
+      Same: "Ntacyahindutse",
+      "I don't know": "Simbizi",
+    },
   },
   notify: {
     why: "Akira ubutumwa igihe umukozi w'ubuzima agusubije, n'iyo porogaramu ifunze.",
@@ -246,7 +275,11 @@ export const rw: Messages = {
   records: {
     title: "Amakuru y'ubuzima",
     sexAge: (female, age, born) => `${female ? "Gore" : "Gabo"} · ${age} · yavutse ${born}`,
-    age: (a) => (a.years >= 1 ? years(a.years) : a.months >= 1 ? `amezi ${a.months}` : `iminsi ${a.days}`),
+    age: (age) => {
+      if (age.years >= 1) return years(age.years);
+      if (age.months >= 1) return `amezi ${age.months}`;
+      return `iminsi ${age.days}`;
+    },
     sex: (female) => (female ? "Gore" : "Gabo"),
     activity: "Ibyakozwe",
     print: "Capa incamake",
@@ -257,7 +290,12 @@ export const rw: Messages = {
     noVisits: "Nta kwivuriza ku ivuriro binyuze kuri UbuzimaConnect birabaho.",
     arrived: (date) => `Yageze ${date}`,
     ended: (date) => `byarangiye ${date}`,
-    visitStatus: { ARRIVED: "Ari kwitabwaho ubu", DISCHARGED: "Yasezerewe", COMPLETED: "Kwivuza byarangiye", TRANSFERRED: "Yimuriwe ahandi" },
+    visitStatus: {
+      ARRIVED: "Ari kwitabwaho ubu",
+      DISCHARGED: "Yasezerewe",
+      COMPLETED: "Kwivuza byarangiye",
+      TRANSFERRED: "Yimuriwe ahandi",
+    },
     nothingWritten: "Nta kirandikwa.",
     diagnosis: "Indwara yabonetse",
     treatment: "Ubuvuzi",
@@ -313,7 +351,8 @@ export const rw: Messages = {
   check: {
     checking: "Turimo kugenzura urupapuro rw'imiti…",
     title: "Genzura urupapuro rw'imiti",
-    intro: "Ku mafarumasi. Andika kode iri ku rupapuro rw'imiti, cyangwa usuzume QR kode yayo ukoresheje kamera ya telefoni.",
+    intro:
+      "Ku mafarumasi. Andika kode iri ku rupapuro rw'imiti, cyangwa usuzume QR kode yayo ukoresheje kamera ya telefoni.",
     label: "Kode y'urupapuro rw'imiti",
     hint: "Itangirwa na RX, urugero: RX-7K3M-9QPD",
     badCode: "Andika kode nk'uko yanditse, urugero: RX-7K3M-9QPD",
@@ -329,7 +368,7 @@ export const rw: Messages = {
     expiredOn: (date) => `Uru rupapuro rw'imiti rwarangije igihe ${date}.`,
     patient: "Umurwayi",
     prescriber: "Uwanditse",
-    licence: (n) => `uruhushya ${n}`,
+    licence: (number) => `uruhushya ${number}`,
     issued: "Itariki rwatangiweho",
     medicines: "Imiti",
     logged: "Igenzura ryose rirandikwa. Saba indangamuntu y'umurwayi niba ushidikanya ko ari urwe.",

@@ -25,8 +25,12 @@ beforeAll(async () => {
      select gen_random_uuid(), s.id, $1::date, $2::"ShiftType", s.id from "Staff" s where s.role in ('CLINICIAN', 'AGENT') on conflict do nothing`,
     [now.date, now.shift],
   );
-  ids = Object.fromEntries((await db.query(`select id, email from "Staff"`)).rows.map((r) => [r.email.split("@")[0], r.id]));
-  [er, manager, admin, agent] = await Promise.all(["clinician", "manager", "admin", "agent"].map((n) => staffLogin(`${n}@ubuzima.test`)));
+  ids = Object.fromEntries(
+    (await db.query(`select id, email from "Staff"`)).rows.map((r) => [r.email.split("@")[0], r.id]),
+  );
+  [er, manager, admin, agent] = await Promise.all(
+    ["clinician", "manager", "admin", "agent"].map((n) => staffLogin(`${n}@ubuzima.test`)),
+  );
 });
 afterAll(async () => {
   await gemini.close();
@@ -53,25 +57,44 @@ async function urgent() {
   if (v.stage === "PREGNANCY") v = (await b(`/cases/${id}/pregnancy`, { pregnant: false })).body;
   v = (await b(`/cases/${id}/answers`, { questionId: v.question.id, answer: false })).body;
   await b(`/cases/${id}/answers`, { questionId: v.question.id, answer: true });
-  const r = (await db.query(`select id, "clinicianId" from "Routing" where "caseId" = $1 and status = 'SUGGESTED'`, [id])).rows[0];
+  const r = (
+    await db.query(`select id, "clinicianId" from "Routing" where "caseId" = $1 and status = 'SUGGESTED'`, [id])
+  ).rows[0];
   return { b, caseId: id, routingId: r.id as string, clinicianId: r.clinicianId as string };
 }
 
 describe("no facility can take the case (FR 5.9)", () => {
   it("makes a minor case Urgent, shows 912, and logs it", async () => {
     // Nobody is on duty anywhere right now.
-    await db.query(`update "ShiftAssignment" set unavailable = true where date = $1::date and shift = $2::"ShiftType"`, [now.date, now.shift]);
+    await db.query(
+      `update "ShiftAssignment" set unavailable = true where date = $1::date and shift = $2::"ShiftType"`,
+      [now.date, now.shift],
+    );
     const { b, me } = await patient(CLAUDINE);
     const id = (await b("/cases", { subjectId: me.id, location: KIGALI })).body.id;
     let v = (await b(`/cases/${id}`)).body;
     if (v.stage === "PREGNANCY") v = (await b(`/cases/${id}/pregnancy`, { pregnant: false })).body;
-    while (v.stage === "RED_FLAGS") v = (await b(`/cases/${id}/answers`, { questionId: v.question.id, answer: false })).body;
-    v = (await b(`/cases/${id}/symptoms`, { description: "I have had a dry cough and a mild fever since yesterday evening", duration: "TODAY", severity: 3 })).body;
+    while (v.stage === "RED_FLAGS")
+      v = (await b(`/cases/${id}/answers`, { questionId: v.question.id, answer: false })).body;
+    v = (
+      await b(`/cases/${id}/symptoms`, {
+        description: "I have had a dry cough and a mild fever since yesterday evening",
+        duration: "TODAY",
+        severity: 3,
+      })
+    ).body;
     expect(v.urgent).toBe(true);
     expect(v.guidance).toMatchObject({ facility: null });
     const c = (await db.query(`select "triageLevel", "triageReason", status from "Case" where id = $1`, [id])).rows[0];
-    expect(c).toMatchObject({ triageLevel: "URGENT", status: "QUEUED", triageReason: expect.stringContaining("No facility offers") });
-    const log = await db.query(`select 1 from "AuditEvent" where action = 'routing.no_match' and detail->>'caseId' = $1`, [id]);
+    expect(c).toMatchObject({
+      triageLevel: "URGENT",
+      status: "QUEUED",
+      triageReason: expect.stringContaining("No facility offers"),
+    });
+    const log = await db.query(
+      `select 1 from "AuditEvent" where action = 'routing.no_match' and detail->>'caseId' = $1`,
+      [id],
+    );
     expect(log.rowCount).toBe(1);
   });
 });
@@ -86,24 +109,45 @@ describe("automatic reassignment (FR 5.13, 8.5)", () => {
          on conflict (email) do update set status = 'ACTIVE' returning id`,
       )
     ).rows[0].id as string;
-    await db.query(`insert into "ShiftAssignment" (id, "staffId", date, shift, "createdById") values (gen_random_uuid(), $1, $2::date, $3::"ShiftType", $1) on conflict do nothing`, [extra, now.date, now.shift]);
+    await db.query(
+      `insert into "ShiftAssignment" (id, "staffId", date, shift, "createdById") values (gen_random_uuid(), $1, $2::date, $3::"ShiftType", $1) on conflict do nothing`,
+      [extra, now.date, now.shift],
+    );
 
     const { routingId, clinicianId } = await urgent();
     const assigned = clinicianId === ids.clinician ? er : null;
     expect(assigned).not.toBeNull(); // the fewest patients: the seeded clinician
-    const shift = (await db.query(`select id from "ShiftAssignment" where "staffId" = $1 and date = $2::date and shift = $3::"ShiftType"`, [ids.clinician, now.date, now.shift])).rows[0].id;
-    expect((await er(`/me/shifts/${shift}/unavailable`, { unavailable: true, reason: "Called to theatre" })).status).toBe(200);
+    const shift = (
+      await db.query(
+        `select id from "ShiftAssignment" where "staffId" = $1 and date = $2::date and shift = $3::"ShiftType"`,
+        [ids.clinician, now.date, now.shift],
+      )
+    ).rows[0].id;
+    expect(
+      (await er(`/me/shifts/${shift}/unavailable`, { unavailable: true, reason: "Called to theatre" })).status,
+    ).toBe(200);
 
     const r = (await db.query(`select "clinicianId" from "Routing" where id = $1`, [routingId])).rows[0];
     expect(r.clinicianId).toBe(extra);
-    const notice = await db.query(`select kind from "Notification" where "staffId" = $1 and "routingId" = $2`, [extra, routingId]);
+    const notice = await db.query(`select kind from "Notification" where "staffId" = $1 and "routingId" = $2`, [
+      extra,
+      routingId,
+    ]);
     expect(notice.rows).toEqual([{ kind: "INCOMING" }]);
-    const log = await db.query(`select detail->>'why' as why from "AuditEvent" where action = 'routing.clinician_reassigned' and detail->>'routingId' = $1`, [routingId]);
+    const log = await db.query(
+      `select detail->>'why' as why from "AuditEvent" where action = 'routing.clinician_reassigned' and detail->>'routingId' = $1`,
+      [routingId],
+    );
     expect(log.rows[0].why).toBe("Clinician marked unavailable");
 
     // Deactivated next, with nobody of that specialty left on duty: the case goes back to the agents, first in line.
     expect((await manager(`/clinicians/${extra}/deactivate`, {})).status).toBe(200);
-    const after = (await db.query(`select r."clinicianId", c.status, c."frontOfQueue" from "Routing" r join "Case" c on c.id = r."caseId" where r.id = $1`, [routingId])).rows[0];
+    const after = (
+      await db.query(
+        `select r."clinicianId", c.status, c."frontOfQueue" from "Routing" r join "Case" c on c.id = r."caseId" where r.id = $1`,
+        [routingId],
+      )
+    ).rows[0];
     expect(after).toEqual({ clinicianId: null, status: "QUEUED", frontOfQueue: true });
   });
 });
@@ -135,7 +179,13 @@ describe("who can open what (FR 9.1 to 9.5)", () => {
     const { routingId, caseId } = await urgent();
     const { me } = await patient(ALINE);
     for (const who of [manager, admin]) {
-      for (const path of [`/clinician/visits/${routingId}`, `/clinician/incoming/${routingId}`, `/agent/cases/${caseId}`, `/records/${me.id}`, "/prescriptions/mine"]) {
+      for (const path of [
+        `/clinician/visits/${routingId}`,
+        `/clinician/incoming/${routingId}`,
+        `/agent/cases/${caseId}`,
+        `/records/${me.id}`,
+        "/prescriptions/mine",
+      ]) {
         expect((await who(path)).status, path).toBe(403);
       }
     }

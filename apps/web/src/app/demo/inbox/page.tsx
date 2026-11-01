@@ -10,7 +10,7 @@ export const metadata: Metadata = { title: "Demo inbox", robots: { index: false 
 type Email = { id: string; to: string; subject: string; text: string; createdAt: string };
 
 /**
- * D66: the emails sent to the made-up demo accounts (@ubuzima.test): login codes, invitations, reset links.
+ * The emails sent to the made-up demo accounts (@ubuzima.test): login codes, invitations, reset links.
  * The API decides what may be shown; on the live site it is only the demo addresses, and only when switched on.
  */
 export default function DemoInbox() {
@@ -19,7 +19,8 @@ export default function DemoInbox() {
       <div className="flex flex-col gap-2">
         <h1 className="text-h1 text-fg">Demo inbox</h1>
         <p className="text-body text-fg-secondary">
-          The emails sent to the demo staff accounts (…@ubuzima.test), so you can log in with them. Real staff get real emails, which never appear here. Newest first.
+          The emails sent to the demo staff accounts (…@ubuzima.test), so you can log in with them. Real staff get real
+          emails, which never appear here. Newest first.
         </p>
       </div>
       <Suspense>
@@ -35,13 +36,13 @@ async function List() {
   if (res.status === 404) notFound();
   const emails: Email[] = res.ok ? await res.json() : [];
   if (emails.length === 0) return <p className="text-body text-fg-secondary">No emails yet.</p>;
-  return emails.map((e) => (
-    <Card key={e.id} className="flex flex-col gap-2">
+  return emails.map((email) => (
+    <Card key={email.id} className="flex flex-col gap-2">
       <p className="text-caption text-fg-muted">
-        To {e.to} · {formatDateTime(e.createdAt)}
+        To {email.to} · {formatDateTime(email.createdAt)}
       </p>
-      <h2 className="text-h3 text-fg">{e.subject}</h2>
-      <pre className="font-sans text-small whitespace-pre-wrap text-fg">{autolink(e.text)}</pre>
+      <h2 className="text-h3 text-fg">{email.subject}</h2>
+      <pre className="font-sans text-small whitespace-pre-wrap text-fg">{autolink(email.text)}</pre>
     </Card>
   ));
 }

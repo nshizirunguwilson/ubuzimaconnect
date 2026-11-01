@@ -28,11 +28,20 @@ export type Prescription = {
   patient?: string;
 };
 
-/** FR 11.3, 11.4: Valid in green; Expired and Cancelled say plainly not to dispense. */
-export function PrescriptionStatusBadge({ p }: { p: Pick<Prescription, "status" | "validUntil"> }) {
+/** Valid in green; Expired and Cancelled say plainly not to dispense. */
+export function PrescriptionStatusBadge({
+  prescription,
+}: {
+  prescription: Pick<Prescription, "status" | "validUntil">;
+}) {
   const { t, date } = useT();
-  if (p.status === "VALID") return <StatusBadge tone="success">{t.prescription.validUntil(date(p.validUntil))}</StatusBadge>;
-  return <StatusBadge tone={p.status === "CANCELLED" ? "urgent" : "neutral"}>{p.status === "CANCELLED" ? t.prescription.cancelled : t.prescription.expired}</StatusBadge>;
+  if (prescription.status === "VALID")
+    return <StatusBadge tone="success">{t.prescription.validUntil(date(prescription.validUntil))}</StatusBadge>;
+  return (
+    <StatusBadge tone={prescription.status === "CANCELLED" ? "urgent" : "neutral"}>
+      {prescription.status === "CANCELLED" ? t.prescription.cancelled : t.prescription.expired}
+    </StatusBadge>
+  );
 }
 
 export function Medicines({ items }: { items: Prescription["items"] }) {
@@ -52,41 +61,51 @@ export function Medicines({ items }: { items: Prescription["items"] }) {
   );
 }
 
-/** One prescription: code, status, medicines and who issued it (FR 11.2). */
-export function PrescriptionCard({ p, qr, action }: { p: Prescription; qr?: boolean; action?: ReactNode }) {
+/** One prescription: code, status, medicines and who issued it. */
+export function PrescriptionCard({
+  prescription,
+  qr,
+  action,
+}: {
+  prescription: Prescription;
+  qr?: boolean;
+  action?: ReactNode;
+}) {
   const { t, dateTime } = useT();
   return (
     <Card className="flex flex-col gap-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="flex flex-col gap-1">
-          <span className="font-mono text-body font-semibold tracking-wide text-fg">{p.code}</span>
+          <span className="font-mono text-body font-semibold tracking-wide text-fg">{prescription.code}</span>
           <span className="text-caption text-fg-muted">
-            {p.patient ? `${p.patient} · ` : ""}
-            {t.prescription.issued(dateTime(p.issuedAt), p.prescriber.name)}
-            {p.prescriber.licence ? ` (${p.prescriber.licence})` : ""}
+            {prescription.patient ? `${prescription.patient} · ` : ""}
+            {t.prescription.issued(dateTime(prescription.issuedAt), prescription.prescriber.name)}
+            {prescription.prescriber.licence ? ` (${prescription.prescriber.licence})` : ""}
           </span>
         </div>
-        <PrescriptionStatusBadge p={p} />
+        <PrescriptionStatusBadge prescription={prescription} />
       </div>
       <div className="flex flex-wrap items-start gap-5">
         <div className="min-w-0 flex-1">
-          <Medicines items={p.items} />
+          <Medicines items={prescription.items} />
         </div>
-        {qr && p.status === "VALID" && (
+        {qr && prescription.status === "VALID" && (
           <div className="flex flex-col items-center gap-2">
-            <QrCode code={p.code} />
-            <PrescriptionActions p={p} />
+            <QrCode code={prescription.code} />
+            <PrescriptionActions prescription={prescription} />
           </div>
         )}
       </div>
-      {p.status === "CANCELLED" && p.cancelReason && <p className="text-small text-fg-secondary">{t.prescription.cancelledBecause(p.cancelReason)}</p>}
+      {prescription.status === "CANCELLED" && prescription.cancelReason && (
+        <p className="text-small text-fg-secondary">{t.prescription.cancelledBecause(prescription.cancelReason)}</p>
+      )}
       {action}
     </Card>
   );
 }
 
 /**
- * FR 11.2: the QR code holds the public check address, so any phone camera opens the check page (FR 11.7).
+ * The QR code holds the public check address, so any phone camera opens the check page.
  * Black on white, as scanners expect.
  */
 export function QrCode({ code, size = 128 }: { code: string; size?: number }) {
@@ -94,8 +113,13 @@ export function QrCode({ code, size = 128 }: { code: string; size?: number }) {
   const { t } = useT();
   useEffect(() => {
     let live = true;
-    QRCode.toString(`${window.location.origin}/check/${code}`, { type: "svg", margin: 1, errorCorrectionLevel: "M", color: { dark: "#000000", light: "#ffffff" } }).then(
-      (s) => live && setSvg(s),
+    QRCode.toString(`${window.location.origin}/check/${code}`, {
+      type: "svg",
+      margin: 1,
+      errorCorrectionLevel: "M",
+      color: { dark: "#000000", light: "#ffffff" },
+    }).then(
+      (svg) => live && setSvg(svg),
       () => null,
     );
     return () => {
@@ -103,46 +127,69 @@ export function QrCode({ code, size = 128 }: { code: string; size?: number }) {
     };
   }, [code]);
   return (
-    <Squircle radius="md" className="shrink-0 overflow-hidden p-1.5 sq-bg-white sq-border-border" style={{ width: size, height: size }}>
-      {svg ? <div role="img" aria-label={t.prescription.qr(code)} className="size-full [&_svg]:size-full" dangerouslySetInnerHTML={{ __html: svg }} /> : <div className="size-full" aria-busy />}
+    <Squircle
+      radius="md"
+      className="shrink-0 overflow-hidden prescription-1.5 sq-bg-white sq-border-border"
+      style={{ width: size, height: size }}
+    >
+      {svg ? (
+        <div
+          role="img"
+          aria-label={t.prescription.qr(code)}
+          className="size-full [&_svg]:size-full"
+          dangerouslySetInnerHTML={{ __html: svg }}
+        />
+      ) : (
+        <div className="size-full" aria-busy />
+      )}
     </Squircle>
   );
 }
 
 /** Copy the code to paste in a message, or save the prescription as an image to show at a pharmacy offline. */
-function PrescriptionActions({ p }: { p: Prescription }) {
+function PrescriptionActions({ prescription }: { prescription: Prescription }) {
   const { t, dateTime } = useT();
   const [copied, setCopied] = useState(false);
   async function copy() {
     try {
-      await navigator.clipboard.writeText(p.code);
+      await navigator.clipboard.writeText(prescription.code);
       setCopied(true);
-      toast.success(t.prescription.copied(p.code));
+      toast.success(t.prescription.copied(prescription.code));
       setTimeout(() => setCopied(false), 2000);
     } catch {
       toast.error(t.prescription.cantCopy);
     }
   }
   async function download() {
-    const blob = await prescriptionImage(p, {
+    const blob = await prescriptionImage(prescription, {
       title: t.prescription.imageTitle,
-      issued: t.prescription.issued(dateTime(p.issuedAt), p.prescriber.name + (p.prescriber.licence ? ` (${p.prescriber.licence})` : "")),
-      valid: t.prescription.validUntil(dateTime(p.validUntil)),
-      dose: (it) => t.prescription.dose(it.dose, it.frequency, it.days) + (it.instructions ? `. ${it.instructions}` : ""),
+      issued: t.prescription.issued(
+        dateTime(prescription.issuedAt),
+        prescription.prescriber.name + (prescription.prescriber.licence ? ` (${prescription.prescriber.licence})` : ""),
+      ),
+      valid: t.prescription.validUntil(dateTime(prescription.validUntil)),
+      dose: (it) =>
+        t.prescription.dose(it.dose, it.frequency, it.days) + (it.instructions ? `. ${it.instructions}` : ""),
       footer: t.prescription.imageFooter(window.location.host),
     });
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(blob);
-    a.download = `prescription-${p.code}.png`;
-    a.click();
-    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = `prescription-${prescription.code}.png`;
+    link.click();
+    setTimeout(() => URL.revokeObjectURL(link.href), 1000);
   }
   return (
     <div className="flex gap-1">
       <Button variant="ghost" size="icon" aria-label={t.prescription.copy} title={t.prescription.copy} onClick={copy}>
         {copied ? <LuCheck /> : <LuCopy />}
       </Button>
-      <Button variant="ghost" size="icon" aria-label={t.prescription.download} title={t.prescription.download} onClick={download}>
+      <Button
+        variant="ghost"
+        size="icon"
+        aria-label={t.prescription.download}
+        title={t.prescription.download}
+        onClick={download}
+      >
         <LuDownload />
       </Button>
     </div>
@@ -152,26 +199,40 @@ function PrescriptionActions({ p }: { p: Prescription }) {
 /** The prescription drawn on a white image: what a pharmacist needs, and the QR code to scan. */
 async function prescriptionImage(
   p: Prescription,
-  text: { title: string; issued: string; valid: string; dose: (it: Prescription["items"][number]) => string; footer: string },
+  text: {
+    title: string;
+    issued: string;
+    valid: string;
+    dose: (it: Prescription["items"][number]) => string;
+    footer: string;
+  },
 ) {
   const W = 720;
   const qr = new Image();
-  const src = await QRCode.toDataURL(`${window.location.origin}/check/${p.code}`, { width: 240, margin: 1, errorCorrectionLevel: "M" });
+  const src = await QRCode.toDataURL(`${window.location.origin}/check/${p.code}`, {
+    width: 240,
+    margin: 1,
+    errorCorrectionLevel: "M",
+  });
   // onload, not decode(): decode() never settles in some embedded browsers.
   await new Promise((res, rej) => {
     qr.onload = res;
     qr.onerror = rej;
     qr.src = src;
   });
-  const c = document.createElement("canvas");
-  const ctx = c.getContext("2d")!;
+  const canvasElement = document.createElement("canvas");
+  const ctx = canvasElement.getContext("2d")!;
   // The app's own fonts (app/layout.tsx): Outfit for headings, Google Sans Flex for text, Google Sans Code for the code.
   const css = getComputedStyle(document.documentElement);
   const family = (v: string, fallback: string) => `${css.getPropertyValue(v).trim() || fallback}, ${fallback}`;
   const heading = family("--font-outfit", "sans-serif");
   const sans = family("--font-google-sans-flex", "sans-serif");
   const mono = family("--font-google-sans-code", "monospace");
-  await Promise.all([`600 18px ${heading}`, `400 18px ${sans}`, `600 22px ${sans}`, `600 34px ${mono}`].map((f) => document.fonts.load(f).catch(() => null)));
+  await Promise.all(
+    [`600 18px ${heading}`, `400 18px ${sans}`, `600 22px ${sans}`, `600 34px ${mono}`].map((font) =>
+      document.fonts.load(font).catch(() => null),
+    ),
+  );
   const font = (size: number, weight = 400, face = sans) => `${weight} ${size}px ${face}`;
   // Medicine lines wrap to the width left of the QR code.
   const wrap = (s: string, size: number, max: number) => {
@@ -187,11 +248,14 @@ async function prescriptionImage(
     }
     return [...lines, line];
   };
-  const rows = p.items.flatMap((it) => [{ s: it.medicine, size: 22, weight: 600 }, ...wrap(text.dose(it), 18, 400).map((s) => ({ s, size: 18, weight: 400 }))]);
-  c.width = W;
-  c.height = Math.max(420, 250 + rows.length * 30 + 60);
+  const rows = p.items.flatMap((it) => [
+    { text: it.medicine, size: 22, weight: 600 },
+    ...wrap(text.dose(it), 18, 400).map((line) => ({ text: line, size: 18, weight: 400 })),
+  ]);
+  canvasElement.width = W;
+  canvasElement.height = Math.max(420, 250 + rows.length * 30 + 60);
   ctx.fillStyle = "#ffffff";
-  ctx.fillRect(0, 0, c.width, c.height);
+  ctx.fillRect(0, 0, canvasElement.width, canvasElement.height);
   ctx.fillStyle = "#1b2733";
   ctx.font = font(18, 600, heading);
   ctx.fillText(text.title, 40, 52);
@@ -210,21 +274,27 @@ async function prescriptionImage(
   ctx.fillStyle = "#1b2733";
   for (const r of rows) {
     ctx.font = font(r.size, r.weight);
-    ctx.fillText(r.s, 40, y);
+    ctx.fillText(r.text, 40, y);
     y += r.size === 22 ? 30 : 26;
   }
   ctx.drawImage(qr, W - 280, 40, 240, 240);
   ctx.font = font(14);
   ctx.fillStyle = "#6b7885";
-  ctx.fillText(text.footer, 40, c.height - 28);
-  return new Promise<Blob>((res) => c.toBlob((b) => res(b!), "image/png"));
+  ctx.fillText(text.footer, 40, canvasElement.height - 28);
+  return new Promise<Blob>((res) => canvasElement.toBlob((blob) => res(blob!), "image/png"));
 }
 
 type Row = { medicine: string; dose: string; frequency: string; days: string; instructions: string };
 const empty = (): Row => ({ medicine: "", dose: "", frequency: "", days: "", instructions: "" });
 
-/** FR 11.1: one or more medicines, each with dose, how often, how many days and instructions. No approval needed. */
-export function PrescribeForm({ path, onIssued }: { path: string; onIssued: (p: Prescription) => Promise<void> | void }) {
+/** One or more medicines, each with dose, how often, how many days and instructions. No approval needed. */
+export function PrescribeForm({
+  path,
+  onIssued,
+}: {
+  path: string;
+  onIssued: (p: Prescription) => Promise<void> | void;
+}) {
   const [rows, setRows] = useState<Row[]>([empty()]);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [pending, setPending] = usePending(false);
@@ -233,18 +303,19 @@ export function PrescribeForm({ path, onIssued }: { path: string; onIssued: (p: 
     e.preventDefault();
     // Check each row here first, so each error sits under its own field.
     const found: Record<string, string> = {};
-    rows.forEach((r, i) => {
-      const res = prescriptionItem.safeParse(r);
-      if (!res.success) for (const issue of res.error.issues) found[`${i}.${String(issue.path[0])}`] ??= issue.message;
+    rows.forEach((row, index) => {
+      const res = prescriptionItem.safeParse(row);
+      if (!res.success)
+        for (const issue of res.error.issues) found[`${index}.${String(issue.path[0])}`] ??= issue.message;
     });
     setErrors(found);
     if (Object.keys(found).length) return;
     setPending(true);
     try {
-      const p = await api<Prescription>(path, { items: rows });
-      toast.success(`Prescription ${p.code} issued`);
+      const created = await api<Prescription>(path, { items: rows });
+      toast.success(`Prescription ${created.code} issued`);
       setRows([empty()]);
-      await onIssued(p);
+      await onIssued(created);
     } catch (err) {
       toast.error(err instanceof ApiFailure ? err.error.message : "Couldn't issue the prescription.");
     } finally {
@@ -252,27 +323,63 @@ export function PrescribeForm({ path, onIssued }: { path: string; onIssued: (p: 
     }
   }
 
-  const set = (i: number, k: keyof Row, v: string) => setRows((rs) => rs.map((r, j) => (j === i ? { ...r, [k]: v } : r)));
+  const set = (i: number, k: keyof Row, v: string) =>
+    setRows((previous) => previous.map((row, j) => (j === i ? { ...row, [k]: v } : row)));
 
   return (
     <form onSubmit={submit} noValidate className="flex flex-col gap-5">
-      {rows.map((r, i) => (
-        <fieldset key={i} className="flex flex-col gap-4 border-b border-border pb-5 last-of-type:border-b-0">
+      {rows.map((row, index) => (
+        <fieldset key={index} className="flex flex-col gap-4 border-b border-border pb-5 last-of-type:border-b-0">
           <div className="flex items-center justify-between gap-3">
-            <legend className="text-small font-semibold text-fg">Medicine {rows.length > 1 ? i + 1 : ""}</legend>
+            <legend className="text-small font-semibold text-fg">Medicine {rows.length > 1 ? index + 1 : ""}</legend>
             {rows.length > 1 && (
-              <Button variant="ghost" size="compact" icon={<LuTrash2 />} onClick={() => setRows((rs) => rs.filter((_, j) => j !== i))}>
+              <Button
+                variant="ghost"
+                size="compact"
+                icon={<LuTrash2 />}
+                onClick={() => setRows((rs) => rs.filter((_, j) => j !== index))}
+              >
                 Remove
               </Button>
             )}
           </div>
-          <Input label="Medicine and strength" hint="e.g. Paracetamol 500 mg tablets" value={r.medicine} onChange={(e) => set(i, "medicine", e.target.value)} error={errors[`${i}.medicine`]} />
+          <Input
+            label="Medicine and strength"
+            hint="e.g. Paracetamol 500 mg tablets"
+            value={row.medicine}
+            onChange={(event) => set(index, "medicine", event.target.value)}
+            error={errors[`${index}.medicine`]}
+          />
           <div className="grid gap-4 sm:grid-cols-3">
-            <Input label="Dose" hint="e.g. 2 tablets" value={r.dose} onChange={(e) => set(i, "dose", e.target.value)} error={errors[`${i}.dose`]} />
-            <Input label="How often" hint="e.g. 3 times a day" value={r.frequency} onChange={(e) => set(i, "frequency", e.target.value)} error={errors[`${i}.frequency`]} />
-            <Input label="Days" inputMode="numeric" value={r.days} onChange={(e) => set(i, "days", e.target.value.replace(/\D/g, ""))} error={errors[`${i}.days`]} />
+            <Input
+              label="Dose"
+              hint="e.g. 2 tablets"
+              value={row.dose}
+              onChange={(event) => set(index, "dose", event.target.value)}
+              error={errors[`${index}.dose`]}
+            />
+            <Input
+              label="How often"
+              hint="e.g. 3 times a day"
+              value={row.frequency}
+              onChange={(event) => set(index, "frequency", event.target.value)}
+              error={errors[`${index}.frequency`]}
+            />
+            <Input
+              label="Days"
+              inputMode="numeric"
+              value={row.days}
+              onChange={(event) => set(index, "days", event.target.value.replace(/\D/g, ""))}
+              error={errors[`${index}.days`]}
+            />
           </div>
-          <Input label="Instructions" optional hint="e.g. After meals" value={r.instructions} onChange={(e) => set(i, "instructions", e.target.value)} />
+          <Input
+            label="Instructions"
+            optional
+            hint="e.g. After meals"
+            value={row.instructions}
+            onChange={(event) => set(index, "instructions", event.target.value)}
+          />
         </fieldset>
       ))}
       <div className="flex flex-wrap gap-2">
@@ -285,25 +392,28 @@ export function PrescribeForm({ path, onIssued }: { path: string; onIssued: (p: 
           </Button>
         )}
       </div>
-      <p className="text-caption text-fg-muted">Valid at any pharmacy for {PRESCRIPTION_VALID_DAYS} days. The patient sees it in their records straight away.</p>
+      <p className="text-caption text-fg-muted">
+        Valid at any pharmacy for {PRESCRIPTION_VALID_DAYS} days. The patient sees it in their records straight away.
+      </p>
     </form>
   );
 }
 
-/** FR 11.6: the patient's whole prescription history, newest first. */
+/** The patient's whole prescription history, newest first. */
 export function PrescriptionHistory({ list }: { list: Prescription[] }) {
   if (list.length === 0) return <p className="text-small text-fg-secondary">No prescriptions before.</p>;
   return (
     <ul className="flex flex-col divide-y divide-border">
-      {list.map((p) => (
-        <li key={p.id} className="flex flex-col gap-2 py-3 first:pt-0 last:pb-0">
+      {list.map((prescription) => (
+        <li key={prescription.id} className="flex flex-col gap-2 py-3 first:pt-0 last:pb-0">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <span className="text-caption text-fg-muted">
-              <span className="font-mono">{p.code}</span> · {formatDate(p.issuedAt)} · {p.prescriber.name}
+              <span className="font-mono">{prescription.code}</span> · {formatDate(prescription.issuedAt)} ·{" "}
+              {prescription.prescriber.name}
             </span>
-            <PrescriptionStatusBadge p={p} />
+            <PrescriptionStatusBadge prescription={prescription} />
           </div>
-          <Medicines items={p.items} />
+          <Medicines items={prescription.items} />
         </li>
       ))}
     </ul>

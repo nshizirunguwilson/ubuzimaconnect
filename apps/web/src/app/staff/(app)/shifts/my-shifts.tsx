@@ -1,11 +1,6 @@
 "use client";
 
-import {
-  addDays,
-  SHIFT_HOURS,
-  SHIFT_LABEL,
-  type ShiftType,
-} from "@ubuzima/shared";
+import { addDays, SHIFT_HOURS, SHIFT_LABEL, shiftHasEnded, type ShiftType } from "@ubuzima/shared";
 import dynamic from "next/dynamic";
 import { useState, type FormEvent } from "react";
 import { LuCalendarClock, LuChevronLeft, LuChevronRight } from "react-icons/lu";
@@ -20,6 +15,7 @@ import { Tab, Tabs, TabsContent, TabsList } from "@/components/ui/tabs";
 import { toast } from "@/components/ui/toast";
 import { api, ApiFailure } from "@/lib/api";
 import { useApi } from "@/lib/use-api";
+import { longDay, weekRange } from "@/lib/time";
 
 export type Shift = {
   id: string;
@@ -35,53 +31,23 @@ type Data = {
   shifts: Shift[];
 };
 
-// FullCalendar reads the window, so it loads in the browser only (D77).
-const ShiftsCalendar = dynamic(
-  () => import("./shifts-calendar").then((m) => m.ShiftsCalendar),
-  {
-    ssr: false,
-    loading: () => <div className="h-96" aria-busy />,
-  },
-);
+// FullCalendar reads the window, so it loads in the browser only.
+const ShiftsCalendar = dynamic(() => import("./shifts-calendar").then((module) => module.ShiftsCalendar), {
+  ssr: false,
+  loading: () => <div className="h-96" aria-busy />,
+});
 
-const range = (monday: string) => {
-  const f = (iso: string, o: Intl.DateTimeFormatOptions) =>
-    new Date(`${iso}T12:00:00Z`).toLocaleDateString("en-GB", {
-      ...o,
-      timeZone: "UTC",
-    });
-  return `${f(monday, { day: "numeric", month: "short" })} – ${f(addDays(monday, 6), { day: "numeric", month: "short", year: "numeric" })}`;
-};
-const longDay = (iso: string) =>
-  new Date(`${iso}T12:00:00Z`).toLocaleDateString("en-GB", {
-    weekday: "long",
-    day: "numeric",
-    month: "short",
-    timeZone: "UTC",
-  });
-
-/** FR 8.5: a clinician sees their shifts and marks themselves unavailable; routing uses it at once. Agents see theirs (FR 12.4). */
-export function MyShifts({
-  canMarkUnavailable,
-}: {
-  canMarkUnavailable: boolean;
-}) {
+/** A clinician sees their shifts and marks themselves unavailable; routing uses it at once. Agents see theirs. */
+export function MyShifts({ canMarkUnavailable }: { canMarkUnavailable: boolean }) {
   const [week, setWeek] = useState<string | null>(null);
-  const { data, reload } = useApi<Data>(
-    `/me/shifts${week ? `?week=${week}` : ""}`,
-  );
+  const { data, reload } = useApi<Data>(`/me/shifts${week ? `?week=${week}` : ""}`);
   const [picked, setPicked] = useState<Shift | null>(null);
   if (!data) return <div className="h-96" aria-busy />;
 
-  const state = (s: Shift) => {
-    const past =
-      s.date < data.now.date ||
-      (s.date === data.now.date &&
-        s.shift === "DAY" &&
-        data.now.shift === "NIGHT");
-    const now = s.date === data.now.date && s.shift === data.now.shift;
-    return { past, now };
-  };
+  const state = (shift: Shift) => ({
+    past: shiftHasEnded(shift.date, shift.shift, data.now),
+    now: shift.date === data.now.date && shift.shift === data.now.shift,
+  });
 
   return (
     <div className="flex flex-col gap-6">
@@ -94,9 +60,7 @@ export function MyShifts({
         }
       />
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <p className="font-heading text-h3 font-semibold text-fg">
-          {range(data.monday)}
-        </p>
+        <p className="font-heading text-h3 font-semibold text-fg">{weekRange(data.monday)}</p>
         <div className="flex gap-2">
           <Button
             variant="secondary"
@@ -106,11 +70,7 @@ export function MyShifts({
           >
             <LuChevronLeft />
           </Button>
-          <Button
-            variant="secondary"
-            size="compact"
-            onClick={() => setWeek(null)}
-          >
+          <Button variant="secondary" size="compact" onClick={() => setWeek(null)}>
             This week
           </Button>
           <Button
@@ -134,56 +94,44 @@ export function MyShifts({
           <ShiftsCalendar
             monday={data.monday}
             shifts={data.shifts}
-            isPast={(s) => state(s).past}
+            isPast={(shift) => state(shift).past}
             onPick={canMarkUnavailable ? setPicked : undefined}
           />
           {canMarkUnavailable && (
             <p className="text-small text-fg-secondary">
-              Click a coming shift to mark yourself unavailable, or available
-              again.
+              Click a coming shift to mark yourself unavailable, or available again.
             </p>
           )}
         </TabsContent>
         <TabsContent value="list">
           <Card className="max-w-[720px] p-0 md:p-0">
             {data.shifts.length === 0 ? (
-              <EmptyState
-                icon={LuCalendarClock}
-                message="No shifts this week."
-              />
+              <EmptyState icon={LuCalendarClock} message="No shifts this week." />
             ) : (
               <ul className="divide-y divide-border">
-                {data.shifts.map((s) => {
-                  const { past, now } = state(s);
+                {data.shifts.map((assigned) => {
+                  const { past, now } = state(assigned);
                   return (
                     <li
-                      key={s.id}
+                      key={assigned.id}
                       className={`flex flex-wrap items-center gap-x-4 gap-y-2 px-4 py-3 md:px-6 ${past ? "opacity-60" : ""}`}
                     >
                       <div className="flex min-w-0 flex-1 basis-48 flex-col">
-                        <span className="font-semibold text-fg">
-                          {longDay(s.date)}
-                        </span>
+                        <span className="font-semibold text-fg">{longDay(assigned.date)}</span>
                         <span className="text-small text-fg-secondary">
-                          {SHIFT_LABEL[s.shift]} · {SHIFT_HOURS[s.shift]}
-                          {s.unavailable && s.unavailableReason
-                            ? ` · ${s.unavailableReason}`
-                            : ""}
+                          {SHIFT_LABEL[assigned.shift]} · {SHIFT_HOURS[assigned.shift]}
+                          {assigned.unavailable && assigned.unavailableReason ? ` · ${assigned.unavailableReason}` : ""}
                         </span>
                       </div>
-                      {now && !s.unavailable && (
-                        <StatusBadge tone="info">On shift now</StatusBadge>
-                      )}
-                      {s.unavailable && (
-                        <StatusBadge tone="warning">Unavailable</StatusBadge>
-                      )}
+                      {now && !assigned.unavailable && <StatusBadge tone="info">On shift now</StatusBadge>}
+                      {assigned.unavailable && <StatusBadge tone="warning">Unavailable</StatusBadge>}
                       {canMarkUnavailable && !past && (
                         <Button
-                          variant={s.unavailable ? "ghost" : "secondary"}
+                          variant={assigned.unavailable ? "ghost" : "secondary"}
                           size="compact"
-                          onClick={() => setPicked(s)}
+                          onClick={() => setPicked(assigned)}
                         >
-                          {s.unavailable ? "I can work it" : "Mark unavailable"}
+                          {assigned.unavailable ? "I can work it" : "Mark unavailable"}
                         </Button>
                       )}
                     </li>
@@ -194,27 +142,12 @@ export function MyShifts({
           </Card>
         </TabsContent>
       </Tabs>
-      {picked && (
-        <Availability
-          key={picked.id}
-          shift={picked}
-          onClose={() => setPicked(null)}
-          onDone={reload}
-        />
-      )}
+      {picked && <Availability key={picked.id} shift={picked} onClose={() => setPicked(null)} onDone={reload} />}
     </div>
   );
 }
 
-function Availability({
-  shift,
-  onClose,
-  onDone,
-}: {
-  shift: Shift;
-  onClose: () => void;
-  onDone: () => Promise<void>;
-}) {
+function Availability({ shift, onClose, onDone }: { shift: Shift; onClose: () => void; onDone: () => Promise<void> }) {
   const [reason, setReason] = useState("");
   const [pending, setPending] = useState(false);
 
@@ -225,15 +158,11 @@ function Availability({
         unavailable,
         reason: reason || undefined,
       });
-      toast.success(
-        unavailable ? "Marked unavailable" : "You're available again",
-      );
+      toast.success(unavailable ? "Marked unavailable" : "You're available again");
       onClose();
       await onDone();
-    } catch (e) {
-      toast.error(
-        e instanceof ApiFailure ? e.error.message : "Couldn't save. Try again.",
-      );
+    } catch (error) {
+      toast.error(error instanceof ApiFailure ? error.error.message : "Couldn't save. Try again.");
     } finally {
       setPending(false);
     }
@@ -241,7 +170,7 @@ function Availability({
 
   const when = `the ${SHIFT_LABEL[shift.shift].toLowerCase()} shift on ${longDay(shift.date)}`;
   return (
-    <Dialog open onOpenChange={(o) => !o && onClose()}>
+    <Dialog open onOpenChange={(open) => !open && onClose()}>
       {shift.unavailable ? (
         <DialogContent
           title={`Can you work ${when}?`}
@@ -251,11 +180,7 @@ function Availability({
               <Button variant="secondary" onClick={onClose}>
                 Cancel
               </Button>
-              <Button
-                variant="primary"
-                loading={pending}
-                onClick={() => send(false)}
-              >
+              <Button variant="primary" loading={pending} onClick={() => send(false)}>
                 I can work it
               </Button>
             </>
@@ -270,12 +195,7 @@ function Availability({
               <Button variant="secondary" onClick={onClose}>
                 Cancel
               </Button>
-              <Button
-                variant="primary"
-                type="submit"
-                form={`unavail-${shift.id}`}
-                loading={pending}
-              >
+              <Button variant="primary" type="submit" form={`unavail-${shift.id}`} loading={pending}>
                 Mark unavailable
               </Button>
             </>
@@ -292,7 +212,7 @@ function Availability({
               label="Reason"
               optional
               value={reason}
-              onChange={(e) => setReason(e.target.value)}
+              onChange={(event) => setReason(event.target.value)}
               hint="Your manager sees this"
               autoComplete="off"
             />

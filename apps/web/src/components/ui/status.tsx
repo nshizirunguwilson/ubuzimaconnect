@@ -4,7 +4,7 @@ import { LuCircleCheck, LuCircleHelp, LuInfo, LuTriangleAlert } from "react-icon
 import { cn } from "@/lib/cn";
 import { Squircle } from "./squircle";
 
-/** DESIGN.md §2: status is always icon + label + tint, never colour alone. */
+/** Status is always icon + label + tint, never colour alone. */
 const tones = {
   urgent: { className: "sq-bg-urgent-soft text-urgent-fg", Icon: LuTriangleAlert },
   warning: { className: "sq-bg-warning-soft text-warning-fg", Icon: LuCircleHelp },
@@ -45,7 +45,7 @@ export function StatusBadge({
   );
 }
 
-/** SRS FR 4.4: the three triage levels. */
+/** The three triage levels. */
 export type TriageLevel = "urgent" | "uncertain" | "minor";
 
 const triage: Record<TriageLevel, { tone: Tone; label: string }> = {

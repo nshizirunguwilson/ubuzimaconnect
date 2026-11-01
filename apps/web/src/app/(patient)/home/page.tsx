@@ -60,14 +60,14 @@ async function Home() {
   const lang = await getLang();
   const t = messages[lang];
   const mine = await apiGet<Mine>("/cases/mine");
-  const firstName = (id: string) => mine?.people.find((p) => p.id === id);
+  const firstName = (id: string) => mine?.people.find((person) => person.id === id);
   const people = [
     { id: me.id, name: me.name, label: t.common.you, photoUrl: me.photoUrl },
-    ...me.family.map((f) => ({
-      id: f.id,
-      name: f.name,
-      label: t.home.yourChild(f.age),
-      photoUrl: f.photoUrl,
+    ...me.family.map((member) => ({
+      id: member.id,
+      name: member.name,
+      label: t.home.yourChild(member.age),
+      photoUrl: member.photoUrl,
     })),
   ];
 
@@ -76,37 +76,39 @@ async function Home() {
     <main className="flex flex-col gap-8 pt-10 lg:grid lg:grid-cols-[minmax(0,1fr)_380px] lg:items-start lg:gap-x-12 lg:gap-y-6">
       <h1 className="text-h1 text-fg lg:col-start-1">{t.home.hello(me.firstName)}</h1>
 
-      {/* RESEARCH R4: the current request is the one highlighted card. */}
+      {/* The current request is the one highlighted card. */}
       {mine && mine.open.length > 0 && (
         <div className="flex flex-col gap-3 lg:col-start-1">
-          {mine.open.map((c, i) => {
-            const p = firstName(c.patientId);
+          {mine.open.map((openCase, index) => {
+            const name = firstName(openCase.patientId);
             const step =
-              c.triageLevel === null ? t.home.notFinished : c.triageLevel === "URGENT" ? t.home.urgent : c.callRequested ? t.home.willCall : t.home.willReply;
+              openCase.triageLevel === null
+                ? t.home.notFinished
+                : openCase.triageLevel === "URGENT"
+                  ? t.home.urgent
+                  : openCase.callRequested
+                    ? t.home.willCall
+                    : t.home.willReply;
             return (
               <SquircleLink
-                key={c.id}
-                href={`/cases/${c.id}`}
+                key={openCase.id}
+                href={`/cases/${openCase.id}`}
                 radius="lg"
-                className={`flex items-center gap-3 p-4 ${i === 0 ? "sq-bg-accent-soft sq-border-accent-line" : "sq-bg-surface sq-border-border"}`}
+                className={`flex items-center gap-3 p-4 ${index === 0 ? "sq-bg-accent-soft sq-border-accent-line" : "sq-bg-surface sq-border-border"}`}
               >
                 <div className="flex min-w-0 flex-1 flex-col gap-1">
                   <span className="text-caption text-fg-muted">
-                    {p?.isSelf ? t.home.yourRequest : t.home.theirRequest(p?.firstName ?? "")} · {formatDateTimeIn(lang, c.createdAt)}
+                    {name?.isSelf ? t.home.yourRequest : t.home.theirRequest(name?.firstName ?? "")} ·{" "}
+                    {formatDateTimeIn(lang, openCase.createdAt)}
                   </span>
                   <span
-                    className={`text-body font-semibold ${c.triageLevel === "URGENT" ? "text-urgent-fg" : "text-fg"}`}
+                    className={`text-body font-semibold ${openCase.triageLevel === "URGENT" ? "text-urgent-fg" : "text-fg"}`}
                   >
                     {step}
                   </span>
-                  <span className="font-mono text-caption font-medium text-fg-secondary">
-                    {c.code}
-                  </span>
+                  <span className="font-mono text-caption font-medium text-fg-secondary">{openCase.code}</span>
                 </div>
-                <LuChevronRight
-                  className="size-5 shrink-0 text-fg-secondary"
-                  aria-hidden
-                />
+                <LuChevronRight className="size-5 shrink-0 text-fg-secondary" aria-hidden />
               </SquircleLink>
             );
           })}
@@ -121,7 +123,7 @@ async function Home() {
         {t.common.emergencyCall912}
       </Link>
 
-      {/* NFR 8: not offered on a device that isn't the patient's */}
+      {/* Not offered on a device that isn't the patient's */}
       {!me.sharedDevice && (
         <div className="lg:col-start-1">
           <InstallApp />
@@ -134,27 +136,25 @@ async function Home() {
         </Notice>
       )}
 
-      {/* FR 1.10: who the agent will see. FR 1.3: who this account can ask for help for. */}
+      {/* Who the agent will see, and who this account can ask for help for. */}
       <section className="flex flex-col gap-3 lg:col-start-2 lg:row-span-6 lg:row-start-1" aria-labelledby="people">
         <div className="flex items-center justify-between gap-3">
           <h2 id="people" className="text-h2 text-fg">
             {t.home.people}
           </h2>
         </div>
-        {/* FR 7.2: each person opens their records; a parent also sees their children's (FR 1.3) */}
+        {/* Each person opens their records; a parent also sees their children's */}
         <Card className="flex flex-col divide-y divide-border p-0 md:p-0">
-          {people.map((p) => (
+          {people.map((person) => (
             <Link
-              key={p.id}
-              href={`/records/${p.id}`}
+              key={person.id}
+              href={`/records/${person.id}`}
               className="flex min-h-16 items-center gap-3 px-4 py-3 hover:bg-sunken focus-visible:-outline-offset-2"
             >
-              <Avatar src={p.photoUrl} name={p.name} size={44} />
+              <Avatar src={person.photoUrl} name={person.name} size={44} />
               <div className="flex min-w-0 flex-1 flex-col">
-                <span className="truncate text-body font-semibold text-fg">
-                  {p.name}
-                </span>
-                <span className="text-small text-fg-secondary">{p.label}</span>
+                <span className="truncate text-body font-semibold text-fg">{person.name}</span>
+                <span className="text-small text-fg-secondary">{person.label}</span>
               </div>
               <span className="text-small font-medium text-link">{t.common.records}</span>
               <LuChevronRight className="size-5 shrink-0 text-fg-secondary" aria-hidden />
@@ -162,29 +162,17 @@ async function Home() {
           ))}
         </Card>
         <p className="flex items-start gap-2 text-small text-fg-secondary">
-          <LuShieldCheck
-            className="mt-0.5 size-4 shrink-0 text-success"
-            aria-hidden
-          />
+          <LuShieldCheck className="mt-0.5 size-4 shrink-0 text-success" aria-hidden />
           {t.home.checked}
           {me.district ? ` · ${t.home.district(me.district)}` : ""}.
         </p>
       </section>
       <BottomBar className="lg:col-start-1">
         <div className="flex flex-col gap-3 sm:flex-row">
-          <ButtonLink
-            href="/cases/new"
-            variant="primary"
-            className="w-full sm:w-auto"
-          >
+          <ButtonLink href="/cases/new" variant="primary" className="w-full sm:w-auto">
             {t.home.getHelp}
           </ButtonLink>
-          <ButtonLink
-            href="/call"
-            variant="secondary"
-            icon={<LuPhoneCall />}
-            className="w-full sm:w-auto"
-          >
+          <ButtonLink href="/call" variant="secondary" icon={<LuPhoneCall />} className="w-full sm:w-auto">
             {t.home.preferCall}
           </ButtonLink>
         </div>

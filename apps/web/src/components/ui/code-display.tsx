@@ -6,7 +6,7 @@ import { cn } from "@/lib/cn";
 import { Squircle } from "./squircle";
 
 /**
- * Code display (DESIGN.md §9): prescription codes and case numbers in Google Sans Code,
+ * Code display: prescription codes and case numbers in Google Sans Code,
  * already grouped (RX-7K3M-9P2Q), with a copy button that confirms "Copied".
  */
 export function CodeDisplay({ label, value, className }: { label: string; value: string; className?: string }) {

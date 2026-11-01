@@ -9,8 +9,16 @@ import { Squircle } from "@/components/ui/squircle";
 /** `icon` is a rendered element (e.g. <LuHouse />) so a server layout can pass it. */
 export type NavItem = { href: string; label: string; icon: ReactNode };
 
-/** RESEARCH R2: a narrow left navigation with a few labelled items; the active one is blue. */
-export function StaffNav({ items, folded = false, className }: { items: NavItem[]; folded?: boolean; className?: string }) {
+/** A narrow left navigation with a few labelled items; the active one is blue. */
+export function StaffNav({
+  items,
+  folded = false,
+  className,
+}: {
+  items: NavItem[];
+  folded?: boolean;
+  className?: string;
+}) {
   const path = usePathname();
   const list = useRef<HTMLUListElement>(null);
   // Phones: bring the current page's item into view in the sideways-scrolling row.
@@ -23,7 +31,10 @@ export function StaffNav({ items, folded = false, className }: { items: NavItem[
   return (
     <nav aria-label="Main" className={className}>
       {/* Phones: one row that scrolls sideways; the padding keeps focus rings inside the scroll area */}
-      <ul ref={list} className="-m-1 flex gap-1 overflow-x-auto p-1 [scrollbar-width:none] md:flex-col md:overflow-visible">
+      <ul
+        ref={list}
+        className="-m-1 flex gap-1 overflow-x-auto p-1 [scrollbar-width:none] md:flex-col md:overflow-visible"
+      >
         {items.map(({ href, label, icon }) => {
           const active = href === "/staff" ? path === href : path.startsWith(href);
           return (
@@ -34,7 +45,7 @@ export function StaffNav({ items, folded = false, className }: { items: NavItem[
                 radius="md"
                 focus="self"
                 aria-current={active ? "page" : undefined}
-                // Folded (D71): the label fades and slides away; the name stays for screen readers and as a tooltip.
+                // Folded: the label fades and slides away; the name stays for screen readers and as a tooltip.
                 aria-label={folded ? label : undefined}
                 title={folded ? label : undefined}
                 className={cn(

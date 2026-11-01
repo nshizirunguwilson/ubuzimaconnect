@@ -35,8 +35,12 @@ describe("red-flag groups (Appendix C, FR 3.6, 4.2)", () => {
 describe("needed service (FR 5.1, in order)", () => {
   it("takes the red-flag question's service, Maternity for a pregnant woman with A2 or A3", () => {
     expect(chooseService({ redFlag: { code: "A4", service: "SURGERY" }, years: 30 })).toBe("SURGERY");
-    expect(chooseService({ redFlag: { code: "A2", service: "EMERGENCY_CARE" }, pregnant: true, years: 30 })).toBe("MATERNITY");
-    expect(chooseService({ redFlag: { code: "A2", service: "EMERGENCY_CARE" }, pregnant: false, years: 30 })).toBe("EMERGENCY_CARE");
+    expect(chooseService({ redFlag: { code: "A2", service: "EMERGENCY_CARE" }, pregnant: true, years: 30 })).toBe(
+      "MATERNITY",
+    );
+    expect(chooseService({ redFlag: { code: "A2", service: "EMERGENCY_CARE" }, pregnant: false, years: 30 })).toBe(
+      "EMERGENCY_CARE",
+    );
   });
 
   it("then pregnancy, children, injuries and burns, heart, mental health, general", () => {
@@ -53,8 +57,11 @@ describe("needed service (FR 5.1, in order)", () => {
 
 describe("triage level (FR 4.4, 4.5)", () => {
   const long = "I have had a bad cough and fever since yesterday evening";
-  const ai = (urgency: "URGENT" | "MINOR" | null, confidence: "LOW" | "MEDIUM" | "HIGH" | null, category: "RESPIRATORY" | null = "RESPIRATORY") =>
-    ({ ok: true as const, category, urgency, confidence, reason: "r" });
+  const ai = (
+    urgency: "URGENT" | "MINOR" | null,
+    confidence: "LOW" | "MEDIUM" | "HIGH" | null,
+    category: "RESPIRATORY" | null = "RESPIRATORY",
+  ) => ({ ok: true as const, category, urgency, confidence, reason: "r" });
 
   it("is Urgent when the AI says urgent, at any confidence, even with a short description", () => {
     expect(triageLevel(ai("URGENT", "LOW"), "pain", false).level).toBe("URGENT");

@@ -26,7 +26,10 @@ async function Inner({ params }: { params: PageProps<"/cases/[id]">["params"] })
   const { id } = await params;
   const cookie = await sessionCookie("patient");
   if (!cookie) redirect("/login");
-  const res = await fetch(`${apiUrl}/cases/${encodeURIComponent(id)}`, { headers: { cookie, "x-uc-app": "patient" }, cache: "no-store" });
+  const res = await fetch(`${apiUrl}/cases/${encodeURIComponent(id)}`, {
+    headers: { cookie, "x-uc-app": "patient" },
+    cache: "no-store",
+  });
   if (res.status === 401) redirect("/login?ended=1");
   if (!res.ok) notFound();
   const view: CaseView = await res.json();

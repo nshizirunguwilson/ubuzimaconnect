@@ -25,7 +25,11 @@ export const pregnancyAnswer = z.object({ pregnant: z.boolean() });
 
 /** The problem in the patient's own words, how long it has lasted and how bad it is (1 to 10). */
 export const symptoms = z.object({
-  description: z.string().trim().min(1, "Describe the problem in your own words").max(2000, "Keep it under 2,000 characters"),
+  description: z
+    .string()
+    .trim()
+    .min(1, "Describe the problem in your own words")
+    .max(2000, "Keep it under 2,000 characters"),
   duration: z.enum(DURATIONS, "Choose how long it has lasted"),
   severity: z.number().int().min(1, "Choose how bad it is").max(10),
 });

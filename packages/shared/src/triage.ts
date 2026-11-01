@@ -108,7 +108,11 @@ export function asksPregnancy(sex: Sex, patientAge: { years: number }) {
  * Which groups of questions a patient is asked:
  * A for everyone, C for children under 12, N for babies under 2 months, P for a pregnant woman aged 12 to 55.
  */
-export function redFlagGroups(sex: Sex, patientAge: { months: number; years: number }, pregnant: boolean | null): RedFlagGroup[] {
+export function redFlagGroups(
+  sex: Sex,
+  patientAge: { months: number; years: number },
+  pregnant: boolean | null,
+): RedFlagGroup[] {
   const groups: RedFlagGroup[] = ["A"];
   if (patientAge.years < 12) groups.push("C");
   if (patientAge.months < 2) groups.push("N");
@@ -152,7 +156,13 @@ export function chooseService(input: {
 // Triage level
 
 export type AiOutcome =
-  | { ok: true; category: Category | null; urgency: Urgency | null; confidence: Confidence | null; reason: string | null }
+  | {
+      ok: true;
+      category: Category | null;
+      urgency: Urgency | null;
+      confidence: Confidence | null;
+      reason: string | null;
+    }
   | { ok: false; error: "TIMEOUT" | "ERROR" | "OFF" | "BREAKER_OPEN" | "NOT_CONFIGURED" };
 
 export function wordCount(text: string) {
@@ -166,7 +176,11 @@ export function wordCount(text: string) {
  * 3. Otherwise Minor when the AI suggests minor with medium or high confidence.
  * Anything left is Uncertain. An Uncertain case is never treated as Minor.
  */
-export function triageLevel(ai: AiOutcome, description: string, preferCall: boolean): { level: TriageLevel; reason: string } {
+export function triageLevel(
+  ai: AiOutcome,
+  description: string,
+  preferCall: boolean,
+): { level: TriageLevel; reason: string } {
   if (ai.ok && ai.urgency === "URGENT") {
     return { level: "URGENT", reason: "The AI suggested urgent." };
   }
@@ -205,7 +219,8 @@ export function distanceKm(from: Point, to: Point) {
   const latDelta = toRadians(to.lat - from.lat);
   const lngDelta = toRadians(to.lng - from.lng);
   const h =
-    Math.sin(latDelta / 2) ** 2 + Math.cos(toRadians(from.lat)) * Math.cos(toRadians(to.lat)) * Math.sin(lngDelta / 2) ** 2;
+    Math.sin(latDelta / 2) ** 2 +
+    Math.cos(toRadians(from.lat)) * Math.cos(toRadians(to.lat)) * Math.sin(lngDelta / 2) ** 2;
   return 2 * EARTH_RADIUS_KM * Math.asin(Math.sqrt(h));
 }
 
@@ -234,7 +249,12 @@ export type Match =
  * If none has a free bed, the nearest one that could otherwise take them is returned as NO_BEDS.
  * If none can take them at all, the answer is NO_MATCH.
  */
-export function matchFacilities(facilities: FacilityForMatch[], patientAt: Point, service: Service, bedNeeded: boolean): Match {
+export function matchFacilities(
+  facilities: FacilityForMatch[],
+  patientAt: Point,
+  service: Service,
+  bedNeeded: boolean,
+): Match {
   const capable = facilities
     .filter((facility) => facility.active && facility.services.includes(service) && facility.onDuty.includes(service))
     .map((facility) => ({ facility, km: distanceKm(patientAt, { lat: facility.latitude, lng: facility.longitude }) }))
@@ -260,7 +280,10 @@ export function nearestFacilities<T extends { active: boolean; latitude: number;
 ) {
   return facilities
     .filter((facility) => facility.active)
-    .map((facility) => ({ ...facility, km: distanceKm(patientAt, { lat: facility.latitude, lng: facility.longitude }) }))
+    .map((facility) => ({
+      ...facility,
+      km: distanceKm(patientAt, { lat: facility.latitude, lng: facility.longitude }),
+    }))
     .sort((a, b) => a.km - b.km)
     .slice(0, howMany);
 }

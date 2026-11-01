@@ -2,12 +2,13 @@ import type { Lang } from "./index";
 
 /**
  * Sentences that come from the server or the shared validation rules, in English. On patient screens they
- * are shown in the patient's language through this table; agents keep reading the English (D62). DRAFT.
+ * are shown in the patient's language through this table; agents keep reading the English. DRAFT.
  */
 const RW: Record<string, string> = {
   // Validation (packages/shared)
   "Enter the 16 digits on the front of the ID card": "Andika imibare 16 iri imbere ku ndangamuntu",
-  "This isn't a Rwandan ID number. Check the digits on the card.": "Iyi si nimero y'indangamuntu yo mu Rwanda. Reba imibare iri ku ndangamuntu.",
+  "This isn't a Rwandan ID number. Check the digits on the card.":
+    "Iyi si nimero y'indangamuntu yo mu Rwanda. Reba imibare iri ku ndangamuntu.",
   "Enter a date": "Andika itariki",
   "Enter one of your names": "Andika rimwe mu mazina yawe",
   "Describe the problem in your own words": "Sobanura ikibazo mu magambo yawe",
@@ -24,15 +25,18 @@ const RW: Record<string, string> = {
   "This case doesn't exist.": "Ubu busabe ntibubaho.",
   "This question isn't the next one. Reload the page.": "Iki si cyo kibazo gikurikira. Ongera ufungure paji.",
   "This question has already been answered.": "Iki kibazo cyamaze gusubizwa.",
-  "This case isn't waiting for a description. Reload the page.": "Ubu busabe ntibutegereje ibisobanuro. Ongera ufungure paji.",
+  "This case isn't waiting for a description. Reload the page.":
+    "Ubu busabe ntibutegereje ibisobanuro. Ongera ufungure paji.",
   "You are already being cared for at the facility.": "Usanzwe uri kwitabwaho ku ivuriro.",
-  "You can only ask for help for yourself or your children.": "Ushobora gusaba ubufasha bwawe cyangwa ubw'abana bawe gusa.",
+  "You can only ask for help for yourself or your children.":
+    "Ushobora gusaba ubufasha bwawe cyangwa ubw'abana bawe gusa.",
   "You can see only your own records and your children's.": "Ushobora kureba amakuru yawe n'ay'abana bawe gusa.",
   "You can't send messages on this case.": "Ntushobora kohereza ubutumwa kuri ubu busabe.",
   "This case can't be rated.": "Ubu busabe ntibushobora guhabwa amanota.",
-  "You seem to be offline. Check your connection and try again.": "Bisa n'aho nta interineti ufite. Yireba hanyuma wongere ugerageze.",
+  "You seem to be offline. Check your connection and try again.":
+    "Bisa n'aho nta interineti ufite. Yireba hanyuma wongere ugerageze.",
   "Something went wrong. Try again.": "Hari ikitagenze neza. Ongera ugerageze.",
-  // Activity list (FR 10.2): what was done, and by whom
+  // Activity list: what was done, and by whom
   "Logged in": "Yinjiye",
   "Failed login": "Kwinjira byanze",
   "Started a request for help": "Yatangiye gusaba ubufasha",
@@ -67,7 +71,7 @@ const RW: Record<string, string> = {
   "Photo check didn't match": "Ifoto ntiyahuye",
   "Handed over to another clinician": "Yashyikirijwe undi muganga",
   "Transferred to another facility": "Yimuriwe ku rindi vuriro",
-  "Discharged": "Yasezerewe",
+  Discharged: "Yasezerewe",
   "Visit completed": "Kwivuza byarangiye",
   "Issued a prescription:": "Yanditse imiti:",
   "Cancelled a prescription:": "Yahagaritse urupapuro rw'imiti:",
@@ -78,30 +82,46 @@ const RW: Record<string, string> = {
   "Waited more than 2 minutes for an agent": "Yategereje umukozi w'ubuzima iminota irenze 2",
   "Waited more than 5 minutes for an agent": "Yategereje umukozi w'ubuzima iminota irenze 5",
   "The administrator was alerted": "Umuyobozi yamenyeshejwe",
-  "You": "Wowe",
+  You: "Wowe",
   "A pharmacy": "Farumasi",
-  "UbuzimaConnect": "UbuzimaConnect",
-  "Automatic": "Byikora",
+  UbuzimaConnect: "UbuzimaConnect",
+  Automatic: "Byikora",
   "Someone not logged in": "Umuntu utinjiye",
-  "Patient": "Umurwayi",
+  Patient: "Umurwayi",
   "Health agent": "Umukozi w'ubuzima",
-  "Clinician": "Umuganga",
+  Clinician: "Umuganga",
   "Facility manager": "Umuyobozi w'ivuriro",
   "System administrator": "Umuyobozi wa sisitemu",
   // System messages in the chat
   "Another agent will continue with you.": "Undi mukozi w'ubuzima azakomezanya nawe.",
-  "Your agent was called to an emergency. Another agent will continue.": "Umukozi w'ubuzima wawe yahamagariwe ubutabazi bwihutirwa. Undi azakomeza.",
-  "The patient said they no longer need help. The case is closed.": "Umurwayi yavuze ko atagikeneye ubufasha. Ubusabe bwafunzwe.",
+  "Your agent was called to an emergency. Another agent will continue.":
+    "Umukozi w'ubuzima wawe yahamagariwe ubutabazi bwihutirwa. Undi azakomeza.",
+  "The patient said they no longer need help. The case is closed.":
+    "Umurwayi yavuze ko atagikeneye ubufasha. Ubusabe bwafunzwe.",
   "We tried to call you 3 times without an answer. Tap “Prefer a call” again when you can talk, or call 912 in an emergency.":
     "Twaguhamagaye inshuro 3 ntiwitaba. Ongera ukande “Ndashaka guhamagarwa” igihe ushobora kuvuga, cyangwa uhamagare 912 niba byihutirwa.",
 };
 
 /** System messages with a value in them (a name, a facility, a code). */
 const RW_PATTERNS: [RegExp, (...m: string[]) => string][] = [
-  [/^(.+), a health agent, is now looking at your request\.$/, (n) => `${n}, umukozi w'ubuzima, ari kureba ubusabe bwawe.`],
-  [/^Go to (.+?)( \((.+)\))?\. They are expecting you for the next 24 hours\.$/, (f, _p, phone) => `Jya kuri ${f}${phone ? ` (${phone})` : ""}. Barakwitezeho mu masaha 24 ari imbere.`],
-  [/^A prescription was issued: (\S+)\. Show this code at any pharmacy within 7 days\. It is also in your records\.$/, (c) => `Wandikiwe imiti: ${c}. Erekana iyi kode kuri farumasi iyo ari yo yose mu minsi 7. Iri no mu makuru y'ubuzima bwawe.`],
-  [/^(.+) can't receive you right now\. A health agent will choose another place for you\. If you get worse, call 912\.$/, (f) => `${f} ntishobora kukwakira ubu. Umukozi w'ubuzima azaguhitiramo ahandi. Nurushaho kumererwa nabi, hamagara 912.`],
+  [
+    /^(.+), a health agent, is now looking at your request\.$/,
+    (name) => `${name}, umukozi w'ubuzima, ari kureba ubusabe bwawe.`,
+  ],
+  [
+    /^Go to (.+?)( \((.+)\))?\. They are expecting you for the next 24 hours\.$/,
+    (f, _p, phone) => `Jya kuri ${f}${phone ? ` (${phone})` : ""}. Barakwitezeho mu masaha 24 ari imbere.`,
+  ],
+  [
+    /^A prescription was issued: (\S+)\. Show this code at any pharmacy within 7 days\. It is also in your records\.$/,
+    (code) =>
+      `Wandikiwe imiti: ${code}. Erekana iyi kode kuri farumasi iyo ari yo yose mu minsi 7. Iri no mu makuru y'ubuzima bwawe.`,
+  ],
+  [
+    /^(.+) can't receive you right now\. A health agent will choose another place for you\. If you get worse, call 912\.$/,
+    (facility) =>
+      `${facility} ntishobora kukwakira ubu. Umukozi w'ubuzima azaguhitiramo ahandi. Nurushaho kumererwa nabi, hamagara 912.`,
+  ],
 ];
 
 /** Shows a server or validation sentence in the patient's language; unknown sentences stay as they are. */
@@ -109,8 +129,8 @@ export function translate(lang: Lang, text: string) {
   if (lang === "en" || !text) return text;
   if (RW[text]) return RW[text];
   for (const [re, make] of RW_PATTERNS) {
-    const m = text.match(re);
-    if (m) return make(...m.slice(1));
+    const match = text.match(re);
+    if (match) return make(...match.slice(1));
   }
   return text;
 }

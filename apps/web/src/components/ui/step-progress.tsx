@@ -1,7 +1,7 @@
 import { cn } from "@/lib/cn";
 
 /**
- * Segmented progress with "Step 2 of 5" (DESIGN.md §9, RESEARCH R1).
+ * Segmented progress with "Step 2 of 5".
  * Segments are fully rounded bars, so they are true pills, not squircles.
  */
 export function StepProgress({
@@ -19,7 +19,7 @@ export function StepProgress({
   label?: string;
   /** What is being counted: "Step 2 of 5" or "Question 3 of 18". */
   noun?: string;
-  /** The whole line in another language, e.g. "Intambwe ya 2 kuri 5" (NFR 7); replaces noun. */
+  /** The whole line in another language, e.g. "Intambwe ya 2 kuri 5"; replaces noun. */
   text?: string;
   className?: string;
 }) {

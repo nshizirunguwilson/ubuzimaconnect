@@ -13,6 +13,12 @@ export default function StaffLoginPage({ searchParams }: PageProps<"/staff/login
 }
 
 async function Inner({ searchParams }: { searchParams: PageProps<"/staff/login">["searchParams"] }) {
-  const q = await searchParams;
-  return <StaffLoginForm ended={q.ended === "1"} other={q.other === "1"} done={q.done === "password" ? "password" : q.done === "unlocked" ? "unlocked" : null} />;
+  const query = await searchParams;
+  return (
+    <StaffLoginForm
+      ended={query.ended === "1"}
+      other={query.other === "1"}
+      done={query.done === "password" ? "password" : query.done === "unlocked" ? "unlocked" : null}
+    />
+  );
 }

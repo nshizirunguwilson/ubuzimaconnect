@@ -9,10 +9,12 @@ type InstallEvent = Event & { prompt: () => Promise<void>; userChoice: Promise<{
 
 const noop = () => () => {};
 const isIphone = () => /iPhone|iPad|iPod/.test(navigator.userAgent) && !("MSStream" in window);
-const installed = () => window.matchMedia("(display-mode: standalone)").matches || (navigator as { standalone?: boolean }).standalone === true;
+const installed = () =>
+  window.matchMedia("(display-mode: standalone)").matches ||
+  (navigator as { standalone?: boolean }).standalone === true;
 
 /**
- * NFR 8: installing puts UbuzimaConnect on the home screen, opens the emergency page without a connection,
+ * Installing puts UbuzimaConnect on the home screen, opens the emergency page without a connection,
  * and is what lets an iPhone get notifications. Chrome, Edge and Android offer it with one button; iPhone
  * Safari has no prompt, so it says where the option is. Nothing shows once installed.
  */

@@ -189,7 +189,9 @@ export class ScheduleController {
         if (isAgentSchedule) {
           missing = onDuty.length === 0 ? ["AGENT"] : [];
         } else {
-          missing = servicesOffered.filter((service) => !onDuty.some((assignment) => specialtyOf(assignment.staffId) === service));
+          missing = servicesOffered.filter(
+            (service) => !onDuty.some((assignment) => specialtyOf(assignment.staffId) === service),
+          );
         }
         return { date, shift, missing };
       }),

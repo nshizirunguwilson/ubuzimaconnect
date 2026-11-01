@@ -10,16 +10,19 @@ import { LuCheck, LuCircleCheck, LuCircleHelp } from "react-icons/lu";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import type { Week } from "./schedule";
+import { shortDay } from "@/lib/time";
 
 const COVERAGE = "coverage";
 const start = (date: string, shift: ShiftType) => `${date}T${shift === "DAY" ? "07" : "19"}:00:00`;
 const end = (date: string, shift: ShiftType) => (shift === "DAY" ? `${date}T19:00:00` : `${addDays(date, 1)}T07:00:00`);
 /** A slot's date and shift from its start, read as a wall time (the calendar runs in UTC, so nothing shifts). */
-const slotOf = (d: Date) => ({ date: d.toISOString().slice(0, 10), shift: (d.getUTCHours() === 7 ? "DAY" : "NIGHT") as ShiftType });
-const dayName = (iso: string) => new Date(`${iso}T12:00:00Z`).toLocaleDateString("en-GB", { weekday: "short", day: "numeric", timeZone: "UTC" });
+const slotOf = (d: Date) => ({
+  date: d.toISOString().slice(0, 10),
+  shift: (d.getUTCHours() === 7 ? "DAY" : "NIGHT") as ShiftType,
+});
 
 /**
- * D77: the week as a timeline, like a shared calendar. One row per person, a column per Day and Night shift.
+ * The week as a timeline, like a shared calendar. One row per person, a column per Day and Night shift.
  * Click an empty shift to add the person, drag a shift to move it, click a shift to remove it.
  * Past shifts are locked. The bottom row shows what each shift is missing.
  */
@@ -34,35 +37,52 @@ export function ScheduleCalendar({
   isPast: (date: string, shift: ShiftType) => boolean;
   setShift: (staffId: string, date: string, shift: ShiftType, assigned: boolean) => Promise<boolean>;
 }) {
-  const [removing, setRemoving] = useState<{ staffId: string; name: string; date: string; shift: ShiftType } | null>(null);
+  const [removing, setRemoving] = useState<{ staffId: string; name: string; date: string; shift: ShiftType } | null>(
+    null,
+  );
   const [pending, setPending] = useState(false);
-  const name = (id: string) => data.people.find((p) => p.id === id)?.name ?? "";
+  const name = (id: string) => data.people.find((person) => person.id === id)?.name ?? "";
 
   const resources = [
-    ...data.people.map((p, i) => ({ id: p.id, title: p.name, extendedProps: { sub: p.specialty ? SERVICE_LABEL[p.specialty] : null, order: i } })),
+    ...data.people.map((person, index) => ({
+      id: person.id,
+      title: person.name,
+      extendedProps: { sub: person.specialty ? SERVICE_LABEL[person.specialty] : null, order: index },
+    })),
     { id: COVERAGE, title: "Coverage", extendedProps: { sub: null, order: data.people.length } },
   ];
   const events = [
-    ...data.assignments.map((a) => ({
-      id: a.id,
-      resourceId: a.staffId,
-      start: start(a.date, a.shift),
-      end: end(a.date, a.shift),
-      title: a.unavailable ? "Off" : "",
-      editable: !isPast(a.date, a.shift),
-      classNames: [a.unavailable ? "uc-ev-off" : "uc-ev-on", isPast(a.date, a.shift) ? "uc-ev-past" : ""],
-      extendedProps: { staffId: a.staffId, date: a.date, shift: a.shift, reason: a.unavailableReason },
+    ...data.assignments.map((assignment) => ({
+      id: assignment.id,
+      resourceId: assignment.staffId,
+      start: start(assignment.date, assignment.shift),
+      end: end(assignment.date, assignment.shift),
+      title: assignment.unavailable ? "Off" : "",
+      editable: !isPast(assignment.date, assignment.shift),
+      classNames: [
+        assignment.unavailable ? "uc-ev-off" : "uc-ev-on",
+        isPast(assignment.date, assignment.shift) ? "uc-ev-past" : "",
+      ],
+      extendedProps: {
+        staffId: assignment.staffId,
+        date: assignment.date,
+        shift: assignment.shift,
+        reason: assignment.unavailableReason,
+      },
     })),
-    ...data.gaps.map((g) => {
-      const names = g.missing.map((m) => (m === "AGENT" ? "an agent" : SERVICE_LABEL[m]));
+    ...data.gaps.map((shiftGap) => {
+      const names = shiftGap.missing.map((missing) => (missing === "AGENT" ? "an agent" : SERVICE_LABEL[missing]));
       return {
-        id: `gap-${g.date}-${g.shift}`,
+        id: `gap-${shiftGap.date}-${shiftGap.shift}`,
         resourceId: COVERAGE,
-        start: start(g.date, g.shift),
-        end: end(g.date, g.shift),
+        start: start(shiftGap.date, shiftGap.shift),
+        end: end(shiftGap.date, shiftGap.shift),
         title: names.length ? (scope === "agents" ? "" : String(names.length)) : "",
         editable: false,
-        classNames: [names.length ? "uc-ev-gap" : "uc-ev-covered", isPast(g.date, g.shift) ? "uc-ev-past" : ""],
+        classNames: [
+          names.length ? "uc-ev-gap" : "uc-ev-covered",
+          isPast(shiftGap.date, shiftGap.shift) ? "uc-ev-past" : "",
+        ],
         extendedProps: { coverage: true, missing: names },
       };
     }),
@@ -86,22 +106,33 @@ export function ScheduleCalendar({
     const to = { staffId: info.newResource?.id ?? staffId, ...slotOf(info.event.start!) };
     // Add the new shift first, so a failed move never leaves the person with neither.
     if (!(await setShift(to.staffId, to.date, to.shift, true))) return info.revert();
-    if (!(await setShift(staffId, date, shift, false))) await setShift(to.staffId, to.date, to.shift, false).then(() => info.revert());
+    if (!(await setShift(staffId, date, shift, false)))
+      await setShift(to.staffId, to.date, to.shift, false).then(() => info.revert());
   }
 
   function click(info: EventClickArg) {
-    const p = info.event.extendedProps as { coverage?: boolean; staffId: string; date: string; shift: ShiftType };
-    if (p.coverage || isPast(p.date, p.shift)) return;
-    setRemoving({ staffId: p.staffId, name: name(p.staffId), date: p.date, shift: p.shift });
+    const details = info.event.extendedProps as { coverage?: boolean; staffId: string; date: string; shift: ShiftType };
+    if (details.coverage || isPast(details.date, details.shift)) return;
+    setRemoving({ staffId: details.staffId, name: name(details.staffId), date: details.date, shift: details.shift });
   }
 
   function content(arg: EventContentArg) {
-    const p = arg.event.extendedProps as { coverage?: boolean; missing?: string[]; reason?: string | null };
-    const tip = p.coverage ? (p.missing?.length ? `Missing: ${p.missing.join(", ")}` : "Covered") : p.reason ? `Unavailable: ${p.reason}` : undefined;
-    if (p.coverage) {
+    const details = arg.event.extendedProps as { coverage?: boolean; missing?: string[]; reason?: string | null };
+    const tip = details.coverage
+      ? details.missing?.length
+        ? `Missing: ${details.missing.join(", ")}`
+        : "Covered"
+      : details.reason
+        ? `Unavailable: ${details.reason}`
+        : undefined;
+    if (details.coverage) {
       return (
         <span className="flex items-center justify-center gap-0.5 py-1 text-caption font-medium" title={tip}>
-          {p.missing?.length ? <LuCircleHelp className="size-4" aria-hidden /> : <LuCircleCheck className="size-4" aria-hidden />}
+          {details.missing?.length ? (
+            <LuCircleHelp className="size-4" aria-hidden />
+          ) : (
+            <LuCircleCheck className="size-4" aria-hidden />
+          )}
           {arg.event.title}
           <span className="sr-only">{tip}</span>
         </span>
@@ -133,9 +164,16 @@ export function ScheduleCalendar({
           slotMaxTime="31:00"
           slotDuration={{ hours: 12 }}
           slotMinWidth={50}
-          slotLabelFormat={[{ weekday: "short", day: "numeric" }, { hour: "2-digit", hour12: false }]}
+          slotLabelFormat={[
+            { weekday: "short", day: "numeric" },
+            { hour: "2-digit", hour12: false },
+          ]}
           slotLabelContent={(arg) =>
-            arg.level === 0 ? (arg.date.toISOString().slice(0, 10) === data.now.date ? `Today, ${dayName(data.now.date)}` : arg.text) : SHIFT_LABEL[slotOf(arg.date).shift]
+            arg.level === 0
+              ? arg.date.toISOString().slice(0, 10) === data.now.date
+                ? `Today, ${shortDay(data.now.date)}`
+                : arg.text
+              : SHIFT_LABEL[slotOf(arg.date).shift]
           }
           nowIndicator
           now={() => new Date(Date.now() + 2 * 3_600_000)} // Kigali wall time, as the shifts are
@@ -145,10 +183,18 @@ export function ScheduleCalendar({
           resources={resources}
           resourceLabelContent={(arg) => (
             <span className="flex min-w-0 flex-col">
-              <span className={arg.resource.id === COVERAGE ? "text-caption font-medium text-fg-secondary" : "truncate text-small font-semibold text-fg"}>
+              <span
+                className={
+                  arg.resource.id === COVERAGE
+                    ? "text-caption font-medium text-fg-secondary"
+                    : "truncate text-small font-semibold text-fg"
+                }
+              >
                 {arg.resource.title}
               </span>
-              {arg.resource.extendedProps.sub && <span className="truncate text-caption text-fg-secondary">{arg.resource.extendedProps.sub}</span>}
+              {arg.resource.extendedProps.sub && (
+                <span className="truncate text-caption text-fg-secondary">{arg.resource.extendedProps.sub}</span>
+              )}
             </span>
           )}
           events={events}
@@ -158,22 +204,25 @@ export function ScheduleCalendar({
           eventAllow={(span, ev) => open(span.resource?.id, span.start) && !ev?.extendedProps.coverage}
           selectable
           selectOverlap={false}
-          selectAllow={(span) => open(span.resource?.id, span.start) && span.end.getTime() - span.start.getTime() === 12 * 3_600_000}
+          selectAllow={(span) =>
+            open(span.resource?.id, span.start) && span.end.getTime() - span.start.getTime() === 12 * 3_600_000
+          }
           select={select}
           eventDrop={drop}
           eventClick={click}
         />
       </div>
       <p className="text-small text-fg-secondary">
-        Click an empty shift to add someone, drag a shift to move it, click a shift to remove it. <span className="font-medium text-warning-fg">Off</span>: on shift
-        but marked unavailable. Day {SHIFT_HOURS.DAY}, Night {SHIFT_HOURS.NIGHT}.
+        Click an empty shift to add someone, drag a shift to move it, click a shift to remove it.{" "}
+        <span className="font-medium text-warning-fg">Off</span>: on shift but marked unavailable. Day {SHIFT_HOURS.DAY}
+        , Night {SHIFT_HOURS.NIGHT}.
       </p>
 
-      <Dialog open={!!removing} onOpenChange={(o) => !o && setRemoving(null)}>
+      <Dialog open={!!removing} onOpenChange={(open) => !open && setRemoving(null)}>
         {removing && (
           <DialogContent
             title={`Remove ${removing.name} from this shift?`}
-            description={`${dayName(removing.date)}, ${SHIFT_LABEL[removing.shift].toLowerCase()} shift (${SHIFT_HOURS[removing.shift]}).`}
+            description={`${shortDay(removing.date)}, ${SHIFT_LABEL[removing.shift].toLowerCase()} shift (${SHIFT_HOURS[removing.shift]}).`}
             actions={
               <>
                 <Button variant="secondary" onClick={() => setRemoving(null)}>

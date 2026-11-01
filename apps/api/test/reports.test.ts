@@ -30,8 +30,12 @@ beforeAll(async () => {
      select gen_random_uuid(), s.id, $1::date, $2::"ShiftType", s.id from "Staff" s where s.role in ('CLINICIAN', 'AGENT') on conflict do nothing`,
     [now.date, now.shift],
   );
-  ids = Object.fromEntries((await db.query(`select id, email from "Staff"`)).rows.map((r) => [r.email.split("@")[0], r.id]));
-  [admin, agent, manager, er] = await Promise.all(["admin", "agent", "manager", "clinician"].map((n) => staffLogin(`${n}@ubuzima.test`)));
+  ids = Object.fromEntries(
+    (await db.query(`select id, email from "Staff"`)).rows.map((r) => [r.email.split("@")[0], r.id]),
+  );
+  [admin, agent, manager, er] = await Promise.all(
+    ["admin", "agent", "manager", "clinician"].map((n) => staffLogin(`${n}@ubuzima.test`)),
+  );
 
   const b = browser();
   await b("/auth/patient/login", ALINE);
@@ -51,7 +55,9 @@ beforeAll(async () => {
       [`UC-TEST-${++n}`, me.id, level, q, a, c, outcome, rating, agentId],
     );
   }
-  await db.query(`insert into "AuditEvent" (id, "actorType", action, "createdAt") values (gen_random_uuid(), 'system', 'case.delay_incident', now() at time zone 'utc')`);
+  await db.query(
+    `insert into "AuditEvent" (id, "actorType", action, "createdAt") values (gen_random_uuid(), 'system', 'case.delay_incident', now() at time zone 'utc')`,
+  );
 });
 afterAll(async () => {
   await gemini.close();
@@ -98,7 +104,9 @@ describe("reports (FR 12.8)", () => {
     await b(`/cases/${id}/answers`, { questionId: v.question.id, answer: true });
     const routingId = (await db.query(`select id from "Routing" where "caseId" = $1`, [id])).rows[0].id;
     await er(`/clinician/incoming/${routingId}/arrive`, {});
-    await er(`/clinician/visits/${routingId}/prescriptions`, { items: [{ medicine: "Salbutamol inhaler 100 mcg", dose: "2 puffs", frequency: "When short of breath", days: 7 }] });
+    await er(`/clinician/visits/${routingId}/prescriptions`, {
+      items: [{ medicine: "Salbutamol inhaler 100 mcg", dose: "2 puffs", frequency: "When short of breath", days: 7 }],
+    });
     await er(`/clinician/visits/${routingId}/finish`, {});
 
     const clin = (await er(`/reports?period=day&date=${today}`)).body;
@@ -115,13 +123,19 @@ describe("reports (FR 12.8)", () => {
   });
 
   it("downloads the report as a spreadsheet file, and logs the download", async () => {
-    const res = await fetch(`${API}/reports/csv?period=month&date=${today}`, { headers: { cookie: await adminCookie() } });
+    const res = await fetch(`${API}/reports/csv?period=month&date=${today}`, {
+      headers: { cookie: await adminCookie() },
+    });
     expect(res.headers.get("content-type")).toContain("text/csv");
-    expect(res.headers.get("content-disposition")).toMatch(/attachment; filename="ubuzimaconnect-report-month-\d{4}-\d{2}-01\.csv"/);
+    expect(res.headers.get("content-disposition")).toMatch(
+      /attachment; filename="ubuzimaconnect-report-month-\d{4}-\d{2}-01\.csv"/,
+    );
     const text = await res.text();
     expect(text).toContain('"Median wait for an agent","4","min"');
     expect(text).toContain('"Diane Umutoni","2","6","4"');
-    expect((await db.query(`select count(*)::int as n from "AuditEvent" where action = 'report.downloaded'`)).rows[0].n).toBe(1);
+    expect(
+      (await db.query(`select count(*)::int as n from "AuditEvent" where action = 'report.downloaded'`)).rows[0].n,
+    ).toBe(1);
   });
 
   it("refuses a period it doesn't know, and patients", async () => {
@@ -135,9 +149,24 @@ describe("reports (FR 12.8)", () => {
 
 /** The test client keeps its cookie inside; a file download needs one on a plain fetch, so this logs in again. */
 async function adminCookie() {
-  const res = await fetch(`${API}/auth/staff/login`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ email: "admin@ubuzima.test", password: "Ubuzima-demo-2026" }) });
+  const res = await fetch(`${API}/auth/staff/login`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ email: "admin@ubuzima.test", password: "Ubuzima-demo-2026" }),
+  });
   const cookie = res.headers.get("set-cookie")!.split(";")[0];
-  const code = (await db.query(`select subject from "EmailMessage" where "to" = 'admin@ubuzima.test' order by "createdAt" desc limit 1`)).rows[0].subject.match(/(\d{3}) (\d{3})/).slice(1).join("");
-  await fetch(`${API}/auth/staff/code`, { method: "POST", headers: { "content-type": "application/json", cookie }, body: JSON.stringify({ code }) });
+  const code = (
+    await db.query(
+      `select subject from "EmailMessage" where "to" = 'admin@ubuzima.test' order by "createdAt" desc limit 1`,
+    )
+  ).rows[0].subject
+    .match(/(\d{3}) (\d{3})/)
+    .slice(1)
+    .join("");
+  await fetch(`${API}/auth/staff/code`, {
+    method: "POST",
+    headers: { "content-type": "application/json", cookie },
+    body: JSON.stringify({ code }),
+  });
   return cookie;
 }

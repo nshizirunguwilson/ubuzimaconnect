@@ -11,12 +11,27 @@ export class PublicController {
   @Get("emergency")
   async emergency(@Query("lat") lat?: string, @Query("lng") lng?: string) {
     const at = { lat: Number(lat), lng: Number(lng) };
-    if (!Number.isFinite(at.lat) || !Number.isFinite(at.lng) || at.lat > -0.9 || at.lat < -3 || at.lng < 28.7 || at.lng > 31) {
+    if (
+      !Number.isFinite(at.lat) ||
+      !Number.isFinite(at.lng) ||
+      at.lat > -0.9 ||
+      at.lat < -3 ||
+      at.lng < 28.7 ||
+      at.lng > 31
+    ) {
       return { facility: null };
     }
     const m = matchFacilities(await this.facilities.forMatching(), at, "EMERGENCY_CARE", false);
     if (m.kind !== "SUITABLE") return { facility: null };
     const f = m.facility;
-    return { facility: { name: f.name, phone: f.phone, distance: formatKm(m.km), latitude: f.latitude, longitude: f.longitude } };
+    return {
+      facility: {
+        name: f.name,
+        phone: f.phone,
+        distance: formatKm(m.km),
+        latitude: f.latitude,
+        longitude: f.longitude,
+      },
+    };
   }
 }

@@ -32,9 +32,9 @@ const status: Record<Row["status"], { tone: Tone; label: string }> = {
   DEACTIVATED: { tone: "neutral", label: "Turned off" },
 };
 
-const specialtyOptions = SERVICES.map((s) => ({ value: s, label: SERVICE_LABEL[s] }));
+const specialtyOptions = SERVICES.map((service) => ({ value: service, label: SERVICE_LABEL[service] }));
 
-/** FR 8.2: the facility manager's own clinicians: invite, edit, turn off (kept, never deleted). */
+/** The facility manager's own clinicians: invite, edit, turn off (kept, never deleted). */
 export function Clinicians({ facility }: { facility: string }) {
   const { data, reload } = useApi<Row[]>("/clinicians");
 
@@ -52,42 +52,43 @@ export function Clinicians({ facility }: { facility: string }) {
           <EmptyState icon={LuStethoscope} message="No clinicians yet. Invite the first one." />
         ) : (
           <ul className="divide-y divide-border">
-            {data.map((c) => (
-              <li key={c.id} className="flex flex-wrap items-center gap-x-4 gap-y-2 px-4 py-3 md:px-6">
+            {data.map((member) => (
+              <li key={member.id} className="flex flex-wrap items-center gap-x-4 gap-y-2 px-4 py-3 md:px-6">
                 <div className="flex min-w-0 flex-1 basis-60 flex-col">
-                  <span className="truncate font-semibold text-fg">{c.name}</span>
+                  <span className="truncate font-semibold text-fg">{member.name}</span>
                   <span className="truncate text-small text-fg-secondary">
-                    {c.specialty ? SERVICE_LABEL[c.specialty] : "No specialty"} · {c.licenceNumber ?? "No licence number"} · {c.email}
+                    {member.specialty ? SERVICE_LABEL[member.specialty] : "No specialty"} ·{" "}
+                    {member.licenceNumber ?? "No licence number"} · {member.email}
                   </span>
                 </div>
-                <StatusBadge tone={status[c.status].tone}>{status[c.status].label}</StatusBadge>
-                {c.status !== "DEACTIVATED" && (
+                <StatusBadge tone={status[member.status].tone}>{status[member.status].label}</StatusBadge>
+                {member.status !== "DEACTIVATED" && (
                   <div className="flex gap-1">
-                    {c.status === "INVITED" && (
+                    {member.status === "INVITED" && (
                       <Button
                         variant="ghost"
                         size="compact"
                         onClick={async () => {
-                          await api(`/clinicians/${c.id}/invitation`, {}).catch(() => null);
-                          toast.success(`New invitation sent to ${c.email}`);
+                          await api(`/clinicians/${member.id}/invitation`, {}).catch(() => null);
+                          toast.success(`New invitation sent to ${member.email}`);
                         }}
                       >
                         Send again
                       </Button>
                     )}
-                    <ClinicianDialog mode="edit" clinician={c} onDone={reload} />
+                    <ClinicianDialog mode="edit" clinician={member} onDone={reload} />
                     <Confirm
                       trigger={
                         <Button variant="ghost" size="compact">
                           Turn off
                         </Button>
                       }
-                      title={`Turn off ${c.name}'s account?`}
+                      title={`Turn off ${member.name}'s account?`}
                       description="They can't log in or receive patients any more. The account and its history are kept."
                       confirmLabel="Turn off account"
                       onConfirm={async () => {
-                        await api(`/clinicians/${c.id}/deactivate`, {});
-                        toast.success(`${c.name}'s account turned off`);
+                        await api(`/clinicians/${member.id}/deactivate`, {});
+                        toast.success(`${member.name}'s account turned off`);
                         await reload();
                       }}
                     />
@@ -102,28 +103,42 @@ export function Clinicians({ facility }: { facility: string }) {
   );
 }
 
-function ClinicianDialog({ mode, clinician, onDone }: { mode: "invite" | "edit"; clinician?: Row; onDone: () => Promise<void> }) {
+function ClinicianDialog({
+  mode,
+  clinician,
+  onDone,
+}: {
+  mode: "invite" | "edit";
+  clinician?: Row;
+  onDone: () => Promise<void>;
+}) {
   const blank = { name: "", email: "", specialty: "", licenceNumber: "" };
   const start = clinician
-    ? { name: clinician.name, email: clinician.email, specialty: clinician.specialty ?? "", licenceNumber: clinician.licenceNumber ?? "" }
+    ? {
+        name: clinician.name,
+        email: clinician.email,
+        specialty: clinician.specialty ?? "",
+        licenceNumber: clinician.licenceNumber ?? "",
+      }
     : blank;
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState(start);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [pending, setPending] = useState(false);
-  const set = (k: keyof typeof form) => (e: { target: { value: string } }) => setForm((f) => ({ ...f, [k]: e.target.value }));
+  const set = (k: keyof typeof form) => (e: { target: { value: string } }) =>
+    setForm((previous) => ({ ...previous, [k]: e.target.value }));
   const formId = `clinician-${clinician?.id ?? "new"}`;
 
   async function submit(e: FormEvent) {
     e.preventDefault();
     const schema = mode === "invite" ? clinicianInvite : clinicianInvite.omit({ email: true });
-    const r = check(schema, { ...form, specialty: form.specialty || undefined });
-    if (!r.data) return setErrors(r.errors);
+    const result = check(schema, { ...form, specialty: form.specialty || undefined });
+    if (!result.data) return setErrors(result.errors);
     setErrors({});
     setPending(true);
     try {
-      if (mode === "invite") await api("/clinicians", r.data);
-      else await api(`/clinicians/${clinician!.id}`, r.data, { method: "PUT" });
+      if (mode === "invite") await api("/clinicians", result.data);
+      else await api(`/clinicians/${clinician!.id}`, result.data, { method: "PUT" });
       setOpen(false);
       toast.success(mode === "invite" ? `Invitation sent to ${form.email}` : "Changes saved");
       if (mode === "invite") setForm(blank);
@@ -138,9 +153,9 @@ function ClinicianDialog({ mode, clinician, onDone }: { mode: "invite" | "edit";
   return (
     <Dialog
       open={open}
-      onOpenChange={(o) => {
-        setOpen(o);
-        if (o) setForm(start);
+      onOpenChange={(open) => {
+        setOpen(open);
+        if (open) setForm(start);
       }}
     >
       <DialogTrigger asChild>
@@ -156,7 +171,9 @@ function ClinicianDialog({ mode, clinician, onDone }: { mode: "invite" | "edit";
       </DialogTrigger>
       <DialogContent
         title={mode === "invite" ? "Invite clinician" : `Edit ${clinician!.name}`}
-        description={mode === "invite" ? "They'll get an email to set their password. The link works for 48 hours." : undefined}
+        description={
+          mode === "invite" ? "They'll get an email to set their password. The link works for 48 hours." : undefined
+        }
         actions={
           <>
             <Button variant="secondary" onClick={() => setOpen(false)}>
@@ -170,9 +187,32 @@ function ClinicianDialog({ mode, clinician, onDone }: { mode: "invite" | "edit";
       >
         <form id={formId} onSubmit={submit} noValidate className="flex flex-col gap-5">
           <Input label="Full name" autoComplete="off" value={form.name} onChange={set("name")} error={errors.name} />
-          {mode === "invite" && <Input label="Work email" type="email" autoComplete="off" value={form.email} onChange={set("email")} error={errors.email} />}
-          <Select label="Specialty" placeholder="Choose a specialty" options={specialtyOptions} value={form.specialty} onChange={set("specialty")} error={errors.specialty} />
-          <Input label="Licence number" autoComplete="off" value={form.licenceNumber} onChange={set("licenceNumber")} error={errors.licenceNumber} hint="From the professional council, e.g. RMDC-04521" />
+          {mode === "invite" && (
+            <Input
+              label="Work email"
+              type="email"
+              autoComplete="off"
+              value={form.email}
+              onChange={set("email")}
+              error={errors.email}
+            />
+          )}
+          <Select
+            label="Specialty"
+            placeholder="Choose a specialty"
+            options={specialtyOptions}
+            value={form.specialty}
+            onChange={set("specialty")}
+            error={errors.specialty}
+          />
+          <Input
+            label="Licence number"
+            autoComplete="off"
+            value={form.licenceNumber}
+            onChange={set("licenceNumber")}
+            error={errors.licenceNumber}
+            hint="From the professional council, e.g. RMDC-04521"
+          />
           {errors.form && <p className="text-small font-medium text-urgent-fg">{errors.form}</p>}
         </form>
       </DialogContent>

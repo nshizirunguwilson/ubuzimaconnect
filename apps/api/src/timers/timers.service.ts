@@ -25,7 +25,9 @@ const LOCK_KEY = 61_802;
 
 /** "20:32" in Rwanda time, like every time shown in the app. */
 function kigaliTime(date: Date) {
-  return new Intl.DateTimeFormat("en-GB", { hour: "2-digit", minute: "2-digit", timeZone: "Africa/Kigali" }).format(date);
+  return new Intl.DateTimeFormat("en-GB", { hour: "2-digit", minute: "2-digit", timeZone: "Africa/Kigali" }).format(
+    date,
+  );
 }
 
 /**
@@ -176,7 +178,10 @@ export class TimersService implements OnModuleInit, OnModuleDestroy {
       const becomesLevelOne = !becomesDelayIncident && waitingCase.escalationLevel === 0;
       const sinceLastAlert = waitingCase.escalatedAt ? now - waitingCase.escalatedAt.getTime() : 0;
       const alertIsDueAgain =
-        !becomesDelayIncident && waitingCase.escalationLevel === 2 && waitingCase.escalatedAt !== null && sinceLastAlert >= REPEAT_ALERT_MS;
+        !becomesDelayIncident &&
+        waitingCase.escalationLevel === 2 &&
+        waitingCase.escalatedAt !== null &&
+        sinceLastAlert >= REPEAT_ALERT_MS;
 
       if (becomesDelayIncident) {
         await this.setEscalationLevel(waitingCase.id, 2);
@@ -236,10 +241,14 @@ export class TimersService implements OnModuleInit, OnModuleDestroy {
   /** More than 5 AI failures in 5 minutes. At most one alert every 5 minutes. */
   private async alertOnAiFailures() {
     const since = new Date(Date.now() - AI_FAILURE_WINDOW_MS);
-    const failures = await this.db.client.auditEvent.count({ where: { action: "ai.failure", createdAt: { gte: since } } });
+    const failures = await this.db.client.auditEvent.count({
+      where: { action: "ai.failure", createdAt: { gte: since } },
+    });
     if (failures <= AI_FAILURE_LIMIT) return;
 
-    const alreadyAlerted = await this.db.client.alert.count({ where: { kind: "AI_FAILURES", createdAt: { gte: since } } });
+    const alreadyAlerted = await this.db.client.alert.count({
+      where: { kind: "AI_FAILURES", createdAt: { gte: since } },
+    });
     if (alreadyAlerted > 0) return;
 
     await this.alerts.raise(

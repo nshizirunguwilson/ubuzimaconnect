@@ -32,13 +32,18 @@ type Mine = {
   updatedAt: string;
 };
 
-/** FR 8.1 and 8.3: the manager keeps their facility's profile and bed count correct, because routing uses them. */
+/** The manager keeps their facility's profile and bed count correct, because routing uses them. */
 export function FacilityProfilePage() {
   const { data, reload, error } = useApi<Mine>("/facilities/mine");
   const [errors, setErrors] = useState<Record<string, string>>();
   const [pending, setPending] = useState(false);
 
-  if (error) return <Notice tone="warning" title="No facility">{error}</Notice>;
+  if (error)
+    return (
+      <Notice tone="warning" title="No facility">
+        {error}
+      </Notice>
+    );
   if (!data) return <div className="h-96" aria-busy />;
 
   const initial: FacilityValues = {
@@ -79,8 +84,8 @@ export function FacilityProfilePage() {
                 setErrors(undefined);
                 toast.success("Profile saved");
                 await reload();
-              } catch (e) {
-                if (e instanceof ApiFailure) setErrors(e.error.fields ?? { name: e.error.message });
+              } catch (error) {
+                if (error instanceof ApiFailure) setErrors(error.error.fields ?? { name: error.error.message });
               } finally {
                 setPending(false);
               }
@@ -104,11 +109,11 @@ function Beds({ data, onSaved }: { data: Mine; onSaved: () => Promise<void> }) {
 
   async function submit(e: FormEvent) {
     e.preventDefault();
-    const r = check(bedCapacity, { totalBeds: total });
-    if (!r.data) return setError(r.errors.totalBeds);
+    const result = check(bedCapacity, { totalBeds: total });
+    if (!result.data) return setError(result.errors.totalBeds);
     setPending(true);
     try {
-      await api("/facilities/mine/beds", r.data, { method: "PUT" });
+      await api("/facilities/mine/beds", result.data, { method: "PUT" });
       setError(undefined);
       toast.success("Bed count saved");
       await onSaved();
@@ -139,9 +144,11 @@ function Beds({ data, onSaved }: { data: Mine; onSaved: () => Promise<void> }) {
           label="Total beds"
           inputMode="numeric"
           value={total}
-          onChange={(e) => setTotal(e.target.value.replace(/\D/g, ""))}
+          onChange={(event) => setTotal(event.target.value.replace(/\D/g, ""))}
           error={error}
-          hint={inUse > 0 ? `Can't be lower than ${inUse}, the beds in use now.` : "Free beds are worked out from this."}
+          hint={
+            inUse > 0 ? `Can't be lower than ${inUse}, the beds in use now.` : "Free beds are worked out from this."
+          }
         />
         <Button type="submit" variant="secondary" loading={pending} className="self-start">
           Save bed count

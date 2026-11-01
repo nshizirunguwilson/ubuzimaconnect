@@ -5,7 +5,7 @@ import { LuCircleAlert, LuCircleCheck, LuX } from "react-icons/lu";
 import { Squircle } from "./squircle";
 
 /**
- * Toasts (DESIGN.md §9): a short past-tense message ("Case submitted").
+ * Toasts: a short past-tense message ("Case submitted").
  * Success closes itself after 4 s; errors stay until dismissed.
  */
 export function Toaster() {
@@ -22,7 +22,10 @@ function show(kind: "success" | "error", message: string) {
         role={kind === "error" ? "alert" : "status"}
         className="flex w-[min(24rem,calc(100vw-2rem))] items-center gap-3 py-2 pr-2 pl-4 sq-bg-gray-900 text-white"
       >
-        <Icon className={kind === "success" ? "size-5 shrink-0 text-green-50" : "size-5 shrink-0 text-red-50"} aria-hidden />
+        <Icon
+          className={kind === "success" ? "size-5 shrink-0 text-green-50" : "size-5 shrink-0 text-red-50"}
+          aria-hidden
+        />
         <p className="flex-1 text-small font-medium">{message}</p>
         <Squircle
           as="button"

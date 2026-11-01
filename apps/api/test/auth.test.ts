@@ -18,23 +18,34 @@ describe("patient login (FR 1)", () => {
   });
 
   it("never stores the national ID itself (NFR 4)", async () => {
-    const r = await db.query(`select count(*)::int as n from "Patient" where "nidHash" like '%1199270045823116%' or "nidaRef" like '%1199270045823116%'`);
+    const r = await db.query(
+      `select count(*)::int as n from "Patient" where "nidHash" like '%1199270045823116%' or "nidaRef" like '%1199270045823116%'`,
+    );
     expect(r.rows[0].n).toBe(0);
   });
 
   it("gives a parent all their children at any age, and a child of 16+ only their own record (FR 1.3)", async () => {
     const parent = browser();
-    await parent("/auth/patient/login", { nationalId: "1198580067412163", dateOfBirth: "1985-07-01", name: "Habimana" });
+    await parent("/auth/patient/login", {
+      nationalId: "1198580067412163",
+      dateOfBirth: "1985-07-01",
+      name: "Habimana",
+    });
     const names = (await parent("/auth/me")).body.family.map((f: { name: string }) => f.name);
     expect(names).toEqual(["Ange Iradukunda", "Divine Mutoni"]);
 
     const teen = browser();
-    expect((await teen("/auth/patient/login", { nationalId: "1200970031504128", dateOfBirth: "2009-05-21", name: "Ange" })).status).toBe(200);
+    expect(
+      (await teen("/auth/patient/login", { nationalId: "1200970031504128", dateOfBirth: "2009-05-21", name: "Ange" }))
+        .status,
+    ).toBe(200);
     expect((await teen("/auth/me")).body).toMatchObject({ firstName: "Ange", family: [] });
   });
 
   it("logs every login with the device type (FR 10.1)", async () => {
-    const r = await db.query(`select detail from "AuditEvent" where action = 'patient.login' order by "createdAt" desc limit 1`);
+    const r = await db.query(
+      `select detail from "AuditEvent" where action = 'patient.login' order by "createdAt" desc limit 1`,
+    );
     expect(r.rows[0].detail).toHaveProperty("device");
   });
 
@@ -64,11 +75,18 @@ describe("patient login (FR 1)", () => {
 
   it("says verification is unavailable when NIDA is down, without counting a failure (FR 1.5)", async () => {
     const outage = (on: boolean) =>
-      fetch(`${NIDA}/v1/outage`, { method: "POST", headers: { "x-api-key": "dev-nida-key", "content-type": "application/json" }, body: JSON.stringify({ on }) });
+      fetch(`${NIDA}/v1/outage`, {
+        method: "POST",
+        headers: { "x-api-key": "dev-nida-key", "content-type": "application/json" },
+        body: JSON.stringify({ on }),
+      });
     await outage(true);
     const r = await browser()("/auth/patient/login", ALINE);
     await outage(false);
-    expect(r).toMatchObject({ status: 503, body: { code: "NIDA_UNAVAILABLE", message: "Verification is temporarily unavailable." } });
+    expect(r).toMatchObject({
+      status: 503,
+      body: { code: "NIDA_UNAVAILABLE", message: "Verification is temporarily unavailable." },
+    });
     const logged = await db.query(`select count(*)::int as n from "AuditEvent" where action = 'nida.unavailable'`);
     expect(logged.rows[0].n).toBeGreaterThan(0);
   });
@@ -133,8 +151,12 @@ describe("staff login (FR 2)", () => {
     await admin("/auth/staff/login", { email: "admin@ubuzima.test", password: PASSWORD });
     await admin("/auth/staff/code", { code: codeIn((await latestEmail("admin@ubuzima.test")).subject) });
     // FR 12.1: the administrator invites agents (with a licence number) and facility managers, not clinicians.
-    expect((await admin("/staff/invitations", { name: "X", email: "x@ubuzima.test", role: "CLINICIAN" })).status).toBe(400);
-    expect((await admin("/staff/invitations", { name: "No Licence", email: "y@ubuzima.test", role: "AGENT" })).body.fields).toHaveProperty("licenceNumber");
+    expect((await admin("/staff/invitations", { name: "X", email: "x@ubuzima.test", role: "CLINICIAN" })).status).toBe(
+      400,
+    );
+    expect(
+      (await admin("/staff/invitations", { name: "No Licence", email: "y@ubuzima.test", role: "AGENT" })).body.fields,
+    ).toHaveProperty("licenceNumber");
     const invite = await admin("/staff/invitations", {
       name: "Test Agent",
       email: "new.agent@ubuzima.test",
@@ -153,8 +175,12 @@ describe("staff login (FR 2)", () => {
     expect((await b(`/auth/staff/links/${token}`)).body).toMatchObject({ purpose: "INVITATION", name: "Test Agent" });
     expect((await b("/auth/staff/password", { token, password: "short" })).body.code).toBe("VALIDATION");
     expect((await b("/auth/staff/password", { token, password: "a long enough password" })).status).toBe(200);
-    expect((await b("/auth/staff/password", { token, password: "another long password" })).body.code).toBe("TOKEN_INVALID");
-    expect((await b("/auth/staff/login", { email: "new.agent@ubuzima.test", password: "a long enough password" })).body.next).toBe("code");
+    expect((await b("/auth/staff/password", { token, password: "another long password" })).body.code).toBe(
+      "TOKEN_INVALID",
+    );
+    expect(
+      (await b("/auth/staff/login", { email: "new.agent@ubuzima.test", password: "a long enough password" })).body.next,
+    ).toBe("code");
     expect((await admin(`/staff/${invite.body.id}/invitation`, {})).status).toBe(409);
   });
 
@@ -179,7 +205,9 @@ describe("staff login (FR 2)", () => {
     await b("/auth/staff/login", { email: "admin@ubuzima.test", password: PASSWORD });
     await b("/auth/staff/code", { code: codeIn((await latestEmail("admin@ubuzima.test")).subject) });
     expect((await b("/auth/me")).status).toBe(200);
-    await db.query(`update "Session" set "expiresAt" = now() at time zone 'utc' - interval '1 second' where "staffId" is not null`);
+    await db.query(
+      `update "Session" set "expiresAt" = now() at time zone 'utc' - interval '1 second' where "staffId" is not null`,
+    );
     expect((await b("/auth/me")).status).toBe(401);
   });
 });
@@ -187,12 +215,21 @@ describe("staff login (FR 2)", () => {
 describe("patient session (FR 1.7)", () => {
   it("ends a patient session after 15 minutes without activity", async () => {
     const b = browser();
-    expect((await b("/auth/patient/login", { nationalId: "1199270045823116", dateOfBirth: "1992-03-14", name: "Aline" })).status).toBe(200);
+    expect(
+      (await b("/auth/patient/login", { nationalId: "1199270045823116", dateOfBirth: "1992-03-14", name: "Aline" }))
+        .status,
+    ).toBe(200);
     expect((await b("/auth/me")).status).toBe(200);
-    const row = (await db.query(`select extract(epoch from "expiresAt" - "lastSeenAt") as idle from "Session" where "patientId" is not null order by "createdAt" desc limit 1`)).rows[0];
+    const row = (
+      await db.query(
+        `select extract(epoch from "expiresAt" - "lastSeenAt") as idle from "Session" where "patientId" is not null order by "createdAt" desc limit 1`,
+      )
+    ).rows[0];
     // The session lasts 15 minutes from the last request. Rounded: the two times come from two clocks a few ms apart.
     expect(Math.round(Number(row.idle) / 60)).toBe(15);
-    await db.query(`update "Session" set "expiresAt" = now() at time zone 'utc' - interval '1 second' where "patientId" is not null`);
+    await db.query(
+      `update "Session" set "expiresAt" = now() at time zone 'utc' - interval '1 second' where "patientId" is not null`,
+    );
     expect((await b("/auth/me")).status).toBe(401);
   });
 });

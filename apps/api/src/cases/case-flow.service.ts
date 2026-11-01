@@ -1,6 +1,15 @@
 import { Injectable } from "@nestjs/common";
 import type { Case, Patient } from "@ubuzima/db";
-import { age, asksPregnancy, currentShift, formatKm, matchFacilities, redFlagGroups, SERVICE_LABEL, type Service } from "@ubuzima/shared";
+import {
+  age,
+  asksPregnancy,
+  currentShift,
+  formatKm,
+  matchFacilities,
+  redFlagGroups,
+  SERVICE_LABEL,
+  type Service,
+} from "@ubuzima/shared";
 import type { LiveSession } from "../auth/session.service";
 import { AuditService } from "../common/audit.service";
 import { DbService } from "../common/db.service";
@@ -179,9 +188,13 @@ export class CaseFlowService {
 
     if (match.kind === "NO_MATCH") {
       await this.audit.record({ type: "system" }, "routing.no_match", { caseId, service });
-      await this.alerts.raise("NO_CAPACITY", `${found.code}: no facility offers ${serviceName} with a clinician on duty.`, {
-        caseId,
-      });
+      await this.alerts.raise(
+        "NO_CAPACITY",
+        `${found.code}: no facility offers ${serviceName} with a clinician on duty.`,
+        {
+          caseId,
+        },
+      );
       return;
     }
 

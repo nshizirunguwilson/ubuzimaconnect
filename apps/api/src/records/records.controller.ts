@@ -114,7 +114,8 @@ export class RecordsController {
         where: { guardianId_dependantId: { guardianId: session.patientId!, dependantId: patientId } },
       })) !== null;
 
-    const person = isSelf || isTheirChild ? await this.db.client.patient.findUnique({ where: { id: patientId } }) : null;
+    const person =
+      isSelf || isTheirChild ? await this.db.client.patient.findUnique({ where: { id: patientId } }) : null;
     if (!person) throw new ApiException(403, "FORBIDDEN", "You can see only your own records and your children's.");
     return person;
   }
