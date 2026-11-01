@@ -6,7 +6,7 @@ import { Card } from "@/components/ui/card";
 import { StatusBadge } from "@/components/ui/status";
 import { requireStaff } from "@/lib/session";
 import { ButtonLink } from "@/components/ui/button-link";
-import { LuUserPlus } from "react-icons/lu";
+import { PiUserPlusBold } from "react-icons/pi";
 
 export const metadata: Metadata = { title: "Home" };
 
@@ -69,7 +69,7 @@ async function Home() {
       </Card>
 
       {me.role === "ADMIN" && (
-        <ButtonLink href="/staff/team" variant="primary" icon={<LuUserPlus />} className="self-start">
+        <ButtonLink href="/staff/team" variant="primary" icon={<PiUserPlusBold />} className="self-start">
           Invite staff
         </ButtonLink>
       )}

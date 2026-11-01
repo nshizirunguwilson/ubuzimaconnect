@@ -4,7 +4,7 @@ import { formatNationalId, nationalId as nationalIdSchema, patientLogin } from "
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
-import { LuArrowLeft, LuIdCard } from "react-icons/lu";
+import { PiArrowLeftBold, PiIdentificationCardBold } from "react-icons/pi";
 import { BottomBar } from "@/components/app/bottom-bar";
 import { Logo } from "@/components/app/logo";
 import { Button } from "@/components/ui/button";
@@ -16,14 +16,14 @@ import { StepProgress } from "@/components/ui/step-progress";
 import { api, ApiFailure } from "@/lib/api";
 import { EMPTY_DATE, partsToIsoDate } from "@/lib/date-parts";
 import { ButtonLink } from "@/components/ui/button-link";
-import { LuPhone } from "react-icons/lu";
+import { PiPhoneBold } from "react-icons/pi";
 import { usePending, useOnHide } from "@/lib/pending";
 import { LanguageSwitch, useT } from "@/i18n/client";
 
 function EmergencyButton() {
   const { t } = useT();
   return (
-    <ButtonLink href="/emergency" variant="danger" size="compact" icon={<LuPhone />}>
+    <ButtonLink href="/emergency" variant="danger" size="compact" icon={<PiPhoneBold />}>
       {t.common.emergency}
     </ButtonLink>
   );
@@ -107,7 +107,7 @@ export function LoginFlow({ ended, other = false }: { ended: boolean; other?: bo
       <div className="flex items-center justify-between">
         {step === 1 ? (
           <Link href="/" className="-ml-2 inline-flex min-h-11 items-center gap-2 px-2 text-small font-medium text-fg">
-            <LuArrowLeft className="size-5" aria-hidden />
+            <PiArrowLeftBold className="size-5" aria-hidden />
             {t.common.back}
           </Link>
         ) : (
@@ -116,7 +116,7 @@ export function LoginFlow({ ended, other = false }: { ended: boolean; other?: bo
             onClick={() => setStep(1)}
             className="-ml-2 inline-flex min-h-11 cursor-pointer items-center gap-2 px-2 text-small font-medium text-fg"
           >
-            <LuArrowLeft className="size-5" aria-hidden />
+            <PiArrowLeftBold className="size-5" aria-hidden />
             {t.common.back}
           </button>
         )}
@@ -160,7 +160,7 @@ export function LoginFlow({ ended, other = false }: { ended: boolean; other?: bo
           <Input
             label={t.login.idLabel}
             hint={t.login.idHint}
-            leading={<LuIdCard />}
+            leading={<PiIdentificationCardBold />}
             mono
             inputMode="numeric"
             autoComplete="off"

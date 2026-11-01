@@ -1,23 +1,23 @@
 import { ROLE_LABEL, type StaffMe } from "@ubuzima/shared";
 import { Suspense } from "react";
 import {
-  LuBuilding2,
-  LuCalendarDays,
-  LuCalendarClock,
-  LuHouse,
-  LuInbox,
-  LuListChecks,
-  LuSettings,
-  LuStethoscope,
-  LuUsers,
-  LuUsersRound,
-  LuPill,
-  LuHistory,
-  LuActivity,
-  LuBell,
-  LuChartColumn,
-  LuIdCard,
-} from "react-icons/lu";
+  PiBuildingsBold,
+  PiCalendarBold,
+  PiCalendarDotsBold,
+  PiHouseBold,
+  PiTrayBold,
+  PiListChecksBold,
+  PiGearSixBold,
+  PiStethoscopeBold,
+  PiUsersBold,
+  PiUsersThreeBold,
+  PiPillBold,
+  PiClockCounterClockwiseBold,
+  PiPulseBold,
+  PiBellBold,
+  PiChartBarBold,
+  PiIdentificationCardBold,
+} from "react-icons/pi";
 import { AgentPresence } from "@/components/app/agent-presence";
 import { AdminAlerts } from "@/components/app/admin-alerts";
 import { ClinicianNotices } from "@/components/app/clinician-notices";
@@ -28,44 +28,44 @@ import { requireStaff } from "@/lib/session";
 
 /** Only screens that exist are listed; each batch adds its own items (docs/TRACEABILITY.md). */
 function navFor(role: StaffMe["role"]): NavItem[] {
-  const home: NavItem = { href: "/staff", label: "Home", icon: <LuHouse /> };
+  const home: NavItem = { href: "/staff", label: "Home", icon: <PiHouseBold /> };
   switch (role) {
     case "ADMIN":
       return [
         home,
-        { href: "/staff/alerts", label: "Alerts", icon: <LuBell /> },
-        { href: "/staff/facilities", label: "Facilities", icon: <LuBuilding2 /> },
-        { href: "/staff/team", label: "Staff accounts", icon: <LuUsers /> },
-        { href: "/staff/nida", label: "Mock NIDA", icon: <LuIdCard /> },
-        { href: "/staff/on-duty", label: "On duty", icon: <LuActivity /> },
-        { href: "/staff/schedule", label: "Agent schedule", icon: <LuCalendarDays /> },
-        { href: "/staff/red-flags", label: "Red-flag list", icon: <LuListChecks /> },
-        { href: "/staff/activity", label: "Activity", icon: <LuHistory /> },
-        { href: "/staff/reports", label: "Reports", icon: <LuChartColumn /> },
-        { href: "/staff/settings", label: "Settings", icon: <LuSettings /> },
+        { href: "/staff/alerts", label: "Alerts", icon: <PiBellBold /> },
+        { href: "/staff/facilities", label: "Facilities", icon: <PiBuildingsBold /> },
+        { href: "/staff/team", label: "Staff accounts", icon: <PiUsersBold /> },
+        { href: "/staff/nida", label: "Mock NIDA", icon: <PiIdentificationCardBold /> },
+        { href: "/staff/on-duty", label: "On duty", icon: <PiPulseBold /> },
+        { href: "/staff/schedule", label: "Agent schedule", icon: <PiCalendarBold /> },
+        { href: "/staff/red-flags", label: "Red-flag list", icon: <PiListChecksBold /> },
+        { href: "/staff/activity", label: "Activity", icon: <PiClockCounterClockwiseBold /> },
+        { href: "/staff/reports", label: "Reports", icon: <PiChartBarBold /> },
+        { href: "/staff/settings", label: "Settings", icon: <PiGearSixBold /> },
       ];
     case "FACILITY_MANAGER":
       return [
         home,
-        { href: "/staff/facility", label: "Facility profile", icon: <LuBuilding2 /> },
-        { href: "/staff/clinicians", label: "Clinicians", icon: <LuStethoscope /> },
-        { href: "/staff/schedule", label: "Schedule", icon: <LuCalendarDays /> },
-        { href: "/staff/activity", label: "Staff activity", icon: <LuHistory /> },
-        { href: "/staff/reports", label: "Reports", icon: <LuChartColumn /> },
+        { href: "/staff/facility", label: "Facility profile", icon: <PiBuildingsBold /> },
+        { href: "/staff/clinicians", label: "Clinicians", icon: <PiStethoscopeBold /> },
+        { href: "/staff/schedule", label: "Schedule", icon: <PiCalendarBold /> },
+        { href: "/staff/activity", label: "Staff activity", icon: <PiClockCounterClockwiseBold /> },
+        { href: "/staff/reports", label: "Reports", icon: <PiChartBarBold /> },
       ];
     case "AGENT":
       return [
-        { href: "/staff/queue", label: "Queue", icon: <LuInbox /> },
-        { href: "/staff/prescriptions", label: "My prescriptions", icon: <LuPill /> },
-        { href: "/staff/reports", label: "Reports", icon: <LuChartColumn /> },
-        { href: "/staff/shifts", label: "My shifts", icon: <LuCalendarClock /> },
+        { href: "/staff/queue", label: "Queue", icon: <PiTrayBold /> },
+        { href: "/staff/prescriptions", label: "My prescriptions", icon: <PiPillBold /> },
+        { href: "/staff/reports", label: "Reports", icon: <PiChartBarBold /> },
+        { href: "/staff/shifts", label: "My shifts", icon: <PiCalendarDotsBold /> },
       ];
     case "CLINICIAN":
       return [
-        { href: "/staff/patients", label: "Patients", icon: <LuUsersRound /> },
-        { href: "/staff/prescriptions", label: "My prescriptions", icon: <LuPill /> },
-        { href: "/staff/reports", label: "Reports", icon: <LuChartColumn /> },
-        { href: "/staff/shifts", label: "My shifts", icon: <LuCalendarClock /> },
+        { href: "/staff/patients", label: "Patients", icon: <PiUsersThreeBold /> },
+        { href: "/staff/prescriptions", label: "My prescriptions", icon: <PiPillBold /> },
+        { href: "/staff/reports", label: "Reports", icon: <PiChartBarBold /> },
+        { href: "/staff/shifts", label: "My shifts", icon: <PiCalendarDotsBold /> },
       ];
   }
 }

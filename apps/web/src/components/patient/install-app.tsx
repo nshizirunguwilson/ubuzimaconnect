@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useSyncExternalStore } from "react";
-import { LuDownload, LuShare } from "react-icons/lu";
+import { PiDownloadSimpleBold, PiExportBold } from "react-icons/pi";
 import { Button } from "@/components/ui/button";
 import { useT } from "@/i18n/client";
 
@@ -39,7 +39,7 @@ export function InstallApp() {
       <Button
         variant="ghost"
         size="compact"
-        icon={<LuDownload />}
+        icon={<PiDownloadSimpleBold />}
         className="self-start"
         onClick={async () => {
           await prompt.prompt();
@@ -54,7 +54,7 @@ export function InstallApp() {
   if (iphone) {
     return (
       <p className="flex items-start gap-2 text-small text-fg-secondary">
-        <LuShare className="mt-0.5 size-4 shrink-0" aria-hidden />
+        <PiExportBold className="mt-0.5 size-4 shrink-0" aria-hidden />
         {t.install.iphone}
       </p>
     );

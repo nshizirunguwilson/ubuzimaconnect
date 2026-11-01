@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { connection } from "next/server";
 import { Suspense } from "react";
-import { LuShieldCheck } from "react-icons/lu";
+import { PiShieldCheckBold } from "react-icons/pi";
 import { Avatar } from "@/components/app/avatar";
 import { IdleLogout } from "@/components/app/idle-logout";
 import { Logo } from "@/components/app/logo";
@@ -10,7 +10,7 @@ import { Card } from "@/components/ui/card";
 import { Notice } from "@/components/ui/notice";
 import Link from "next/link";
 import { InstallApp } from "@/components/patient/install-app";
-import { LuChevronRight, LuPhone, LuPhoneCall } from "react-icons/lu";
+import { PiCaretRightBold, PiPhoneBold, PiPhoneCallBold } from "react-icons/pi";
 import { BottomBar } from "@/components/app/bottom-bar";
 import { ButtonLink } from "@/components/ui/button-link";
 import { SquircleLink } from "@/components/ui/squircle-link";
@@ -108,7 +108,7 @@ async function Home() {
                   </span>
                   <span className="font-mono text-caption font-medium text-fg-secondary">{openCase.code}</span>
                 </div>
-                <LuChevronRight className="size-5 shrink-0 text-fg-secondary" aria-hidden />
+                <PiCaretRightBold className="size-5 shrink-0 text-fg-secondary" aria-hidden />
               </SquircleLink>
             );
           })}
@@ -119,7 +119,7 @@ async function Home() {
         href="/emergency"
         className="inline-flex min-h-11 w-fit items-center gap-2 text-small font-semibold text-urgent-fg lg:col-start-1"
       >
-        <LuPhone className="size-4" aria-hidden />
+        <PiPhoneBold className="size-4" aria-hidden />
         {t.common.emergencyCall912}
       </Link>
 
@@ -157,12 +157,12 @@ async function Home() {
                 <span className="text-small text-fg-secondary">{person.label}</span>
               </div>
               <span className="text-small font-medium text-link">{t.common.records}</span>
-              <LuChevronRight className="size-5 shrink-0 text-fg-secondary" aria-hidden />
+              <PiCaretRightBold className="size-5 shrink-0 text-fg-secondary" aria-hidden />
             </Link>
           ))}
         </Card>
         <p className="flex items-start gap-2 text-small text-fg-secondary">
-          <LuShieldCheck className="mt-0.5 size-4 shrink-0 text-success" aria-hidden />
+          <PiShieldCheckBold className="mt-0.5 size-4 shrink-0 text-success" aria-hidden />
           {t.home.checked}
           {me.district ? ` · ${t.home.district(me.district)}` : ""}.
         </p>
@@ -172,7 +172,7 @@ async function Home() {
           <ButtonLink href="/cases/new" variant="primary" className="w-full sm:w-auto">
             {t.home.getHelp}
           </ButtonLink>
-          <ButtonLink href="/call" variant="secondary" icon={<LuPhoneCall />} className="w-full sm:w-auto">
+          <ButtonLink href="/call" variant="secondary" icon={<PiPhoneCallBold />} className="w-full sm:w-auto">
             {t.home.preferCall}
           </ButtonLink>
         </div>

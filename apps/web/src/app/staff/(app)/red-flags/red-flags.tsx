@@ -2,7 +2,7 @@
 
 import { RED_FLAG_GROUP_LABEL, redFlagQuestion, SERVICE_LABEL, SERVICES, type Service } from "@ubuzima/shared";
 import { useState, type FormEvent } from "react";
-import { LuPlus } from "react-icons/lu";
+import { PiPlusBold } from "react-icons/pi";
 import { Confirm } from "@/components/app/confirm";
 import { PageHeader } from "@/components/app/page-header";
 import { Button } from "@/components/ui/button";
@@ -177,7 +177,7 @@ function QuestionDialog({ question, onDone }: { question?: Q; onDone: () => Prom
             Edit
           </Button>
         ) : (
-          <Button variant="primary" icon={<LuPlus />}>
+          <Button variant="primary" icon={<PiPlusBold />}>
             Add question
           </Button>
         )}

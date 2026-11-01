@@ -6,7 +6,7 @@ import FullCalendar from "@fullcalendar/react";
 import resourceTimelinePlugin from "@fullcalendar/resource-timeline";
 import { addDays, SERVICE_LABEL, SHIFT_HOURS, SHIFT_LABEL, type ShiftType } from "@ubuzima/shared";
 import { useState } from "react";
-import { LuCheck, LuCircleCheck, LuCircleHelp } from "react-icons/lu";
+import { PiCheckBold, PiCheckCircleBold, PiQuestionBold } from "react-icons/pi";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import type { Week } from "./schedule";
@@ -129,9 +129,9 @@ export function ScheduleCalendar({
       return (
         <span className="flex items-center justify-center gap-0.5 py-1 text-caption font-medium" title={tip}>
           {details.missing?.length ? (
-            <LuCircleHelp className="size-4" aria-hidden />
+            <PiQuestionBold className="size-4" aria-hidden />
           ) : (
-            <LuCircleCheck className="size-4" aria-hidden />
+            <PiCheckCircleBold className="size-4" aria-hidden />
           )}
           {arg.event.title}
           <span className="sr-only">{tip}</span>
@@ -140,7 +140,7 @@ export function ScheduleCalendar({
     }
     return (
       <span className="flex items-center justify-center py-1 text-caption font-medium" title={tip}>
-        {arg.event.title || <LuCheck className="size-4" aria-hidden />}
+        {arg.event.title || <PiCheckBold className="size-4" aria-hidden />}
         <span className="sr-only">{arg.event.title ? "" : "On shift"}</span>
         {tip && <span className="sr-only">. {tip}</span>}
       </span>

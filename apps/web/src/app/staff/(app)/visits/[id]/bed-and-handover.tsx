@@ -2,7 +2,7 @@
 
 import { SERVICE_LABEL, formatKm, type Service } from "@ubuzima/shared";
 import { useState } from "react";
-import { LuBedDouble } from "react-icons/lu";
+import { PiBedBold } from "react-icons/pi";
 import { Confirm } from "@/components/app/confirm";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -59,7 +59,7 @@ export function Bed({
       <div className="flex items-center justify-between gap-3">
         <h2 className="text-h3 text-fg">Bed</h2>
         {data.bed === "USED" ? (
-          <StatusBadge tone="success" icon={<LuBedDouble aria-hidden />}>
+          <StatusBadge tone="success" icon={<PiBedBold aria-hidden />}>
             Bed assigned
           </StatusBadge>
         ) : (

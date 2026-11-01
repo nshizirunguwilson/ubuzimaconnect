@@ -3,15 +3,15 @@
 import Image from "next/image";
 import { useState, type ReactNode } from "react";
 import {
-  LuActivity,
-  LuArrowRight,
-  LuCircleCheck,
-  LuCircleHelp,
-  LuIdCard,
-  LuInbox,
-  LuSend,
-  LuTriangleAlert,
-} from "react-icons/lu";
+  PiPulseBold,
+  PiArrowRightBold,
+  PiCheckCircleBold,
+  PiQuestionBold,
+  PiIdentificationCardBold,
+  PiTrayBold,
+  PiPaperPlaneTiltBold,
+  PiWarningBold,
+} from "react-icons/pi";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Checkbox, ChoiceRow, Radio } from "@/components/ui/choice";
@@ -279,7 +279,7 @@ function Buttons() {
   return (
     <Section title="Buttons" source="DESIGN.md §9 · one primary per screen; 48 px on phones, 40 px on desktop">
       <div className="flex flex-wrap items-center gap-3">
-        <Button variant="primary" icon={<LuSend />}>
+        <Button variant="primary" icon={<PiPaperPlaneTiltBold />}>
           Submit case
         </Button>
         <Button variant="secondary">Save for later</Button>
@@ -294,7 +294,7 @@ function Buttons() {
           Submit case
         </Button>
         <Button variant="secondary" size="icon" aria-label="Next">
-          <LuArrowRight />
+          <PiArrowRightBold />
         </Button>
       </div>
     </Section>
@@ -316,7 +316,7 @@ function Fields() {
           label="National ID"
           inputMode="numeric"
           mono
-          leading={<LuIdCard />}
+          leading={<PiIdentificationCardBold />}
           hint="16 digits, on the front of your ID card"
           placeholder="1 1990 8 0012345 0 12"
         />
@@ -359,14 +359,14 @@ function Choices() {
           <ChoiceRow
             name="level"
             value="urgent"
-            icon={<LuTriangleAlert className="text-urgent" />}
+            icon={<PiWarningBold className="text-urgent" />}
             label="Urgent"
             description="Needs care today. Route to the nearest hospital."
           />
           <ChoiceRow
             name="level"
             value="uncertain"
-            icon={<LuCircleHelp className="text-warning-fg" />}
+            icon={<PiQuestionBold className="text-warning-fg" />}
             label="Uncertain"
             description="Ask a clinician before routing."
             defaultChecked
@@ -374,7 +374,7 @@ function Choices() {
           <ChoiceRow
             name="level"
             value="minor"
-            icon={<LuCircleCheck className="text-success" />}
+            icon={<PiCheckCircleBold className="text-success" />}
             label="Minor"
             description="Advice and a health centre visit if it gets worse."
           />
@@ -450,7 +450,7 @@ function Queue() {
           {(["urgent", "uncertain", "minor"] as const).map((level) => (
             <TabsContent key={level} value={level} className="flex flex-col gap-1 p-2 outline-none" aria-live="polite">
               {queue[level].length === 0 ? (
-                <EmptyState icon={LuInbox} message="No minor cases waiting." />
+                <EmptyState icon={PiTrayBold} message="No minor cases waiting." />
               ) : (
                 queue[level].map((item) => (
                   <QueueRow
@@ -496,7 +496,7 @@ function Flow() {
             <p className="font-mono text-small font-medium text-fg-secondary">UC-20261024-0042</p>
           </Card>
           <Card className="flex items-start gap-3">
-            <LuActivity className="mt-0.5 size-5 shrink-0 text-fg-secondary" aria-hidden />
+            <PiPulseBold className="mt-0.5 size-5 shrink-0 text-fg-secondary" aria-hidden />
             <div className="flex flex-col gap-1">
               <h3 className="text-h3 text-fg">Kacyiru District Hospital</h3>
               <p className="text-small text-fg-secondary">Gasabo · 2.1 km · open 24 hours</p>
@@ -546,7 +546,7 @@ function Overlays() {
         </Button>
       </div>
       <Card className="max-w-[720px]">
-        <EmptyState icon={LuInbox} message="No incoming patients right now. New cases appear here." />
+        <EmptyState icon={PiTrayBold} message="No incoming patients right now. New cases appear here." />
       </Card>
     </Section>
   );

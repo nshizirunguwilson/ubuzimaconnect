@@ -2,7 +2,7 @@
 
 import { AGENT_STATUS_LABEL, type AgentStatus } from "@ubuzima/shared";
 import { useEffect, useState } from "react";
-import { LuTriangleAlert } from "react-icons/lu";
+import { PiWarningBold } from "react-icons/pi";
 import { PageHeader } from "@/components/app/page-header";
 import { Card } from "@/components/ui/card";
 import { Notice } from "@/components/ui/notice";
@@ -74,7 +74,7 @@ export function OnDuty() {
                 <td className="px-4 py-3 md:px-6">
                   <span className="flex items-center gap-2 font-medium text-fg">
                     {agent.alert && (
-                      <LuTriangleAlert className="size-4 shrink-0 text-urgent" aria-label="Scheduled but Offline" />
+                      <PiWarningBold className="size-4 shrink-0 text-urgent" aria-label="Scheduled but Offline" />
                     )}
                     {agent.name}
                   </span>

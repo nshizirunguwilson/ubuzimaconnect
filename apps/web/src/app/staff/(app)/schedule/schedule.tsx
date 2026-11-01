@@ -12,7 +12,14 @@ import {
 } from "@ubuzima/shared";
 import dynamic from "next/dynamic";
 import { useEffect, useRef, useState } from "react";
-import { LuCheck, LuChevronLeft, LuChevronRight, LuCircleCheck, LuCircleHelp, LuCopy } from "react-icons/lu";
+import {
+  PiCheckBold,
+  PiCaretLeftBold,
+  PiCaretRightBold,
+  PiCheckCircleBold,
+  PiQuestionBold,
+  PiCopyBold,
+} from "react-icons/pi";
 import { PageHeader } from "@/components/app/page-header";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -103,7 +110,7 @@ export function Schedule({ scope }: { scope: "agents" | "clinicians" }) {
         <p className="font-heading text-h3 font-semibold text-fg">{weekRange(data.monday)}</p>
         <div className="flex flex-wrap gap-2">
           {!isPast(data.days[6], "NIGHT") && (
-            <Button variant="secondary" size="compact" icon={<LuCopy />} loading={copying} onClick={copyLastWeek}>
+            <Button variant="secondary" size="compact" icon={<PiCopyBold />} loading={copying} onClick={copyLastWeek}>
               Copy last week
             </Button>
           )}
@@ -113,7 +120,7 @@ export function Schedule({ scope }: { scope: "agents" | "clinicians" }) {
             aria-label="Previous week"
             onClick={() => setWeek(addDays(data.monday, -7))}
           >
-            <LuChevronLeft />
+            <PiCaretLeftBold />
           </Button>
           <Button variant="secondary" size="compact" onClick={() => setWeek(null)}>
             This week
@@ -124,7 +131,7 @@ export function Schedule({ scope }: { scope: "agents" | "clinicians" }) {
             aria-label="Next week"
             onClick={() => setWeek(addDays(data.monday, 7))}
           >
-            <LuChevronRight />
+            <PiCaretRightBold />
           </Button>
         </div>
       </div>
@@ -272,7 +279,7 @@ function ScheduleTable({
                             {assignment?.unavailable ? (
                               "Off"
                             ) : assignment ? (
-                              <LuCheck className="size-4" aria-hidden />
+                              <PiCheckBold className="size-4" aria-hidden />
                             ) : null}
                           </Squircle>
                         </td>
@@ -299,10 +306,10 @@ function ScheduleTable({
                       title={names.length ? `Missing: ${names.join(", ")}` : "Covered"}
                     >
                       {shiftGap.missing.length === 0 ? (
-                        <LuCircleCheck className="mx-auto size-4 text-success" aria-label="Covered" />
+                        <PiCheckCircleBold className="mx-auto size-4 text-success" aria-label="Covered" />
                       ) : (
                         <span className="inline-flex items-center gap-0.5 text-caption font-medium text-warning-fg">
-                          <LuCircleHelp className="size-4" aria-hidden />
+                          <PiQuestionBold className="size-4" aria-hidden />
                           <span className="sr-only">Missing:</span>
                           {scope === "agents" ? "" : shiftGap.missing.length}
                           <span className="sr-only">{names.join(", ")}</span>
@@ -317,7 +324,7 @@ function ScheduleTable({
         </div>
       </Card>
       <p className="text-small text-fg-secondary">
-        <LuCheck className="inline size-4 align-[-3px] text-info-fg" aria-hidden /> on shift ·{" "}
+        <PiCheckBold className="inline size-4 align-[-3px] text-info-fg" aria-hidden /> on shift ·{" "}
         <span className="font-medium text-warning-fg">Off</span> on shift but marked unavailable · hover or focus a
         coverage mark to see what&apos;s missing.
       </p>

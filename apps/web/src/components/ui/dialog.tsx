@@ -2,7 +2,7 @@
 
 import * as RadixDialog from "@radix-ui/react-dialog";
 import type { ReactNode } from "react";
-import { LuX } from "react-icons/lu";
+import { PiXBold } from "react-icons/pi";
 import { useT } from "@/i18n/client";
 import { Squircle } from "./squircle";
 
@@ -57,7 +57,7 @@ export function DialogContent({
                   aria-label={t.common.close}
                   className="-mt-2 -mr-2 inline-flex size-11 shrink-0 cursor-pointer items-center justify-center text-fg-secondary hover:sq-bg-sunken"
                 >
-                  <LuX className="size-5" aria-hidden />
+                  <PiXBold className="size-5" aria-hidden />
                 </Squircle>
               </RadixDialog.Close>
             </div>

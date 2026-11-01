@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { LuArrowLeft, LuPhone } from "react-icons/lu";
+import { PiArrowLeftBold, PiPhoneBold } from "react-icons/pi";
 import { ButtonLink } from "@/components/ui/button-link";
 import { NearestEmergency } from "./nearest";
 import { getT } from "@/i18n/server";
@@ -19,14 +19,14 @@ export default async function Emergency() {
         href="/"
         className="-ml-2 inline-flex min-h-11 w-fit items-center gap-2 px-2 text-small font-medium text-fg"
       >
-        <LuArrowLeft className="size-5" aria-hidden />
+        <PiArrowLeftBold className="size-5" aria-hidden />
         {t.common.back}
       </Link>
       <div className="flex flex-col gap-3">
         <h1 className="text-display text-urgent-fg">{t.emergency.title}</h1>
         <p className="text-body text-fg">{t.emergency.when}</p>
       </div>
-      <ButtonLink href="tel:912" variant="danger" icon={<LuPhone />} className="h-14 w-full text-body md:h-14">
+      <ButtonLink href="tel:912" variant="danger" icon={<PiPhoneBold />} className="h-14 w-full text-body md:h-14">
         {t.common.call912}
       </ButtonLink>
       <NearestEmergency />

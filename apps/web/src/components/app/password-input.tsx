@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, type ComponentProps } from "react";
-import { LuEye, LuEyeOff } from "react-icons/lu";
+import { PiEyeBold, PiEyeSlashBold } from "react-icons/pi";
 import { Input } from "@/components/ui/field";
 import { Squircle } from "@/components/ui/squircle";
 
@@ -22,7 +22,7 @@ export function PasswordInput(props: Omit<ComponentProps<typeof Input>, "type" |
           aria-pressed={shown}
           className="inline-flex h-10 cursor-pointer items-center gap-1.5 px-2.5 text-small font-medium text-fg-secondary hover:sq-bg-sunken"
         >
-          {shown ? <LuEyeOff className="size-5" aria-hidden /> : <LuEye className="size-5" aria-hidden />}
+          {shown ? <PiEyeSlashBold className="size-5" aria-hidden /> : <PiEyeBold className="size-5" aria-hidden />}
           {shown ? "Hide" : "Show"}
         </Squircle>
       }

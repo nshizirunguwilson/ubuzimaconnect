@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { LuPill } from "react-icons/lu";
+import { PiPillBold } from "react-icons/pi";
 import { PageHeader } from "@/components/app/page-header";
 import { PrescriptionCard, type Prescription } from "@/components/app/prescription";
 import { Button } from "@/components/ui/button";
@@ -31,7 +31,7 @@ export function MyPrescriptions() {
       />
       {data.length === 0 ? (
         <Card className="p-0 md:p-0">
-          <EmptyState icon={LuPill} message="You haven't issued any prescriptions yet." />
+          <EmptyState icon={PiPillBold} message="You haven't issued any prescriptions yet." />
         </Card>
       ) : (
         data.map((prescription) => (

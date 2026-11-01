@@ -3,7 +3,7 @@
 import { DISTRICTS, sectorsOf, type CaseLocation } from "@ubuzima/shared";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { LuLocateFixed, LuMapPin, LuPhone } from "react-icons/lu";
+import { PiCrosshairBold, PiMapPinBold, PiPhoneBold } from "react-icons/pi";
 import { BottomBar } from "@/components/app/bottom-bar";
 import { BackButton, BackLink } from "@/components/patient/back-link";
 import { SavedFacilities } from "@/components/patient/saved-facilities";
@@ -170,7 +170,7 @@ export function StartCase({
           ) : (
             <Button
               variant="secondary"
-              icon={<LuLocateFixed />}
+              icon={<PiCrosshairBold />}
               loading={gps.state === "asking"}
               onClick={locate}
               className="w-full sm:w-auto sm:self-start"
@@ -183,7 +183,7 @@ export function StartCase({
             onClick={() => setManual(true)}
             className="inline-flex min-h-11 w-fit cursor-pointer items-center gap-2 text-small font-medium text-link underline underline-offset-2"
           >
-            <LuMapPin className="size-4" aria-hidden />
+            <PiMapPinBold className="size-4" aria-hidden />
             {t.start.chooseFromList}
           </button>
         </div>
@@ -270,7 +270,7 @@ function WaitingToStart({ online, retry }: { online: boolean; retry: () => void 
         <h1 className="text-h1 text-fg">{t.offline.notSent}</h1>
         <p className="text-body text-fg-secondary">{t.offline.startsByItself}</p>
       </div>
-      <ButtonLink href="tel:912" variant="danger" icon={<LuPhone />} className="h-14 w-full text-body md:h-14">
+      <ButtonLink href="tel:912" variant="danger" icon={<PiPhoneBold />} className="h-14 w-full text-body md:h-14">
         {t.common.call912}
       </ButtonLink>
       <SavedFacilities />

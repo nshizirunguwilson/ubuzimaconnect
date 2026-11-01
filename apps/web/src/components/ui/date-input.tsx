@@ -1,7 +1,7 @@
 "use client";
 
 import { useId } from "react";
-import { LuChevronDown, LuCircleAlert } from "react-icons/lu";
+import { PiCaretDownBold, PiWarningCircleBold } from "react-icons/pi";
 import { useT } from "@/i18n/client";
 import { monthNames } from "@/i18n/dates";
 import { cn } from "@/lib/cn";
@@ -67,7 +67,7 @@ export function DateInput({ label, value, onChange, error }: DateInputProps) {
                 </option>
               ))}
             </select>
-            <LuChevronDown className="pointer-events-none absolute right-3 size-5 text-fg-secondary" aria-hidden />
+            <PiCaretDownBold className="pointer-events-none absolute right-3 size-5 text-fg-secondary" aria-hidden />
           </Squircle>
         </div>
         <div className="flex flex-col gap-1">
@@ -89,7 +89,7 @@ export function DateInput({ label, value, onChange, error }: DateInputProps) {
       </div>
       {error && (
         <p id={errorId} className="flex items-start gap-1.5 text-small font-medium text-urgent-fg">
-          <LuCircleAlert className="mt-0.5 size-4 shrink-0" aria-hidden />
+          <PiWarningCircleBold className="mt-0.5 size-4 shrink-0" aria-hidden />
           {error}
         </p>
       )}

@@ -1,7 +1,7 @@
 "use client";
 
 import { useSyncExternalStore, type ReactNode } from "react";
-import { LuPanelLeftClose, LuPanelLeftOpen } from "react-icons/lu";
+import { PiArrowLineLeftBold, PiArrowLineRightBold } from "react-icons/pi";
 import { Logo } from "@/components/app/logo";
 import { LogoutButton } from "@/components/app/logout-button";
 import { StaffNav, type NavItem } from "@/components/app/staff-nav";
@@ -93,7 +93,7 @@ export function StaffFrame({
             title={folded ? "Expand the menu" : "Collapse the menu"}
             className="hidden size-9 shrink-0 cursor-pointer items-center justify-center rounded-lg text-fg-secondary hover:bg-sunken hover:text-fg focus-visible:outline-2 focus-visible:outline-primary md:inline-flex [&_svg]:size-5"
           >
-            {folded ? <LuPanelLeftOpen /> : <LuPanelLeftClose />}
+            {folded ? <PiArrowLineRightBold /> : <PiArrowLineLeftBold />}
           </button>
           <div className="md:hidden">
             <LogoutButton to="/staff/login" />

@@ -1,6 +1,6 @@
 "use client";
 
-import { LuPrinter } from "react-icons/lu";
+import { PiPrinterBold } from "react-icons/pi";
 import { PrintLogo } from "@/components/app/logo";
 import { BackLink } from "@/components/patient/back-link";
 import { Button } from "@/components/ui/button";
@@ -19,7 +19,7 @@ export function PrintSummary({ data }: { data: Records }) {
     <main className="flex flex-col gap-6 text-fg lg:mx-auto lg:w-full lg:max-w-[720px] print:max-w-none print:gap-4 print:text-black">
       <div className="flex flex-wrap items-center justify-between gap-3 print:hidden">
         <BackLink href={`/records/${person.id}`} label={t.records.title} />
-        <Button variant="primary" icon={<LuPrinter />} onClick={() => window.print()}>
+        <Button variant="primary" icon={<PiPrinterBold />} onClick={() => window.print()}>
           {t.print.button}
         </Button>
       </div>

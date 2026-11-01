@@ -1,7 +1,7 @@
 "use client";
 
 import type { ComponentPropsWithoutRef, ReactNode } from "react";
-import { LuCheck } from "react-icons/lu";
+import { PiCheckBold } from "react-icons/pi";
 import { cn } from "@/lib/cn";
 import { Squircle } from "./squircle";
 
@@ -58,7 +58,7 @@ function Indicator({ type }: { type: "radio" | "checkbox" }) {
       radius="xs"
       className="flex size-5 shrink-0 items-center justify-center sq-bg-surface sq-border-border-strong text-transparent peer-checked:sq-bg-primary peer-checked:sq-border-primary peer-checked:text-white"
     >
-      <LuCheck className="size-3.5" strokeWidth={3} />
+      <PiCheckBold className="size-3.5" />
     </Squircle>
   );
 }
@@ -79,7 +79,7 @@ export function Checkbox({ label, className, ...rest }: CheckProps) {
         focus="peer"
         className="flex size-5 shrink-0 items-center justify-center sq-bg-surface sq-border-border-strong text-transparent peer-checked:sq-bg-primary peer-checked:sq-border-primary peer-checked:text-white peer-disabled:sq-bg-sunken"
       >
-        <LuCheck className="size-3.5" strokeWidth={3} />
+        <PiCheckBold className="size-3.5" />
       </Squircle>
       <span className="peer-disabled:text-fg-disabled">{label}</span>
     </label>

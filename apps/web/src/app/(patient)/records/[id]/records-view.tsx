@@ -1,6 +1,6 @@
 "use client";
 
-import { LuHistory, LuPrinter } from "react-icons/lu";
+import { PiClockCounterClockwiseBold, PiPrinterBold } from "react-icons/pi";
 import { Avatar } from "@/components/app/avatar";
 import { PrescriptionCard } from "@/components/app/prescription";
 import { BackLink } from "@/components/patient/back-link";
@@ -35,10 +35,15 @@ export function RecordsView({ data }: { data: Records }) {
           </div>
         </div>
         <div className="flex gap-2">
-          <ButtonLink href={`/records/${person.id}/activity`} variant="secondary" size="compact" icon={<LuHistory />}>
+          <ButtonLink
+            href={`/records/${person.id}/activity`}
+            variant="secondary"
+            size="compact"
+            icon={<PiClockCounterClockwiseBold />}
+          >
             {t.records.activity}
           </ButtonLink>
-          <ButtonLink href={`/records/${person.id}/print`} variant="secondary" size="compact" icon={<LuPrinter />}>
+          <ButtonLink href={`/records/${person.id}/print`} variant="secondary" size="compact" icon={<PiPrinterBold />}>
             {t.records.print}
           </ButtonLink>
         </div>

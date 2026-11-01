@@ -4,7 +4,7 @@ import { DURATION_LABEL, OUTCOME_LABEL, SERVICE_LABEL, type Duration, type Servi
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
-import { LuArrowLeft } from "react-icons/lu";
+import { PiArrowLeftBold } from "react-icons/pi";
 import { Avatar } from "@/components/app/avatar";
 import { PrescribeForm, PrescriptionHistory, type Prescription } from "@/components/app/prescription";
 import { Confirm } from "@/components/app/confirm";
@@ -134,7 +134,7 @@ export function Visit({ id }: { id: string }) {
           href="/staff/patients"
           className="-ml-2 inline-flex min-h-11 items-center gap-2 px-2 text-small font-medium text-fg"
         >
-          <LuArrowLeft className="size-5" aria-hidden />
+          <PiArrowLeftBold className="size-5" aria-hidden />
           Patients
         </Link>
         <div className="flex items-center gap-2">

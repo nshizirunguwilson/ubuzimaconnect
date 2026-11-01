@@ -19,7 +19,7 @@ import {
   type ReactNode,
   type RefObject,
 } from "react";
-import { LuPause, LuPlay } from "react-icons/lu";
+import { PiPauseBold, PiPlayBold } from "react-icons/pi";
 import { cn } from "@/lib/cn";
 import { Button } from "./button";
 
@@ -253,7 +253,7 @@ export function AudioPlayerButton({
       loading={player.isItemActive(item.id) && player.isBuffering && player.isPlaying}
       onClick={() => (playing ? player.pause() : void player.play(item))}
     >
-      {playing ? <LuPause /> : <LuPlay />}
+      {playing ? <PiPauseBold /> : <PiPlayBold />}
     </Button>
   );
 }

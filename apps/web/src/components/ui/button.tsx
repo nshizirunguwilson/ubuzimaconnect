@@ -1,7 +1,7 @@
 "use client";
 
 import type { ComponentPropsWithoutRef, ReactNode } from "react";
-import { LuLoaderCircle } from "react-icons/lu";
+import { PiCircleNotchBold } from "react-icons/pi";
 import { cn } from "@/lib/cn";
 import { Squircle } from "./squircle";
 
@@ -66,7 +66,7 @@ export function Button({
       )}
       {...rest}
     >
-      {loading ? <LuLoaderCircle className="animate-spin" aria-hidden /> : icon}
+      {loading ? <PiCircleNotchBold className="animate-spin" aria-hidden /> : icon}
       {/* An icon-only button has no text to keep: the spinner takes the icon's place */}
       {loading && size === "icon" ? null : children}
     </Squircle>

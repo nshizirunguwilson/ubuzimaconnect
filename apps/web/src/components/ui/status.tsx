@@ -1,15 +1,15 @@
 import type { ReactNode } from "react";
 import type { IconType } from "react-icons";
-import { LuCircleCheck, LuCircleHelp, LuInfo, LuTriangleAlert } from "react-icons/lu";
+import { PiCheckCircleBold, PiQuestionBold, PiInfoBold, PiWarningBold } from "react-icons/pi";
 import { cn } from "@/lib/cn";
 import { Squircle } from "./squircle";
 
 /** Status is always icon + label + tint, never colour alone. */
 const tones = {
-  urgent: { className: "sq-bg-urgent-soft text-urgent-fg", Icon: LuTriangleAlert },
-  warning: { className: "sq-bg-warning-soft text-warning-fg", Icon: LuCircleHelp },
-  success: { className: "sq-bg-success-soft text-success-fg", Icon: LuCircleCheck },
-  info: { className: "sq-bg-info-soft text-info-fg", Icon: LuInfo },
+  urgent: { className: "sq-bg-urgent-soft text-urgent-fg", Icon: PiWarningBold },
+  warning: { className: "sq-bg-warning-soft text-warning-fg", Icon: PiQuestionBold },
+  success: { className: "sq-bg-success-soft text-success-fg", Icon: PiCheckCircleBold },
+  info: { className: "sq-bg-info-soft text-info-fg", Icon: PiInfoBold },
   neutral: { className: "sq-bg-sunken text-fg-secondary", Icon: null },
 } satisfies Record<string, { className: string; Icon: IconType | null }>;
 
