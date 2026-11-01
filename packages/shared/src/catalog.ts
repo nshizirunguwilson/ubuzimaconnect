@@ -91,6 +91,18 @@ export function currentShift(now = new Date()): { date: string; shift: ShiftType
   return { date: nightStartedOn, shift: "NIGHT" };
 }
 
+/** True when this shift is over: an earlier date, or today's day shift once the night shift has begun. */
+export function shiftHasEnded(date: string, shift: ShiftType, now = currentShift()) {
+  if (date < now.date) return true;
+  return date === now.date && shift === "DAY" && now.shift === "NIGHT";
+}
+
+/** True when this shift has begun: it has ended, or it is the shift running now. */
+export function shiftHasStarted(date: string, shift: ShiftType, now = currentShift()) {
+  if (date < now.date) return true;
+  return date === now.date && (shift === "DAY" || now.shift === "NIGHT");
+}
+
 /** The Monday of the week that contains this date (YYYY-MM-DD). */
 export function weekStart(isoDate: string) {
   const weekday = new Date(`${isoDate}T00:00:00Z`).getUTCDay(); // 0 is Sunday
