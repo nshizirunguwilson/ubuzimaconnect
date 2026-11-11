@@ -371,7 +371,7 @@ After reading the full requirement text, I fixed these details:
 - **Trade-off:** anyone can log in as a demo staff member. That's the point of a demo; the accounts only see synthetic patients (README, Known limitations).
 
 ### D67. How the code reaches Azure, and the two proxies in front of the API
-- **Plan:** as agreed before phase 4: Vercel for the web app, one Azure App Service B1 plan in Central India for the API and the mock NIDA, Supabase in Mumbai next to it, Resend for email, DNS at get.tech ([`docs/DEPLOY.md`](../DEPLOY.md)).
+- **Plan:** as agreed before phase 4: Vercel for the web app, one Azure App Service B1 plan in Central India for the API and the mock NIDA, Supabase in Mumbai next to it (both moved to UAE North with Azure PostgreSQL in D81), Resend for email, DNS at get.tech ([`docs/DEPLOY.md`](../DEPLOY.md)).
 - **Packaging:** `scripts/azure-package.sh` builds each app and uses `pnpm deploy --prod` to copy only its runtime packages into `.deploy/<app>`, then zips it. Azure runs `node dist/main.js` and builds nothing (`SCM_DO_BUILD_DURING_DEPLOYMENT=false`), so what was tested locally is what runs. Optional peers (the Prisma CLI and Studio) are left out: 43 MB instead of 399 MB.
 - **Two proxies:** a patient's request passes through Vercel and then Azure's front end. The guessing pauses and rate limits count per address, so the API must read the patient's address, not a proxy's. `TRUST_PROXY_HOPS` (1 by default, 2 in production) tells Express how many proxies to skip.
 - **The generated Prisma client** isn't committed; `pnpm install` generates it.
@@ -400,7 +400,7 @@ After reading the full requirement text, I fixed these details:
 
 ### D70. Live events cross API instances through Postgres (NFR 5)
 - **Decision:** `EventsService` delivers each event to the browsers connected to its own instance at once, and also sends it with `pg_notify('uc_live', …)`. Every instance keeps one connection that `LISTEN`s on that channel and passes the other instances' events to its own browsers. Its own events are skipped by an instance id, so nothing arrives twice.
-- **Why Postgres:** the database is already shared by every instance, so this adds no new service (no Redis), and Supabase's session pooler supports LISTEN.
+- **Why Postgres:** the database is already shared by every instance, so this adds no new service (no Redis), and a direct PostgreSQL connection supports LISTEN (Supabase's session pooler did too, before D81).
 - **Push notifications** are sent only by the instance where the event started, so a phone is never notified twice. The "app is open" check is per instance: a patient whose app is open on another instance may still get a push, which carries no medical details anyway.
 - **Large messages:** NOTIFY refuses payloads of 8000 bytes or more. A longer chat message reaches the other instances as "case changed", and their browsers reload the case.
 - **Already safe before this:** the dispatcher and the timers each run under a Postgres advisory lock, so only one instance offers cases or fires a timer at a time.
@@ -467,3 +467,14 @@ After reading the full requirement text, I fixed these details:
 ### D80. Phosphor icons instead of Lucide, and a lightbulb for AI suggestions
 - **Asked (1 Nov):** Lucide icons and a sparkle for AI are what many generated apps look like; replace every icon with another `react-icons` set, and the sparkle with something else.
 - **Decision:** every icon now comes from Phosphor (`react-icons/pi`), Bold weight, which is close to Lucide's 2 px line and reads well on small screens. All 59 icons have a direct Phosphor match; the sidebar's open and close buttons use two different arrows. The AI suggestion in the agent's workspace is marked with a lightbulb (a suggestion), not sparkles. It replaces the choice of Lucide in `RESEARCH.md`, which had named Phosphor as the alternative.
+
+### D81. Plain PostgreSQL on Azure, everything in UAE North
+- **Asked (10 Nov):** the facilitator advised against Supabase: the project uses PostgreSQL, so host plain PostgreSQL. Only free options.
+- **Decision:** Azure Database for PostgreSQL Flexible Server `ubuzima-db-uae` (PostgreSQL 17, Burstable B1ms, 32 GB), free for 12 months under Azure for Students. It runs all the time (no pausing when idle), keeps 7 days of automatic backups and encrypts data at rest. Only the two Azure apps' outbound addresses may connect.
+- **Why not Aiven or similar free hosts:** they would put the database in another cloud, adding tens of milliseconds to every query the API makes; the free plans are much smaller (about 1 GB) with few backups; and idle free services can be powered off. Azure keeps the database in the same data centre as the API, in one account.
+- **Why UAE North:** Central India refused the free B1ms size in all three zones (SkuNotAvailable). The database, the API and the mock NIDA moved together so they stay side by side: new plan `ubuzima-plan-uae` with `ubuzima-api-uae` and `ubuzima-nida-uae`. The old Central India apps and plan were deleted on 11 Nov.
+- **The move (10 Nov):** `pg_dump` from Supabase, `pg_restore` into Azure, row counts compared on all 31 tables. The site was down about 6.5 minutes (19:06 to 19:12 UTC). Both the old and new apps used the new database while DNS changed, so nothing was lost.
+- **Certificates:** Azure's free managed certificate was refused for every name under `ubuzima.wilsonn.tech`. That name is a CNAME to Vercel, and Vercel's CAA records allow only Let's Encrypt, GlobalSign, Google and Sectigo; Azure's free certificates come from DigiCert. This was also why the managed certificate never completed in October (D67). The domains use Let's Encrypt certificates from a DNS TXT check instead ([`docs/DEPLOY.md`](../DEPLOY.md) step 6). The API's runs to 9 Feb 2027.
+- **Found during the move:** the CNAMEs were changed before the new apps had certificates, so `api.ubuzima.wilsonn.tech` had no valid HTTPS from about 01:30 to 08:40 UTC on 11 Nov. DEPLOY.md now says to get the certificate first. The certificate tool also waited on Google's DNS, which cached the old TXT value for 4 hours; it now checks only get.tech's own nameservers, as Let's Encrypt does.
+- **Proof:** `node scripts/live-check.mjs` against the live site after the move and after the cleanup: 103 passed, 0 failed.
+- **Cost after the free year:** about $13 a month for B1ms, unless the student offer renews; App Service B1 is about $13 a month from the student credit throughout.

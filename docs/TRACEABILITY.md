@@ -290,7 +290,7 @@ Source: the three use case tables in the SRS (Assignment 2 copy), read on 24 Oct
 
 | NFR | Quality | What is measured | Phase | Status |
 |---|---|---|---|---|
-| 1 | Data protection | HTTPS everywhere, data encrypted at rest (Supabase), Law No. 058/2021 | 4 | Done: national ID stored only as a keyed hash; the live site and API answer only over HTTPS (plain HTTP is redirected, both send HSTS, checked 1 Nov 2026); Supabase encrypts the database at rest |
+| 1 | Data protection | HTTPS everywhere, data encrypted at rest (Azure PostgreSQL), Law No. 058/2021 | 4 | Done: national ID stored only as a keyed hash; the live site and API answer only over HTTPS (plain HTTP is redirected, both send HSTS, checked 1 Nov 2026); Azure Database for PostgreSQL encrypts the database and its backups at rest, and only the two Azure apps' addresses may connect |
 | 2 | Authentication strength | 2FA, 15-minute sessions, both lock rules | 0 | Done (`auth.test.ts`) |
 | 3 | Confidentiality | Role-based access, synthetic data and photos only, no identity sent to the AI | 0-1 | Done: role guards (`phase2.test.ts`), synthetic data, and no name, ID or location sent to the AI (FR 4.6, `cases.test.ts`) |
 | 4 | Performance | 95% of common actions in 3 s on 3G; AI in 10 s; chat in 3 s | 3 | Partly: at the SRS's scale with 20 people at once, 95% of API answers in 15 to 77 ms; modelled on 3G, common actions take about 0.6 to 0.7 s; chat under 3 s and the AI limit of 10 s are tested; a first page visit is about 3 s on 3G, repeat visits about 1.5 s ([`docs/PERFORMANCE.md`](PERFORMANCE.md), `scale.test.ts`). Still to do: a check on a real phone over a real 3G line (phase 4) |
@@ -330,7 +330,7 @@ Features added after the live testing and Wilson's review. Each has its decision
 | Rubric line | Where | Status |
 |---|---|---|
 | Code availability: public GitHub, clear setup | https://github.com/nshizirunguwilson/ubuzimaconnect, README (setup, tests, deployment, known limitations) | Done |
-| Solution deployment: public URL | https://ubuzima.wilsonn.tech, following [`docs/DEPLOY.md`](DEPLOY.md) (D67) | Done: the website on Vercel, the API and mock NIDA on Azure App Service, the database on Supabase and email through Resend, at ubuzima.wilsonn.tech, api.ubuzima.wilsonn.tech and nida.ubuzima.wilsonn.tech |
+| Solution deployment: public URL | https://ubuzima.wilsonn.tech, following [`docs/DEPLOY.md`](DEPLOY.md) (D67) | Done: the website on Vercel, the API and mock NIDA on Azure App Service, the database on Azure Database for PostgreSQL (UAE North, moved from Supabase on 10 Nov 2026, D81) and email through Resend, at ubuzima.wilsonn.tech, api.ubuzima.wilsonn.tech and nida.ubuzima.wilsonn.tech |
 | Operation: login, sign-up, buttons, redirects | Staff can log in on the live site through the demo inbox (D66) | Done: checked on the live site on 1 Nov 2026: a facility manager logs in with password and emailed code and opens the schedule, reports and facility; a patient logs in through the mock NIDA and opens their requests |
 | Presentation video, and every user's functions visible | [`docs/VIDEO.md`](VIDEO.md): one patient's story across all six roles | Partly: plan written; recording after deployment |
 
