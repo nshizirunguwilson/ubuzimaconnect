@@ -27,7 +27,7 @@ The facilitator advised against Supabase, so the database now runs on **Azure Da
 - `docs/DEPLOY.md`: rewritten for Azure PostgreSQL and the UAE North apps, with the database setup commands, the data move, and a new step for Let's Encrypt certificates and their renewal.
 - `README.md`, `docs/TRACEABILITY.md` and `DECISIONS.md` (new D81: why Azure PostgreSQL, why UAE North, the move, the certificate problem and the proof).
 - New deployment diagram (UML) in `docs/srs/deployment-diagram.drawio` and a 4K PNG: Vercel; Azure UAE North with the App Service plan (API 1..* instances, mock NIDA) and Azure Database for PostgreSQL; Server-Sent Events; Gemini, Resend and web push as external systems.
-- SRS (Google Doc): every Supabase, Mumbai and Central India mention replaced; the deployment description and the nodes table now describe Azure PostgreSQL in UAE North; revision history row 1.3 added.
+- SRS (Google Doc): every Supabase, Mumbai and Central India mention replaced; the deployment description and the nodes table now describe Azure PostgreSQL in UAE North; revision history row 1.3 added; Figure 11 replaced with the new diagram (text enlarged so it stays readable on the page).
 
 ## Challenges
 
@@ -46,6 +46,5 @@ The facilitator advised against Supabase, so the database now runs on **Azure Da
 
 ## Next moves
 1. Issue the `nida.ubuzima.wilsonn.tech` certificate once get.tech publishes its TXT record, attach it, and point the API at that domain (it uses the Azure address meanwhile).
-2. Put the new deployment diagram into the SRS as Figure 11 (needs the PNG pushed to GitHub, or uploaded by hand).
-3. Renew the API certificate in January 2027 (it ends 9 Feb 2027), following DEPLOY.md step 6.
-4. Fix the translation sheet script; refresh stale counts in VIDEO.md (199 tests).
+2. Renew the API certificate in January 2027 (it ends 9 Feb 2027), following DEPLOY.md step 6.
+3. Fix the translation sheet script; refresh stale counts in VIDEO.md (199 tests).
