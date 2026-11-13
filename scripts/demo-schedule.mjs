@@ -5,6 +5,7 @@
 //   - Kacyiru's manager adds a partner for each specialty, so every specialty there is covered Day and Night;
 //   - the administrator creates a manager for Remera Health Centre;
 //   - each manager fills their clinicians' shifts, and the administrator the agents', for the coming weeks.
+//   - Kibagabaga's manager adds a day mental health clinician, so mental health is covered on every shift (13 Nov 2026);
 // Kibagabaga and Remera keep their gaps (Kibagabaga's emergency care at night, Remera at night), so the coverage
 // view and the shift-gap report still have something to show. Safe to run again: it only adds what is missing.
 //
@@ -113,7 +114,18 @@ const PARTNERS = [
     licenceNumber: "RMDC-07502",
   },
 ];
+// Kibagabaga: the seeded mental health clinician works nights; without a partner no facility had mental health
+// care in the day, so those patients could only be given 912 (found in the 13 Nov 2026 requirement tests).
+const KIBAGABAGA_PARTNERS = [
+  {
+    name: "Dr. Olivier Habyarimana",
+    email: "kib.mh.day@ubuzima.test",
+    specialty: "MENTAL_HEALTH",
+    licenceNumber: "RMDC-07688",
+  },
+];
 const DAY_ONLY = new Set([
+  "kib.mh.day@ubuzima.test",
   "clinician@ubuzima.test",
   "maternity@ubuzima.test",
   "gp@ubuzima.test",
@@ -164,6 +176,18 @@ for (const p of PARTNERS) {
   console.log(`Kacyiru adds ${p.name} (${p.specialty}): ${r.status}, invitation accepted: ${await accept(p.email)}`);
 }
 
+const kibagabaga = await staff("manager2@ubuzima.test");
+const knownKib = new Set(
+  ((await kibagabaga("/clinicians")).body?.clinicians ?? (await kibagabaga("/clinicians")).body ?? []).map(
+    (c) => c.email,
+  ),
+);
+for (const p of KIBAGABAGA_PARTNERS) {
+  if (knownKib.has(p.email)) continue;
+  const r = await kibagabaga("/clinicians", p);
+  console.log(`Kibagabaga adds ${p.name} (${p.specialty}): ${r.status}, invitation accepted: ${await accept(p.email)}`);
+}
+
 const facilities = (await admin("/staff/facilities")).body;
 const remera = (facilities?.facilities ?? facilities).find((f) => /Remera/.test(f.name));
 const staffList = (await admin("/staff")).body;
@@ -183,11 +207,7 @@ const clinicians = async (b) => {
   return (r?.clinicians ?? r).filter((c) => c.status !== "DEACTIVATED");
 };
 await fill(kacyiru, await clinicians(kacyiru), "Kacyiru District Hospital");
-await fill(
-  await staff("manager2@ubuzima.test"),
-  await clinicians(await staff("manager2@ubuzima.test")),
-  "Kibagabaga Hospital",
-);
+await fill(kibagabaga, await clinicians(kibagabaga), "Kibagabaga Hospital");
 const m3 = await staff("manager3@ubuzima.test");
 await fill(m3, await clinicians(m3), "Remera Health Centre");
 const agents = ((await admin("/staff")).body?.staff ?? (await admin("/staff")).body).filter(

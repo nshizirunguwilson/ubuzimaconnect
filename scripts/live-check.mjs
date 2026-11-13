@@ -134,6 +134,17 @@ async function A() {
     home.status,
   );
 
+  // Everything else here calls the API directly. Users reach it through the website's /api, which depends on
+  // Vercel's API_URL: on 13 Nov 2026 that still named a deleted server and every login on the site failed.
+  const viaWeb = await fetch(`${WEB}/api/health`).catch(() => null);
+  check("A1", "NFR 1", "The website reaches the API (/api on the site)", viaWeb?.ok, viaWeb?.status);
+  const webLogin = await fetch(`${WEB}/api/auth/patient/login`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(ALINE),
+  }).catch(() => null);
+  check("A1", "FR 1.1", "A patient can log in through the website", webLogin?.status === 200, webLogin?.status);
+
   const a = await patient(ALINE);
   check(
     "A1",
