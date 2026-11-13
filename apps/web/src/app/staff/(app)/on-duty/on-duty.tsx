@@ -9,6 +9,7 @@ import { Notice } from "@/components/ui/notice";
 import { StatusBadge, type Tone } from "@/components/ui/status";
 import { cn } from "@/lib/cn";
 import { useApi } from "@/lib/use-api";
+import { Loading } from "@/components/ui/loading";
 
 type Data = {
   shift: "DAY" | "NIGHT";
@@ -42,7 +43,7 @@ export function OnDuty() {
     return () => clearInterval(t);
   }, [reload]);
 
-  if (!data) return <div className="h-96" aria-busy />;
+  if (!data) return <Loading className="h-96" />;
   const scheduled = data.rows.filter((row) => row.scheduled);
   const alerts = data.rows.filter((row) => row.alert).length;
   const ready = scheduled.filter((agent) => agent.status === "AVAILABLE" || agent.status === "BUSY").length;

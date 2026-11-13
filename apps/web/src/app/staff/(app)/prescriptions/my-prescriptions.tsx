@@ -13,11 +13,12 @@ import { toast } from "@/components/ui/toast";
 import { api, ApiFailure } from "@/lib/api";
 import { usePending } from "@/lib/pending";
 import { useApi } from "@/lib/use-api";
+import { Loading } from "@/components/ui/loading";
 
 /** Every prescription I issued, at any time, and cancelling my own valid ones. */
 export function MyPrescriptions() {
   const { data, reload } = useApi<Prescription[]>("/prescriptions/mine");
-  if (!data) return <div className="h-96" aria-busy />;
+  if (!data) return <Loading className="h-96" />;
   const valid = data.filter((prescription) => prescription.status === "VALID").length;
   return (
     <div className="flex max-w-[800px] flex-col gap-6">

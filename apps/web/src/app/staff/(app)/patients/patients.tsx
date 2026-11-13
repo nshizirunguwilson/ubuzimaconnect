@@ -13,6 +13,7 @@ import { StatusBadge, TriageBadge, type TriageLevel } from "@/components/ui/stat
 import { useLive } from "@/lib/live";
 import { formatTime } from "@/lib/time";
 import { useApi } from "@/lib/use-api";
+import { Loading } from "@/components/ui/loading";
 
 type Level = "URGENT" | "UNCERTAIN" | "MINOR";
 type Data = {
@@ -60,7 +61,7 @@ export function Patients({ facility }: { facility: string | null }) {
     () => void reload(),
   );
 
-  if (!data) return <div className="h-96" aria-busy />;
+  if (!data) return <Loading className="h-96" />;
 
   return (
     <div className="flex flex-col gap-8">

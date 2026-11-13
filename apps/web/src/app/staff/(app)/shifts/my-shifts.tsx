@@ -16,6 +16,7 @@ import { toast } from "@/components/ui/toast";
 import { api, ApiFailure } from "@/lib/api";
 import { useApi } from "@/lib/use-api";
 import { longDay, weekRange } from "@/lib/time";
+import { Loading } from "@/components/ui/loading";
 
 export type Shift = {
   id: string;
@@ -34,7 +35,7 @@ type Data = {
 // FullCalendar reads the window, so it loads in the browser only.
 const ShiftsCalendar = dynamic(() => import("./shifts-calendar").then((module) => module.ShiftsCalendar), {
   ssr: false,
-  loading: () => <div className="h-96" aria-busy />,
+  loading: () => <Loading className="h-96" />,
 });
 
 /** A clinician sees their shifts and marks themselves unavailable; routing uses it at once. Agents see theirs. */
@@ -42,7 +43,7 @@ export function MyShifts({ canMarkUnavailable }: { canMarkUnavailable: boolean }
   const [week, setWeek] = useState<string | null>(null);
   const { data, reload } = useApi<Data>(`/me/shifts${week ? `?week=${week}` : ""}`);
   const [picked, setPicked] = useState<Shift | null>(null);
-  if (!data) return <div className="h-96" aria-busy />;
+  if (!data) return <Loading className="h-96" />;
 
   const state = (shift: Shift) => ({
     past: shiftHasEnded(shift.date, shift.shift, data.now),

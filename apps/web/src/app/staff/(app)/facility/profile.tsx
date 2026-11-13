@@ -13,6 +13,7 @@ import { api, ApiFailure } from "@/lib/api";
 import { check } from "@/lib/form";
 import { formatDateTime } from "@/lib/time";
 import { useApi } from "@/lib/use-api";
+import { Loading } from "@/components/ui/loading";
 
 type Mine = {
   id: string;
@@ -44,7 +45,7 @@ export function FacilityProfilePage() {
         {error}
       </Notice>
     );
-  if (!data) return <div className="h-96" aria-busy />;
+  if (!data) return <Loading className="h-96" />;
 
   const initial: FacilityValues = {
     name: data.name,

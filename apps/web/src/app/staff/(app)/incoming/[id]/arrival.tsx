@@ -18,6 +18,7 @@ import { api, ApiFailure } from "@/lib/api";
 import { formatDateTime } from "@/lib/time";
 import { useApi } from "@/lib/use-api";
 import { usePending } from "@/lib/pending";
+import { Loading } from "@/components/ui/loading";
 
 type Incoming = {
   id: string;
@@ -63,7 +64,7 @@ export function Arrival({ id }: { id: string }) {
       </div>
     );
   }
-  if (!data) return <div className="h-96" aria-busy />;
+  if (!data) return <Loading className="h-96" />;
 
   async function arrive() {
     setPending(true);

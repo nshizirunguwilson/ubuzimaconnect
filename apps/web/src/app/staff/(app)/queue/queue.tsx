@@ -28,6 +28,7 @@ import { cn } from "@/lib/cn";
 import { useLive } from "@/lib/live";
 import { useApi } from "@/lib/use-api";
 import { usePending } from "@/lib/pending";
+import { Loading } from "@/components/ui/loading";
 
 type Summary = {
   id: string;
@@ -103,7 +104,7 @@ export function Queue({ firstName }: { firstName: string }) {
     return () => clearInterval(t);
   }, []);
 
-  if (!data) return <div className="h-96" aria-busy />;
+  if (!data) return <Loading className="h-96" />;
 
   async function setStatus(status: "AVAILABLE" | "AWAY" | "OFFLINE") {
     setPending(status);

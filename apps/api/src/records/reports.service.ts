@@ -4,7 +4,7 @@ import { DbService } from "../common/db.service";
 import { bedUsage } from "../setup/beds";
 
 /** One number at the top of a report. A null value means "no data in this period": shown as a dash, never as 0. */
-export type Tile = { label: string; value: number | null; unit?: "min" | "%" | "days" | "/5"; hint?: string };
+export type Tile = { label: string; value: number | null; unit?: "min" | "%" | "hours" | "days" | "/5"; hint?: string };
 export type Table = { title: string; columns: string[]; rows: (string | number | null)[][] };
 export type Report = { title: string; period: Period; start: string; end: string; tiles: Tile[]; tables: Table[] };
 
@@ -283,7 +283,9 @@ export class ReportsService {
         .map((visit) => minutesBetween(visit.arrivedAt, visit.endedAt)),
     );
     const averageStay = average(stayMinutes);
-    const averageStayDays = round(averageStay === null ? null : averageStay / MINUTES_PER_DAY, 1);
+    // Short stays read better in hours: under two days, "5.5 hours" says more than "0.2 days".
+    const stayInHours = averageStay !== null && averageStay < 2 * MINUTES_PER_DAY;
+    const averageStayValue = round(averageStay === null ? null : averageStay / (stayInHours ? 60 : MINUTES_PER_DAY), 1);
 
     const gaps = await this.shiftGaps(range, facilityId, facility.services as Service[]);
     const hadBed = (visit: { reservation: { status: string } | null }) => visit.reservation?.status === "USED";
@@ -301,7 +303,11 @@ export class ReportsService {
           unit: "%" as const,
           hint: `${beds.occupied} occupied, ${beds.reserved} held, of ${facility.totalBeds}`,
         },
-        { label: "Average length of stay", value: averageStayDays, unit: "days" as const },
+        {
+          label: "Average length of stay",
+          value: averageStayValue,
+          unit: stayInHours ? ("hours" as const) : ("days" as const),
+        },
         { label: "Shifts with a gap", value: gaps.length, hint: "A service offered with no clinician on duty" },
       ],
       tables: [
