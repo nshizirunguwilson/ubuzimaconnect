@@ -581,7 +581,10 @@ async function CDE() {
   check("C12", "FR 6.15", "Patient rates the help 1 to 5", rate.status < 300, rate.body);
 
   // D4, D5, E: the clinician at Kacyiru
-  const doc = await staff(clinician?.email ?? "clinician@ubuzima.test");
+  // The routing lists clinicians by name; log in as the one it picked, who is on duty now (Day or Night).
+  const roster = (await (await staff("admin@ubuzima.test"))("/staff")).body;
+  const doctorEmail = roster.find((s) => s.id === clinician?.id)?.email ?? "clinician@ubuzima.test";
+  const doc = await staff(doctorEmail);
   const docName = clinician?.name;
   check("E1", "FR 2.1-2.2", `Clinician logs in (${docName ?? "paeds"})`, doc.loginStatus === 200, doc.loginStatus);
   const list = (await doc("/clinician/patients")).body;
@@ -618,7 +621,8 @@ async function CDE() {
     full.status === 200,
     full.status,
   );
-  const other = await staff("maternity@ubuzima.test");
+  // Another clinician at the same facility, whoever is on duty, must not open the visit.
+  const other = await staff(doctorEmail === "maternity@ubuzima.test" ? "gp@ubuzima.test" : "maternity@ubuzima.test");
   const notMine = await other(`/clinician/visits/${visitId}`);
   check(
     "D5",

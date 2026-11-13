@@ -396,6 +396,7 @@ After reading the full requirement text, I fixed these details:
 - **Decision:** `scripts/demo-schedule.mjs` does, through the app's own API, what the managers and the administrator would do. Kacyiru's manager invites a partner for each specialty (6 clinicians), so every specialty there is covered day and night; the administrator creates a manager for Remera Health Centre; each manager fills 12 weeks of shifts, and the administrator the two agents'. It is safe to run again and only adds what is missing.
 - **Why through the API, not the seed:** it needs no database password, it leaves the same trail in the activity log as a real manager would, and it proves FR 2.6, 8.2 and 8.4 work on the live site.
 - **Gaps kept on purpose:** Kibagabaga has no emergency clinician at night and Remera no one at night, so the coverage view and the shift-gap report still show real gaps.
+- **Mental health (13 Nov 2026):** Kibagabaga's manager adds a day mental health clinician (`kib.mh.day@ubuzima.test`), because the only one worked nights and daytime mental health cases found no facility. It now fills shifts to 31 Jan 2027.
 - **Before mid-January 2027** run it again (`node scripts/demo-schedule.mjs 12`), or the schedule runs out (after the 26 Oct reset it runs to 17 Jan 2027).
 
 ### D70. Live events cross API instances through Postgres (NFR 5)
