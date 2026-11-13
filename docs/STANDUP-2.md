@@ -30,6 +30,8 @@ The facilitator advised against Supabase, so the database now runs on **Azure Da
 - SRS (Google Doc): every Supabase, Mumbai and Central India mention replaced; the deployment description and the nodes table now describe Azure PostgreSQL in UAE North; revision history row 1.3 added; Figure 11 replaced with the new diagram (text enlarged so it stays readable on the page).
 - 13 Nov: dropped the custom address `nida.ubuzima.wilsonn.tech` for the mock NIDA (internal, only the API calls it). It stays on `ubuzima-nida-uae.azurewebsites.net` over HTTPS. Removed from the Azure app and from get.tech; DEPLOY.md, TRACEABILITY.md, DECISIONS.md (D81) and the SRS updated. Live check afterwards: 103 passed, 0 failed (one earlier run had a single failure that did not repeat in two reruns).
 
+- 13 Nov: security check of the live setup. CORS lets only ubuzima.wilsonn.tech call the API; the mock NIDA refuses every outside caller (403); all three sites force HTTPS (TLS 1.2 or newer); the database takes only encrypted connections from the 31 app addresses. Gap found and fixed: the website now sends browser protection headers (no framing by other sites, nosniff, referrer and permissions policies) (44c2284). Live check afterwards: 103 passed, 0 failed.
+
 ## Challenges
 
 | Challenge | What happened | How it was handled |
