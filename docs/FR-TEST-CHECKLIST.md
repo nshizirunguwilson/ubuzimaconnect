@@ -4,7 +4,7 @@ Every functional requirement in the latest SRS (section 4, revision 1.3, 11 Nove
 
 **Status:** approved and run on 13 November 2026. **First run: 108 of 109 rows worked, FR 5.8 only in part. After the fixes the same day: all 109 rows work** (105 of 105 live checks, 200 of 200 automated tests). Notes and what was fixed are at the end.
 
-**What was run:** the 103-check live script (103 passed); the automated tests (199 passed: 133 API, 34 website, 28 shared, 4 mock NIDA); about 80 extra live checks written for this round, including two timed runs of about 20 minutes each; and the patient screens by hand in a phone-sized browser. Staff screens were tested through the same API the screens use, not clicked through: typing staff passwords into the live site is left to you.
+**What was run:** the 103-check live script (103 passed); the automated tests (199 passed: 133 API, 34 website, 28 shared, 4 mock NIDA); about 80 extra live checks written for this round, including two timed runs of about 20 minutes each; and the patient screens by hand in a phone-sized browser. Staff screens were first tested through the API only; the same evening every staff role was also tested on screen, with you typing the passwords (see "On-screen testing" below).
 
 ## How each test is run
 
@@ -199,6 +199,36 @@ Rows and requirements differ slightly: reports (FR 12.8) have a row for each of 
 - **E. No mental health clinician on duty** (Friday day shift): routing for Mental health finds no facility, so these patients get 912 and an agent only. A schedule (data) gap, not a code fault.
 - **F. Demo inbox page crashes.** `/demo/inbox` shows "This page couldn't load" (React error 441). The inbox itself works through the API. Staff use this page to read their codes in the demo.
 - **G. Older history missing.** Patient records show cases and prescriptions only from 11 November on; demo activity from 25 October to 10 November isn't there. Probably from the database move; it doesn't break a requirement.
+
+## On-screen testing (13 November, evening)
+
+Every user type was also tested by hand in the browser on the live site. Patients at phone size, staff at desktop size; you typed each staff password and login code.
+
+| User type | Tested on screen | Result |
+|---|---|---|
+| Public | First screen, Emergency (online, no GPS, offline page saved), prescription check page, protected pages send visitors to login | ✅ |
+| Patient | Login (wrong details, shared device option), "Who is sick?", location list, red-flag screen, symptoms, offline sending and offline red flag, cancel, records, activity, print summary, login message when the server fails | ✅ |
+| Agent | Status, queue tabs and order, offer with 30-second countdown, accept, full case and photo, triage change, live chat (patient reply shown in about 2.5 seconds), prescription, routing with held bed and clinician, close, no access after closing, my prescriptions and cancelling one, reports, my shifts | ✅ after one fix (below) |
+| Clinician | Incoming summary, photo check and arrival (held bed becomes theirs), record entry and new version, hand over list, discharge (bed freed), photo mismatch recorded, mark unavailable and available, reports | ✅ |
+| Facility manager | Facility profile and accepting switch, bed count, invite and turn off a clinician, schedule with gap warning, staff activity, reports, no patient records (403) | ✅ |
+| Administrator | Alerts, facilities, invite a staff member (licence field for agents), change email, turn off, on-duty dashboard, agent schedule, red-flag question added, edited and removed, AI switch off and on, activity, reports, mock NIDA, no patient records (403) | ✅ after one fix (below) |
+
+**Bugs found on screen and fixed the same evening**
+
+1. **New cases didn't appear on agents' queues** until a reload, unless a free agent got an offer, so a Busy agent couldn't see an urgent case arrive (FR 6.2, 6.12). The API now tells every agent's queue whenever a case starts waiting. New automated test; checked on screen.
+2. **Activity lists out of order:** a 26 October entry with a random id sat above today's (FR 10.2, 10.3). Lists are now ordered by time, then id. New automated test.
+3. **Raw activity labels** such as "settings ai on" and "redflag removed A14": 25 actions had no plain wording; all now have one ("Turned AI suggestions on").
+
+**Small points noticed (not requirement failures)**
+
+- The agent's case screen and some staff pages show a blank area for several seconds while loading, with no loading sign.
+- On the agent's case screen the Category and Needed service boxes are too narrow at laptop width (text cut off), and the section tabs scroll off to the side.
+- The routing list heading says "nearest first" but lists suitable facilities first.
+- "No agent online" alerts are emailed even when no case is waiting.
+- Each live-check run leaves a turned-off "Live Test Agent" account at the top of Staff accounts.
+- A new red-flag question can be saved without its Kinyarwanda text (FR 12.6 asks for both languages).
+- The facility report's average stay is in days, so short stays show "0 days".
+- Demo data: the night agent (Eric Habineza) is never online, so at night no agent ever answers.
 
 ## Fixed after the run (13 November)
 

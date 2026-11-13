@@ -12,6 +12,28 @@ type Event = {
 type Person = { name: string; role: string | null };
 
 /**
+ * Newest first by time, then by id, with `before` (the last id of the previous page) as the cursor.
+ * Ordering by id alone assumed every id is time-ordered: one event written with a random id (the 26 Oct demo
+ * reset) then sat at the top of every list.
+ */
+export async function newestFirst(db: Db, where: object, before: string | undefined, take: number) {
+  let after = {};
+  if (before) {
+    const cursor = await db.auditEvent.findUnique({ where: { id: before }, select: { createdAt: true } });
+    if (cursor) {
+      after = {
+        OR: [{ createdAt: { lt: cursor.createdAt } }, { createdAt: cursor.createdAt, id: { lt: before } }],
+      };
+    }
+  }
+  return db.auditEvent.findMany({
+    where: { AND: [where, after] },
+    orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+    take,
+  });
+}
+
+/**
  * Turns logged events into "when, who, what" rows. Names are looked up in two queries in total, not one per row.
  * `selfId` is the patient reading their own list, who is shown as "You".
  */

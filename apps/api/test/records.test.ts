@@ -250,6 +250,18 @@ describe("staff activity and the on-duty dashboard (FR 10.3, 12.5)", () => {
     expect((await agent("/activity")).status).toBe(403);
   });
 
+  it("lists newest first by time, even an old event with a random id, and labels every action", async () => {
+    // Like the 26 Oct demo reset: a random (not time-ordered) id, from long ago.
+    await db.query(
+      `insert into "AuditEvent" (id, "actorType", action, "createdAt") values ('ffffffff-ffff-4fff-bfff-ffffffffffff', 'system', 'demo.reset', now() - interval '30 days')`,
+    );
+    await admin("/settings", { aiEnabled: true }, "PUT");
+    const rows = (await admin("/activity")).body.rows as { at: string; what: string }[];
+    const times = rows.map((row) => new Date(row.at).getTime());
+    expect(times).toEqual([...times].sort((a, b) => b - a));
+    expect(rows[0].what).toBe("Turned AI suggestions on");
+  });
+
   it("flags agents who are scheduled now but Offline", async () => {
     await db.query(`update "Case" set status = 'CLOSED' where status <> 'CLOSED'`);
     await db.query(`update "Staff" set "agentStatus" = 'AWAY' where role = 'AGENT'`);

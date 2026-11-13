@@ -3,7 +3,7 @@ import { currentShift } from "@ubuzima/shared";
 import { Auth, CurrentSession } from "../auth/guard";
 import type { LiveSession } from "../auth/session.service";
 import { DbService } from "../common/db.service";
-import { activityRows } from "./activity";
+import { activityRows, newestFirst } from "./activity";
 
 const PAGE = 50;
 
@@ -38,11 +38,7 @@ export class StaffActivityController {
     else if (!isAdmin) whose = { actorType: "staff", actorId: { in: visibleIds } };
 
     // One more than a page is loaded, to know whether there is a next page.
-    const events = await this.db.client.auditEvent.findMany({
-      where: { ...whose, ...(before ? { id: { lt: before } } : {}) },
-      orderBy: { id: "desc" },
-      take: PAGE + 1,
-    });
+    const events = await newestFirst(this.db.client, whose, before, PAGE + 1);
     const rows = await activityRows(this.db.client, events.slice(0, PAGE));
     const hasNextPage = events.length > PAGE;
     return { people, rows, next: hasNextPage ? events[PAGE - 1].id : null };
