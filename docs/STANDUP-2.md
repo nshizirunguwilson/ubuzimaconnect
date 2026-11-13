@@ -30,6 +30,8 @@ The facilitator advised against Supabase, so the database now runs on **Azure Da
 - SRS (Google Doc): every Supabase, Mumbai and Central India mention replaced; the deployment description and the nodes table now describe Azure PostgreSQL in UAE North; revision history row 1.3 added; Figure 11 replaced with the new diagram (text enlarged so it stays readable on the page).
 - 13 Nov: dropped the custom address `nida.ubuzima.wilsonn.tech` for the mock NIDA (internal, only the API calls it). It stays on `ubuzima-nida-uae.azurewebsites.net` over HTTPS. Removed from the Azure app and from get.tech; DEPLOY.md, TRACEABILITY.md, DECISIONS.md (D81) and the SRS updated. Live check afterwards: 103 passed, 0 failed (one earlier run had a single failure that did not repeat in two reruns).
 - 13 Nov: security check of the live setup. CORS lets only ubuzima.wilsonn.tech call the API; the mock NIDA refuses every outside caller (403); all three sites force HTTPS (TLS 1.2 or newer); the database takes only encrypted connections from the 31 app addresses. Gap found and fixed: the website now sends browser protection headers (no framing by other sites, nosniff, referrer and permissions policies) (44c2284). Live check afterwards: 103 passed, 0 failed.
+- 13 Nov: functional requirements testing. Wrote `docs/FR-TEST-CHECKLIST.md` from the latest SRS (106 requirements, 109 rows by user type), approved, then ran it: the 103-check live script, the 199 automated tests, about 80 extra live checks (two timed runs of about 20 minutes for lockouts, timeouts, escalations and "no response"), and the patient screens by hand. Result: 108 of 109 rows work; FR 5.8 works in part (the agent isn't alerted at once when no facility has a free bed).
+- 13 Nov: found and fixed a live outage: the website's API address on Vercel still pointed at the deleted Central India app, so logins through ubuzima.wilsonn.tech failed. Set `API_URL` and `NEXT_PUBLIC_API_URL` to `https://api.ubuzima.wilsonn.tech` and redeployed.
 
 ## Challenges
 
@@ -45,8 +47,10 @@ The facilitator advised against Supabase, so the database now runs on **Azure Da
 | get.tech panel issues | Session signs out on some saves; one edit stored the value twice | Signed back in, corrected the record, checked it in the panel |
 | Certificate tool stuck after DNS was live | lego also waited for Google's DNS, which cached the old TXT value for 4 hours | Restarted it checking only get.tech's own nameservers (what Let's Encrypt itself checks); the API domain passed at once |
 | `nida` certificate check value changed (12 Nov) | get.tech finally published the `nida` TXT value overnight, but by then Let's Encrypt had dropped that pending check and asked for a new value. That means one more DNS change and another wait of hours | `nida` is internal and works over its Azure address with HTTPS, so users see no effect. On 13 Nov the custom name was dropped; the mock NIDA stays on its Azure address |
+| Website couldn't reach the API (found 13 Nov) | Vercel's `API_URL` still named the Central India app deleted on 11 Nov, so every call through the website failed (502). The live check calls the API directly, so it kept passing | Pointed both settings at `api.ubuzima.wilsonn.tech` and redeployed. Lesson: when retiring a server, search every place its address is set, and test through the website too |
 | Cost of running two App Service plans | App Service B1 is paid from the $100 student credit (about $13 a month per plan); the old India plan and the new UAE plan both run during the move | Retire the India plan as soon as HTTPS works on the UAE apps |
 
 ## Next moves
-1. Renew the API certificate in January 2027 (it ends 9 Feb 2027), following DEPLOY.md step 6.
-2. Fix the translation sheet script; refresh stale counts in VIDEO.md (199 tests).
+1. Work through the to-do list in `docs/FR-TEST-CHECKLIST.md` (FR 5.8 agent alert, login error message, demo inbox page, old alerts, mental health shifts, older history).
+2. Renew the API certificate in January 2027 (it ends 9 Feb 2027), following DEPLOY.md step 6.
+3. Fix the translation sheet script; refresh stale counts in VIDEO.md (199 tests).
