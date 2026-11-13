@@ -1,11 +1,12 @@
 import type { StaffMe, StaffRole } from "@ubuzima/shared";
 import { Suspense, type ReactNode } from "react";
+import { Loading } from "@/components/ui/loading";
 import { requireRole } from "@/lib/session";
 
 /** Wraps a client screen so only the listed roles can open it. Checked on the server. */
 export function RolePage({ roles, children }: { roles: StaffRole[]; children: (me: StaffMe) => ReactNode }) {
   return (
-    <Suspense>
+    <Suspense fallback={<Loading className="h-96" />}>
       <Gate roles={roles}>{children}</Gate>
     </Suspense>
   );

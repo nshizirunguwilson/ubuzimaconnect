@@ -25,6 +25,7 @@ import { IdleLogout } from "@/components/app/idle-logout";
 import { StaffFrame } from "@/components/app/staff-frame";
 import type { NavItem } from "@/components/app/staff-nav";
 import { requireStaff } from "@/lib/session";
+import { Loading } from "@/components/ui/loading";
 
 /** Only screens that exist are listed; each batch adds its own items (docs/TRACEABILITY.md). */
 function navFor(role: StaffMe["role"]): NavItem[] {
@@ -73,7 +74,7 @@ function navFor(role: StaffMe["role"]): NavItem[] {
 /** A 240 px navigation panel on the left, content up to 1200 px. */
 export default function StaffAppLayout({ children }: LayoutProps<"/staff">) {
   return (
-    <Suspense fallback={<div className="min-h-dvh" aria-busy />}>
+    <Suspense fallback={<Loading className="min-h-dvh" />}>
       <Shell>{children}</Shell>
       <IdleLogout to="/staff/login" />
     </Suspense>

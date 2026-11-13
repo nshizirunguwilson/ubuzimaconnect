@@ -30,6 +30,8 @@ export class StaffController {
       orderBy: { createdAt: "desc" },
       include: { facility: { select: { id: true, name: true } } },
     });
+    // Newest first, but turned-off accounts go to the end, so test and former accounts don't push real staff down.
+    staff.sort((a, b) => Number(a.status === "DEACTIVATED") - Number(b.status === "DEACTIVATED"));
     return staff.map(({ id, name, email, role, status, facility, lastLoginAt }) => ({
       id,
       name,

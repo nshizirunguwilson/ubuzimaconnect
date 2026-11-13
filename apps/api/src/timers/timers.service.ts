@@ -231,10 +231,12 @@ export class TimersService implements OnModuleInit, OnModuleDestroy {
     await this.db.client.systemSettings.update({ where: { id: 1 }, data: { noAgentAlerted: true } });
     const waiting = await this.db.client.case.count({ where: { status: { in: ["QUEUED", "OFFERED"] } } });
     const casesWaiting = waiting === 1 ? "1 case is" : `${waiting} cases are`;
+    // Always shown in the app (FR 6.13); emailed only when someone is waiting, so an empty night sends no email.
+    // A case that arrives later is still emailed through its own 5-minute delay alert (FR 6.11).
     await this.alerts.raise(
       "NO_AGENT",
       `No agent has been online since ${kigaliTime(settings.noAgentSince)}. ${casesWaiting} waiting.`,
-      { email: true },
+      { email: waiting > 0 },
     );
   }
 

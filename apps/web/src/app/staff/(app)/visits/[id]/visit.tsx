@@ -21,6 +21,7 @@ import { formatDate, formatTime } from "@/lib/time";
 import { useApi } from "@/lib/use-api";
 import { Bed, Handover } from "./bed-and-handover";
 import { ClinicalRecord } from "./record";
+import { Loading } from "@/components/ui/loading";
 
 type Level = "URGENT" | "UNCERTAIN" | "MINOR";
 export type Version = {
@@ -120,7 +121,7 @@ export function Visit({ id }: { id: string }) {
       </div>
     );
   }
-  if (!data) return <div className="h-96" aria-busy />;
+  if (!data) return <Loading className="h-96" />;
 
   const leave = (message: string) => {
     toast.success(message);

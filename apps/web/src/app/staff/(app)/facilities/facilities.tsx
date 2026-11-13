@@ -13,6 +13,7 @@ import { StatusBadge } from "@/components/ui/status";
 import { toast } from "@/components/ui/toast";
 import { api, ApiFailure } from "@/lib/api";
 import { useApi } from "@/lib/use-api";
+import { Loading } from "@/components/ui/loading";
 
 type Row = {
   id: string;
@@ -85,7 +86,7 @@ export function Facilities() {
 
       <Card className="overflow-hidden p-0 md:p-0">
         {data === null ? (
-          <div className="h-48" aria-busy />
+          <Loading className="h-48" />
         ) : data.length === 0 ? (
           <EmptyState icon={PiBuildingsBold} message="No facilities yet. Add the first one." />
         ) : (

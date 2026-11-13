@@ -31,6 +31,7 @@ import { api, ApiFailure } from "@/lib/api";
 import { cn } from "@/lib/cn";
 import { useApi } from "@/lib/use-api";
 import { shortDay, weekRange } from "@/lib/time";
+import { Loading } from "@/components/ui/loading";
 
 export type Week = {
   monday: string;
@@ -51,7 +52,7 @@ export type Week = {
 // FullCalendar reads the window, so it loads in the browser only, and only for this page.
 const ScheduleCalendar = dynamic(() => import("./schedule-calendar").then((module) => module.ScheduleCalendar), {
   ssr: false,
-  loading: () => <div className="h-96" aria-busy />,
+  loading: () => <Loading className="h-96" />,
 });
 
 /**
@@ -64,7 +65,7 @@ export function Schedule({ scope }: { scope: "agents" | "clinicians" }) {
   const [busy, setBusy] = useState<string | null>(null);
   const [copying, setCopying] = useState(false);
 
-  if (!data) return <div className="h-96" aria-busy />;
+  if (!data) return <Loading className="h-96" />;
 
   // Past shifts can't be changed. "now" comes from the server, so every viewer agrees on it.
   const isPast = (date: string, shift: ShiftType) => shiftHasEnded(date, shift, data.now);

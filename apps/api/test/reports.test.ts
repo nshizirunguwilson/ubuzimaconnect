@@ -131,6 +131,10 @@ describe("reports (FR 12.8)", () => {
     expect(facilityReport.title).toBe("Kacyiru District Hospital: facility report");
     expect(tile(facilityReport, "Arrived")).toBe(1);
     expect(table(facilityReport, "Movements")).toContainEqual(["Discharged", 1]);
+    // A stay of minutes is shown in hours, not as "0 days".
+    expect(facilityReport.tiles.find((found: Tile) => found.label === "Average length of stay")).toMatchObject({
+      unit: "hours",
+    });
   });
 
   it("downloads the report as a spreadsheet file, and logs the download", async () => {

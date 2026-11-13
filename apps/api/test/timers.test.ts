@@ -287,6 +287,20 @@ describe("no agent online (FR 6.13)", () => {
   });
 });
 
+describe("no agent online with nobody waiting", () => {
+  it("alerts the administrator in the app but sends no email", async () => {
+    await db.query(`update "Staff" set "agentStatus" = 'OFFLINE' where role = 'AGENT'`);
+    await db.query(`delete from "Alert" where kind = 'NO_AGENT'`);
+    await until(async () => (await one(`select "noAgentSince" from "SystemSettings" where id = 1`))?.noAgentSince);
+    await db.query(
+      `update "SystemSettings" set "noAgentSince" = (now() at time zone 'utc') - interval '6 minutes', "noAgentAlerted" = false where id = 1`,
+    );
+    const alert = await until(async () => one(`select emailed, message from "Alert" where kind = 'NO_AGENT'`));
+    expect(alert).toMatchObject({ emailed: false });
+    expect(alert.message).toContain("0 cases are waiting");
+  });
+});
+
 describe("administrator alerts (FR 12.7, 4.7, 5.9)", () => {
   it("raises one alert for more than 5 AI failures in 5 minutes", async () => {
     for (let attempt = 0; attempt < 6; attempt++)

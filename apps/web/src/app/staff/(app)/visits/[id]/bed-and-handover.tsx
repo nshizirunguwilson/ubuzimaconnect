@@ -15,6 +15,7 @@ import { api, ApiFailure } from "@/lib/api";
 import { usePending } from "@/lib/pending";
 import { useApi } from "@/lib/use-api";
 import type { View } from "./visit";
+import { Loading } from "@/components/ui/loading";
 
 export type Target = {
   facility: {
@@ -187,7 +188,7 @@ export function Handover({ id, onDone }: { id: string; onDone: (m: string) => vo
           }}
         >
           {!colleagues ? (
-            <div className="h-20" aria-busy />
+            <Loading className="h-20" />
           ) : colleagues.length === 0 ? (
             <Notice tone="info" title="No colleague is on duty here right now" />
           ) : (

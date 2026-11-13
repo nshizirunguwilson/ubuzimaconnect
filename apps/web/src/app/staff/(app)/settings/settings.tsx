@@ -9,6 +9,7 @@ import { toast } from "@/components/ui/toast";
 import { api } from "@/lib/api";
 import { formatDateTime } from "@/lib/time";
 import { useApi } from "@/lib/use-api";
+import { Loading } from "@/components/ui/loading";
 
 type S = { aiEnabled: boolean; updatedAt: string; updatedBy: string | null };
 
@@ -16,7 +17,7 @@ type S = { aiEnabled: boolean; updatedAt: string; updatedBy: string | null };
 export function Settings() {
   const { data, reload } = useApi<S>("/settings");
   const [pending, setPending] = useState(false);
-  if (!data) return <div className="h-64" aria-busy />;
+  if (!data) return <Loading className="h-64" />;
 
   return (
     <div className="flex flex-col gap-6">

@@ -7,6 +7,7 @@ import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { api } from "@/lib/api";
 import { useT } from "@/i18n/client";
+import { Loading } from "@/components/ui/loading";
 
 export type ActivityRow = {
   id: string;
@@ -66,7 +67,7 @@ const DEVICE = {
 /** When, what and who, grouped by day; logins show the device type. */
 export function ActivityList({ feed }: { feed: ReturnType<typeof useActivity> }) {
   const { t, tr, date, time } = useT();
-  if (!feed.rows) return <div className="h-64" aria-busy />;
+  if (!feed.rows) return <Loading className="h-64" />;
   if (feed.rows.length === 0)
     return (
       <Card className="p-0 md:p-0">
