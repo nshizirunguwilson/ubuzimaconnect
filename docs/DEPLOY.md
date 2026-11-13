@@ -6,7 +6,7 @@ The plan (DECISIONS.md D67, moved to Azure PostgreSQL in UAE North in D81):
 |---|---|---|
 | Web app (`apps/web`) | Vercel, from this GitHub repo, root directory `apps/web` | https://ubuzima.wilsonn.tech |
 | API (`apps/api`) | Azure App Service `ubuzima-api-uae`, Linux, B1 plan `ubuzima-plan-uae`, UAE North (Azure for Students) | https://api.ubuzima.wilsonn.tech |
-| Mock NIDA (`apps/nida-mock`) | `ubuzima-nida-uae` on the same App Service plan, open only to the API's addresses | https://nida.ubuzima.wilsonn.tech (only the API calls it) |
+| Mock NIDA (`apps/nida-mock`) | `ubuzima-nida-uae` on the same App Service plan, open only to the API's addresses | https://ubuzima-nida-uae.azurewebsites.net (only the API calls it; no custom name, D81) |
 | Database | Azure Database for PostgreSQL Flexible Server `ubuzima-db-uae`, PostgreSQL 17, Burstable B1ms, 32 GB, UAE North | `ubuzima-db-uae.postgres.database.azure.com` |
 | Email | Resend, sending as `noreply@ubuzima.wilsonn.tech` | |
 | DNS | get.tech, where `wilsonn.tech` is registered | |
@@ -89,7 +89,7 @@ az webapp update -g ubuzima-rg -n ubuzima-nida-uae --https-only true
 | `APP_SECRET` | a new random string: `openssl rand -hex 32` |
 | `WEB_URL` | `https://ubuzima.wilsonn.tech` |
 | `COOKIE_DOMAIN` | `.ubuzima.wilsonn.tech` (the browser opens live streams straight to the API, D34) |
-| `NIDA_URL` | `https://nida.ubuzima.wilsonn.tech` |
+| `NIDA_URL` | `https://ubuzima-nida-uae.azurewebsites.net` |
 | `NIDA_API_KEY` | a new random string, the same on both apps |
 | `GEMINI_API_KEY` | from `apps/api/.env` |
 | `GEMINI_MODEL`, `GEMINI_THINKING` | as in `apps/api/.env` |
@@ -155,16 +155,14 @@ Add the domain `ubuzima.wilsonn.tech` in Resend, add the DNS records it shows (s
 |---|---|---|
 | `ubuzima` | CNAME | the value Vercel shows under Domains |
 | `api.ubuzima` | CNAME | `ubuzima-api-uae.azurewebsites.net` |
-| `nida.ubuzima` | CNAME | `ubuzima-nida-uae.azurewebsites.net` |
-| `asuid.nida.ubuzima` | TXT | the same verification ID as `asuid.api.ubuzima` |
 | `asuid.api.ubuzima` | TXT | the API's verification ID: `az webapp show -g ubuzima-rg -n ubuzima-api-uae --query customDomainVerificationId -o tsv` |
 | Resend's records | as shown | |
 
-Then add the custom domains in Vercel and in each Azure app (`az webapp config hostname add`), and give each Azure domain a certificate (step 6) so everything is HTTPS (NFR 1). Get the certificate **before** pointing the CNAME at a new app, or the domain has no valid HTTPS in between (D81).
+Then add the custom domains in Vercel and in each Azure app (`az webapp config hostname add`), and give the API's domain a certificate (step 6) so everything is HTTPS (NFR 1). Get the certificate **before** pointing the CNAME at a new app, or the domain has no valid HTTPS in between (D81).
 
 ## 6. Certificates for the Azure domains (Let's Encrypt)
 
-Azure's free managed certificate can't be used here: `ubuzima.wilsonn.tech` is a CNAME to Vercel, and Vercel's CAA records allow only Let's Encrypt, GlobalSign, Google and Sectigo. Azure's free certificates come from DigiCert, so every request expires (D81). Use a free Let's Encrypt certificate with a DNS check instead, one per domain:
+Azure's free managed certificate can't be used here: `ubuzima.wilsonn.tech` is a CNAME to Vercel, and Vercel's CAA records allow only Let's Encrypt, GlobalSign, Google and Sectigo. Azure's free certificates come from DigiCert, so every request expires (D81). Use a free Let's Encrypt certificate with a DNS check instead, for the API's domain:
 
 ```bash
 lego run --accept-tos --path ~/.lego --key-type RSA2048 --dns manual --dns.propagation.disable-rns --pfx --pfx.format SHA256 --pfx.password "$PFX_PW" -d api.ubuzima.wilsonn.tech
@@ -179,7 +177,7 @@ TP=$(az webapp config ssl upload -g ubuzima-rg -n ubuzima-api-uae --certificate-
 az webapp config ssl bind -g ubuzima-rg -n ubuzima-api-uae --certificate-thumbprint $TP --ssl-type SNI
 ```
 
-Repeat with `nida.ubuzima.wilsonn.tech` and `ubuzima-nida-uae`. Let's Encrypt certificates last 90 days: the API's runs to **9 February 2027**, so renew it in January the same way.
+The mock NIDA has no custom name: only the API calls it, over HTTPS on Azure's own address, which already has a certificate (D81). Let's Encrypt certificates last 90 days: the API's runs to **9 February 2027**, so renew it in January the same way.
 
 ## 7. After it's live
 

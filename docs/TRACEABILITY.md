@@ -313,7 +313,7 @@ Features added after the live testing and Wilson's review. Each has its decision
 | Red-flag checklist on one screen; a tap is Yes, "None of these" after the last sign | FR 3.6 (SRS revised 25 Oct), Appendix C rule 2 | - | `cases.test.ts` (one-screen checklist); live check B3 |
 | Live events across API instances (Postgres LISTEN/NOTIFY) | NFR 5 | D70 | `instances.test.ts`: a second API instance delivers chat both ways within 3 s |
 | Demo schedule for 12 weeks, with day and night cover at Kacyiru | FR 5.3, 8.4 (demo data) | D69 | Live check D1: a child can be routed |
-| Mock NIDA at `nida.ubuzima.wilsonn.tech` with its own certificate | SRS deployment diagram (Figure 11) | D67 | Live login through the new address |
+| Mock NIDA on its Azure address over HTTPS (custom name dropped, D81) | SRS deployment diagram (Figure 11) | D67, D81 | Live login through the mock NIDA |
 | Closed cases keep the conversation readable | FR 6.9 (final advice), FR 7.2 | - | Screen test: the patient reads the agent's last advice after closing |
 | Prescription: copy the code, download as an image with the QR code, in the app's fonts | FR 11.2 | - | Screen test: the downloaded image's QR code decodes to the check page |
 | Pasting a code ("616 260") fills all six boxes | FR 2.2 | D41 | Screen test on the live site |
@@ -330,7 +330,7 @@ Features added after the live testing and Wilson's review. Each has its decision
 | Rubric line | Where | Status |
 |---|---|---|
 | Code availability: public GitHub, clear setup | https://github.com/nshizirunguwilson/ubuzimaconnect, README (setup, tests, deployment, known limitations) | Done |
-| Solution deployment: public URL | https://ubuzima.wilsonn.tech, following [`docs/DEPLOY.md`](DEPLOY.md) (D67) | Done: the website on Vercel, the API and mock NIDA on Azure App Service, the database on Azure Database for PostgreSQL (UAE North, moved from Supabase on 10 Nov 2026, D81) and email through Resend, at ubuzima.wilsonn.tech, api.ubuzima.wilsonn.tech and nida.ubuzima.wilsonn.tech |
+| Solution deployment: public URL | https://ubuzima.wilsonn.tech, following [`docs/DEPLOY.md`](DEPLOY.md) (D67) | Done: the website on Vercel, the API and mock NIDA on Azure App Service, the database on Azure Database for PostgreSQL (UAE North, moved from Supabase on 10 Nov 2026, D81) and email through Resend, at ubuzima.wilsonn.tech and api.ubuzima.wilsonn.tech (the mock NIDA, called only by the API, stays on its Azure address) |
 | Operation: login, sign-up, buttons, redirects | Staff can log in on the live site through the demo inbox (D66) | Done: checked on the live site on 1 Nov 2026: a facility manager logs in with password and emailed code and opens the schedule, reports and facility; a patient logs in through the mock NIDA and opens their requests |
 | Presentation video, and every user's functions visible | [`docs/VIDEO.md`](VIDEO.md): one patient's story across all six roles | Partly: plan written; recording after deployment |
 
