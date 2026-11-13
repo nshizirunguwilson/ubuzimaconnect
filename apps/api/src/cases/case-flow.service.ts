@@ -14,6 +14,7 @@ import type { LiveSession } from "../auth/session.service";
 import { AuditService } from "../common/audit.service";
 import { DbService } from "../common/db.service";
 import { ApiException } from "../common/errors";
+import { EventsService } from "../live/events.service";
 import { AlertsService } from "../timers/alerts.service";
 import { FacilityDataService } from "./facilities.service";
 import { RoutingService } from "./routing.service";
@@ -43,6 +44,7 @@ export class CaseFlowService {
     private routing: RoutingService,
     private alerts: AlertsService,
     private audit: AuditService,
+    private events: EventsService,
   ) {}
 
   // Who a case can be for
@@ -201,9 +203,10 @@ export class CaseFlowService {
     if (match.kind === "NO_BEDS") {
       // Still routed to the nearest one, marked as having no free bed.
       await this.audit.record({ type: "system" }, "routing.no_beds", { caseId, service });
-      await this.alerts.raise("NO_CAPACITY", `${found.code}: no free bed at any facility offering ${serviceName}.`, {
-        caseId,
-      });
+      const text = `${found.code}: no free bed at any facility offering ${serviceName}.`;
+      await this.alerts.raise("NO_CAPACITY", text, { caseId });
+      // FR 5.8: the agents are alerted at once too, so one can pick another facility or arrange a bed.
+      this.events.emit("agents", { type: "alert", caseId, text: `No beds currently available. ${text}` });
     }
 
     await this.routing.route({

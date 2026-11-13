@@ -49,4 +49,25 @@ export class AlertsService {
     await this.audit.record({ type: "system" }, "alert.raised", { kind, caseId: options.caseId, alertId: alert.id });
     return alert;
   }
+
+  /**
+   * The 2-minute repeat for a case still waiting (FR 6.11). It refreshes one "Still waiting" alert per case,
+   * marked unread again with the new waiting time, instead of adding a row every 2 minutes: a case left
+   * waiting for days once filled the list with thousands of identical alerts.
+   */
+  async repeat(kind: AlertKind, message: string, caseId: string) {
+    const existing = await this.db.client.alert.findFirst({
+      where: { kind, caseId, message: { startsWith: "Still waiting:" } },
+      orderBy: { createdAt: "desc" },
+    });
+    const alert = existing
+      ? await this.db.client.alert.update({
+          where: { id: existing.id },
+          data: { message, createdAt: new Date(), readAt: null },
+        })
+      : await this.db.client.alert.create({ data: { kind, message, caseId, emailed: false } });
+    this.events.emit("admins", { type: "admin-alert", kind, text: message });
+    await this.audit.record({ type: "system" }, "alert.repeated", { kind, caseId, alertId: alert.id });
+    return alert;
+  }
 }

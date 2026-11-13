@@ -90,7 +90,10 @@ export function LoginFlow({ ended, other = false }: { ended: boolean; other?: bo
       router.replace("/home");
     } catch (err) {
       setPending(false);
+      // No answer, or a server or gateway fault: the details may be right, so never say they don't match (FR 1.5).
+      if (err instanceof TypeError) return setProblem({ kind: "unavailable" });
       if (!(err instanceof ApiFailure)) throw err;
+      if (err.status >= 500) return setProblem({ kind: "unavailable" });
       const { code, message, until, fields } = err.error;
       if (code === "LOCKED" && until) return setProblem({ kind: "locked", until });
       if (code === "NIDA_UNAVAILABLE") return setProblem({ kind: "unavailable" });

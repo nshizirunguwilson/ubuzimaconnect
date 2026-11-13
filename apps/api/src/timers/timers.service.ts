@@ -197,7 +197,7 @@ export class TimersService implements OnModuleInit, OnModuleDestroy {
         this.alertAgents(waitingCase.id, description);
       } else if (alertIsDueAgain) {
         await this.setEscalationLevel(waitingCase.id, 2); // restarts the 2-minute repeat clock
-        await this.alerts.raise("DELAY_INCIDENT", `Still waiting: ${description}`, { caseId: waitingCase.id });
+        await this.alerts.repeat("DELAY_INCIDENT", `Still waiting: ${description}`, waitingCase.id);
         this.alertAgents(waitingCase.id, description);
       }
     }

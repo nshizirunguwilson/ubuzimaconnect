@@ -9,7 +9,7 @@ export const db = new pg.Pool({
 /** A tiny cookie-keeping client, like one browser. */
 export function browser() {
   let cookie = "";
-  return async function call(path: string, body?: unknown, method?: "PUT" | "DELETE") {
+  const call = async function call(path: string, body?: unknown, method?: "PUT" | "DELETE") {
     const response = await fetch(API + path, {
       method: method ?? (body === undefined ? "GET" : "POST"),
       headers: { "content-type": "application/json", cookie },
@@ -19,6 +19,8 @@ export function browser() {
     if (setCookie) cookie = setCookie.split(";")[0];
     return { status: response.status, body: await response.json().catch(() => null) };
   };
+  /** The session cookie, for opening a live event stream as this person. */
+  return Object.assign(call, { cookie: () => cookie });
 }
 
 export async function latestEmail(to: string) {
