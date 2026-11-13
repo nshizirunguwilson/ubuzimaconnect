@@ -219,16 +219,18 @@ Every user type was also tested by hand in the browser on the live site. Patient
 2. **Activity lists out of order:** a 26 October entry with a random id sat above today's (FR 10.2, 10.3). Lists are now ordered by time, then id. New automated test.
 3. **Raw activity labels** such as "settings ai on" and "redflag removed A14": 25 actions had no plain wording; all now have one ("Turned AI suggestions on").
 
-**Small points noticed (not requirement failures)**
+**Small points noticed, and what was done (13 November, night)**
 
-- The agent's case screen and some staff pages show a blank area for several seconds while loading, with no loading sign.
-- On the agent's case screen the Category and Needed service boxes are too narrow at laptop width (text cut off), and the section tabs scroll off to the side.
-- The routing list heading says "nearest first" but lists suitable facilities first.
-- "No agent online" alerts are emailed even when no case is waiting.
-- Each live-check run leaves a turned-off "Live Test Agent" account at the top of Staff accounts.
-- A new red-flag question can be saved without its Kinyarwanda text (FR 12.6 asks for both languages).
-- The facility report's average stay is in days, so short stays show "0 days".
-- Demo data: the night agent (Eric Habineza) is never online, so at night no agent ever answers.
+| Point | Done |
+|---|---|
+| Staff pages blank for several seconds while loading | Every staff page shows a spinner with "Loading". The website's server code moved from Washington (iad1) to Mumbai (bom1), next to the UAE API: a normal visit now gets the page in about 0.8 s (was up to 2.3 s warm, 8.5 s cold). The first visit after a new deployment still takes several seconds while Vercel starts up |
+| Agent case screen cramped at laptop width | Narrower chat column on laptops, Category and Needed service stacked, all four tabs fit. Checked on screen |
+| Routing heading said "nearest first" | Now "Facility: suitable first, then nearest". Checked on screen |
+| "No agent online" emailed with no case waiting | Still alerted in the app after 5 minutes (FR 6.13); emailed only when a case is waiting. New automated test |
+| Turned-off test accounts at the top of Staff accounts | Turned-off accounts are listed last. New automated test |
+| Red-flag question could be saved without Kinyarwanda | Both languages required (FR 12.6). New automated test |
+| Average stay "0 days" for short stays | Shown in hours when under two days ("0.2 hours"). New automated test |
+| Night agent never online (demo data) | Not a code fault: no real person logs in as the night agent, and the system correctly flags it on the On duty page. Needs a person on shift, or a note in the demo |
 
 ## Fixed after the run (13 November)
 
