@@ -28,7 +28,7 @@ The facilitator advised against Supabase, so the database now runs on **Azure Da
 - `README.md`, `docs/TRACEABILITY.md` and `DECISIONS.md` (new D81: why Azure PostgreSQL, why UAE North, the move, the certificate problem and the proof).
 - New deployment diagram (UML) in `docs/srs/deployment-diagram.drawio` and a 4K PNG: Vercel; Azure UAE North with the App Service plan (API 1..* instances, mock NIDA) and Azure Database for PostgreSQL; Server-Sent Events; Gemini, Resend and web push as external systems.
 - SRS (Google Doc): every Supabase, Mumbai and Central India mention replaced; the deployment description and the nodes table now describe Azure PostgreSQL in UAE North; revision history row 1.3 added; Figure 11 replaced with the new diagram (text enlarged so it stays readable on the page).
-- 13 Nov: dropped the custom address `nida.ubuzima.wilsonn.tech` for the mock NIDA (internal, only the API calls it). It stays on `ubuzima-nida-uae.azurewebsites.net` over HTTPS. Removed from the Azure app and from get.tech; DEPLOY.md, TRACEABILITY.md, DECISIONS.md (D81) and the SRS updated.
+- 13 Nov: dropped the custom address `nida.ubuzima.wilsonn.tech` for the mock NIDA (internal, only the API calls it). It stays on `ubuzima-nida-uae.azurewebsites.net` over HTTPS. Removed from the Azure app and from get.tech; DEPLOY.md, TRACEABILITY.md, DECISIONS.md (D81) and the SRS updated. Live check afterwards: 103 passed, 0 failed (one earlier run had a single failure that did not repeat in two reruns).
 
 ## Challenges
 
