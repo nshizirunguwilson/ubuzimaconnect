@@ -18,7 +18,7 @@ The facilitator advised against Supabase, so the database now runs on **Azure Da
 - Copied all data from Supabase with `pg_dump` / `pg_restore`; row counts match on all 31 tables.
 - Moved the API and the mock NIDA service to a new App Service plan in UAE North (`ubuzima-api-uae`, `ubuzima-nida-uae`) so they sit next to the database.
 - Downtime for the database switch: about 6.5 minutes (19:06 to 19:12).
-- DNS at get.tech: `api.ubuzima` and `nida.ubuzima` now point at the UAE apps.
+- DNS at get.tech: `api.ubuzima` now points at the UAE API.
 - 11 Nov, 08:40: free Let's Encrypt certificate for `api.ubuzima.wilsonn.tech` issued and attached to `ubuzima-api-uae` (valid to 9 Feb 2027). HTTPS and login work again.
 - 11 Nov: full live check against the live site, `node scripts/live-check.mjs`: **103 passed, 0 failed** (patients, agents, clinicians, facility managers, administrators, prescriptions, reports, alerts).
 - 11 Nov: retired the old Central India setup (apps `ubuzima-api`, `ubuzima-nida` and plan `ubuzima-plan`), which stops the double App Service charge on the student credit. Removed the temporary database firewall rules; the database now accepts only the UAE apps' own addresses, and the mock NIDA accepts only the UAE API. Live check rerun after the cleanup: **103 passed, 0 failed**.
@@ -28,6 +28,7 @@ The facilitator advised against Supabase, so the database now runs on **Azure Da
 - `README.md`, `docs/TRACEABILITY.md` and `DECISIONS.md` (new D81: why Azure PostgreSQL, why UAE North, the move, the certificate problem and the proof).
 - New deployment diagram (UML) in `docs/srs/deployment-diagram.drawio` and a 4K PNG: Vercel; Azure UAE North with the App Service plan (API 1..* instances, mock NIDA) and Azure Database for PostgreSQL; Server-Sent Events; Gemini, Resend and web push as external systems.
 - SRS (Google Doc): every Supabase, Mumbai and Central India mention replaced; the deployment description and the nodes table now describe Azure PostgreSQL in UAE North; revision history row 1.3 added; Figure 11 replaced with the new diagram (text enlarged so it stays readable on the page).
+- 13 Nov: dropped the custom address `nida.ubuzima.wilsonn.tech` for the mock NIDA (internal, only the API calls it). It stays on `ubuzima-nida-uae.azurewebsites.net` over HTTPS. Removed from the Azure app and from get.tech; DEPLOY.md, TRACEABILITY.md, DECISIONS.md (D81) and the SRS updated.
 
 ## Challenges
 
@@ -42,9 +43,9 @@ The facilitator advised against Supabase, so the database now runs on **Azure Da
 | `nida` TXT record slow to publish | get.tech took over 1.5 hours and counting | Issued the `api` certificate on its own (its check had already passed) so users were not kept waiting; `nida` is internal and follows |
 | get.tech panel issues | Session signs out on some saves; one edit stored the value twice | Signed back in, corrected the record, checked it in the panel |
 | Certificate tool stuck after DNS was live | lego also waited for Google's DNS, which cached the old TXT value for 4 hours | Restarted it checking only get.tech's own nameservers (what Let's Encrypt itself checks); the API domain passed at once |
+| `nida` certificate check value changed (12 Nov) | get.tech finally published the `nida` TXT value overnight, but by then Let's Encrypt had dropped that pending check and asked for a new value. That means one more DNS change and another wait of hours | `nida` is internal and works over its Azure address with HTTPS, so users see no effect. On 13 Nov the custom name was dropped; the mock NIDA stays on its Azure address |
 | Cost of running two App Service plans | App Service B1 is paid from the $100 student credit (about $13 a month per plan); the old India plan and the new UAE plan both run during the move | Retire the India plan as soon as HTTPS works on the UAE apps |
 
 ## Next moves
-1. Issue the `nida.ubuzima.wilsonn.tech` certificate once get.tech publishes its TXT record, attach it, and point the API at that domain (it uses the Azure address meanwhile).
-2. Renew the API certificate in January 2027 (it ends 9 Feb 2027), following DEPLOY.md step 6.
-3. Fix the translation sheet script; refresh stale counts in VIDEO.md (199 tests).
+1. Renew the API certificate in January 2027 (it ends 9 Feb 2027), following DEPLOY.md step 6.
+2. Fix the translation sheet script; refresh stale counts in VIDEO.md (199 tests).
