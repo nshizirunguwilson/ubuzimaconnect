@@ -2,7 +2,7 @@
 
 Every functional requirement in the latest SRS (section 4, revision 1.3, 11 November 2026): **106 requirements in 12 groups**, sorted by the user type that carries each one out. Each requirement appears once, under its main user; where another user is involved too, the row says so.
 
-**Status:** approved and run on 13 November 2026. **108 of 109 rows work, 1 works only in part (FR 5.8).** Results, problems found outside the requirements, and the to-do list are at the end.
+**Status:** approved and run on 13 November 2026. **First run: 108 of 109 rows worked, FR 5.8 only in part. After the fixes the same day: all 109 rows work** (105 of 105 live checks, 200 of 200 automated tests). Notes and what was fixed are at the end.
 
 **What was run:** the 103-check live script (103 passed); the automated tests (199 passed: 133 API, 34 website, 28 shared, 4 mock NIDA); about 80 extra live checks written for this round, including two timed runs of about 20 minutes each; and the patient screens by hand in a phone-sized browser. Staff screens were tested through the same API the screens use, not clicked through: typing staff passwords into the live site is left to you.
 
@@ -52,7 +52,7 @@ Rows and requirements differ slightly: reports (FR 12.8) have a row for each of 
 | FR 1.1 | Verify national ID | Log in with a demo national ID | ID checked against the mock NIDA before anything is shown | Live, Script | ✅ |
 | FR 1.2 | Knowledge-based check | Log in with the right ID but a wrong date of birth, then a wrong name | Access only when both date of birth and one name match | Live | ✅ wrong date of birth and wrong name both refused |
 | FR 1.3 | Family access model | Log in as a parent, then as a child aged 16 or more, then try a child under 16 | Parent sees self and all children; mature child sees only self; young child can't log in alone | Live, Script | ✅ Jean sees himself, Ange (17) and Divine (11) |
-| FR 1.4 | Reject invalid access | Use an ID not in NIDA, and wrong details | Access denied with a plain message saying what went wrong | Live, Script | ✅ "Check the date of birth and the name, and try again." (see note A) |
+| FR 1.4 | Reject invalid access | Use an ID not in NIDA, and wrong details | Access denied with a plain message saying what went wrong | Live, Script | ✅ "Check the date of birth and the name, and try again." (see note A, fixed) |
 | FR 1.5 | Verification unavailable | Switch the mock NIDA outage on, then try to log in | "Verification is temporarily unavailable" with the Emergency button; failure logged | Live | ✅ automated test (NIDA outage) |
 | FR 1.6 | Lock after failed attempts | Enter wrong details 5 times for one ID | ID locked for 15 minutes, Emergency button shown | Live, Script, Wait | ✅ locked, then works again after 15 minutes |
 | FR 1.7 | Patient session timeout | Log in and leave the app untouched for 15 minutes | Session ends, back to login | Wait | ✅ session ended after 15 idle minutes |
@@ -178,7 +178,7 @@ Rows and requirements differ slightly: reports (FR 12.8) have a row for each of 
 | FR 5.3 | Match to capable facility | Make one facility inactive, one without the specialty on duty, one with no free bed | None of them suggested | Live, Script | ✅ |
 | FR 5.4 | Rank by proximity | Case from a known location | Suggestions in straight-line distance order, nearest first | Live, Clock | ✅ |
 | FR 5.7 | Reserve bed | Route with a bed needed; then let it pass 6 hours, change the routing, cancel | Bed reserved; becomes the patient's on arrival; released after 6 hours, on change or cancel | Live, Clock | ✅ 6-hour release: automated test |
-| FR 5.8 | No free bed | Fill every bed at the suitable facilities | Nearest shown "No beds currently available"; agent alerted; logged | Live | ⚠️ shown to the agent as "No beds" and the admin is alerted, but the agent gets no alert (note D) |
+| FR 5.8 | No free bed | Fill every bed at the suitable facilities | Nearest shown "No beds currently available"; agent alerted; logged | Live | ✅ fixed 13 Nov: agents now get a "No beds currently available" alert at once (live and automated test); was partial (note D) |
 | FR 5.9 | No matching facility | Need a service no active facility has on duty | Case Urgent; patient sees 912 and "An agent will contact you."; logged | Live | ✅ automated test; live: no mental health clinician on duty (note E) |
 | FR 5.11 | Routing expiry | Routing not marked Arrived for 24 hours | Expires, leaves the incoming list, no records unlocked, logged | Clock | ✅ automated test |
 | FR 5.13 | Automatic reassignment | Attending clinician marks unavailable (or is deactivated) before arrival; once more with no one else on duty | Another same-specialty clinician assigned, notified and logged; if none, agent alerted | Live, Clock | ✅ automated test |
@@ -200,12 +200,12 @@ Rows and requirements differ slightly: reports (FR 12.8) have a row for each of 
 - **F. Demo inbox page crashes.** `/demo/inbox` shows "This page couldn't load" (React error 441). The inbox itself works through the API. Staff use this page to read their codes in the demo.
 - **G. Older history missing.** Patient records show cases and prescriptions only from 11 November on; demo activity from 25 October to 10 November isn't there. Probably from the database move; it doesn't break a requirement.
 
-## To do
+## Fixed after the run (13 November)
 
-1. **FR 5.8:** alert the agent at once when no suitable facility has a free bed (for example an alert in the queue and on the case).
-2. **Note A:** show "Verification is temporarily unavailable" with the Emergency button whenever the login call fails because of the server, not "Those details don't match".
-3. **Note F:** fix the demo inbox page crash.
-4. **Note C:** mark the old administrator alerts as read, and look at why delay-incident alerts piled up.
-5. **Note E:** put a mental health clinician on the schedule for every shift (or record that Ndera covers it), so FR 8.4 shows no uncovered shift.
-6. **Note G:** check whether the history from before 11 November should be restored from the Supabase copy.
-7. **Note B:** the site itself is fixed; still to do: add a check through the website (`/api/health` on ubuzima.wilsonn.tech) to `scripts/live-check.mjs` so this kind of break is caught next time.
+1. **FR 5.8:** when no suitable facility has a free bed, every agent's screen now gets a "No beds currently available" alert at once (`case-flow.service.ts`). New automated test; verified live by making both emergency hospitals full for a moment.
+2. **Note A:** the patient login shows "Verification is temporarily unavailable" with the Emergency button when the server or gateway fails (`login-flow.tsx`). Verified live with a simulated 502.
+3. **Note F:** the demo inbox crash came from the broken `API_URL` (note B) and went away with it; the page now also says "The inbox can't be reached" instead of crashing if it happens again.
+4. **Note C:** the 11,131 alerts came from one urgent test case (UC-20261026-0002) left waiting 16 days: FR 6.11 added a new "Still waiting" alert every 2 minutes. Each repeat now refreshes one alert per case, marked unread with the new waiting time (automated test). The backlog was marked read.
+5. **Note E:** `scripts/demo-schedule.mjs` now has Kibagabaga's manager add a day mental health clinician (Dr. Olivier Habyarimana); mental health is covered Day and Night every day to 31 January 2027.
+6. **Note G:** not a fault. The database holds every patient once (11 in all); there was simply no demo activity between 26 October and 11 November, and Jean, Eric and Ange first logged in on 11 November.
+7. **Note B:** `scripts/live-check.mjs` now also checks `/api/health` and a patient login through the website (105 checks), and logs in as whichever clinician the routing picked, so it passes at night too.

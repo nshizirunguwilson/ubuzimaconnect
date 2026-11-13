@@ -182,5 +182,5 @@ The mock NIDA has no custom name: only the API calls it, over HTTPS on Azure's o
 ## 7. After it's live
 
 - Log in as a patient (README), and as `agent@ubuzima.test` with the codes from https://ubuzima.wilsonn.tech/demo/inbox.
-- Run `node scripts/live-check.mjs` (103 checks against the live site).
+- Run `node scripts/live-check.mjs` (105 checks against the live site, two of them through the website's `/api`, which catches a wrong `API_URL` on Vercel).
 - Run the page-weight check against the live site, and try a request on a real phone over mobile data (NFR 4, 8).

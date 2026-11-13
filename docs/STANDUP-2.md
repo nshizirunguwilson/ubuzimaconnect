@@ -32,6 +32,7 @@ The facilitator advised against Supabase, so the database now runs on **Azure Da
 - 13 Nov: security check of the live setup. CORS lets only ubuzima.wilsonn.tech call the API; the mock NIDA refuses every outside caller (403); all three sites force HTTPS (TLS 1.2 or newer); the database takes only encrypted connections from the 31 app addresses. Gap found and fixed: the website now sends browser protection headers (no framing by other sites, nosniff, referrer and permissions policies) (44c2284). Live check afterwards: 103 passed, 0 failed.
 - 13 Nov: functional requirements testing. Wrote `docs/FR-TEST-CHECKLIST.md` from the latest SRS (106 requirements, 109 rows by user type), approved, then ran it: the 103-check live script, the 199 automated tests, about 80 extra live checks (two timed runs of about 20 minutes for lockouts, timeouts, escalations and "no response"), and the patient screens by hand. Result: 108 of 109 rows work; FR 5.8 works in part (the agent isn't alerted at once when no facility has a free bed).
 - 13 Nov: found and fixed a live outage: the website's API address on Vercel still pointed at the deleted Central India app, so logins through ubuzima.wilsonn.tech failed. Set `API_URL` and `NEXT_PUBLIC_API_URL` to `https://api.ubuzima.wilsonn.tech` and redeployed.
+- 13 Nov: fixed everything the requirement tests found (1445906): agents alerted at once when no facility has a free bed (FR 5.8); one refreshed alert per waiting case instead of a new row every 2 minutes (a test case left waiting 16 days had made 11,131 alerts; cleared); patient login says "Verification is temporarily unavailable" when the server fails; demo inbox page no longer crashes; a day mental health clinician at Kibagabaga so every shift has mental health cover; the live check now also tests through the website and works at night. After the fixes: **105 of 105 live checks, 200 of 200 automated tests, all 109 requirement rows work.**
 
 ## Challenges
 
@@ -51,6 +52,5 @@ The facilitator advised against Supabase, so the database now runs on **Azure Da
 | Cost of running two App Service plans | App Service B1 is paid from the $100 student credit (about $13 a month per plan); the old India plan and the new UAE plan both run during the move | Retire the India plan as soon as HTTPS works on the UAE apps |
 
 ## Next moves
-1. Work through the to-do list in `docs/FR-TEST-CHECKLIST.md` (FR 5.8 agent alert, login error message, demo inbox page, old alerts, mental health shifts, older history).
-2. Renew the API certificate in January 2027 (it ends 9 Feb 2027), following DEPLOY.md step 6.
-3. Fix the translation sheet script; refresh stale counts in VIDEO.md (199 tests).
+1. Renew the API certificate in January 2027 (it ends 9 Feb 2027), following DEPLOY.md step 6.
+2. Fix the translation sheet script; refresh stale counts in VIDEO.md (199 tests).
