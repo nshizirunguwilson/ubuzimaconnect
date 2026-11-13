@@ -307,6 +307,34 @@ describe("administrator alerts (FR 12.7, 4.7, 5.9)", () => {
     expect(await one(`select kind from "Alert" where "caseId" = $1`, [id])).toEqual({ kind: "NO_CAPACITY" });
   });
 
+  it("tells every agent's queue at once when a case starts waiting, even while they are Away (FR 6.2)", async () => {
+    const controller = new AbortController();
+    const stream = await fetch(`${API}/events/agent`, {
+      headers: { cookie: agent.cookie() },
+      signal: controller.signal,
+    });
+    const reader = stream.body!.getReader();
+    await wait(300);
+    let received = "";
+    try {
+      await urgent();
+      const timer = setTimeout(() => controller.abort(), 4000);
+      try {
+        while (!received.includes('"queue"')) {
+          const { value, done } = await reader.read();
+          if (done) break;
+          received += new TextDecoder().decode(value);
+        }
+      } catch {
+        /* timed out */
+      }
+      clearTimeout(timer);
+    } finally {
+      controller.abort();
+    }
+    expect(received).toContain('"queue"');
+  });
+
   it("alerts the agents at once when no suitable facility has a free bed (FR 5.8)", async () => {
     const beds = (await db.query(`select id, "totalBeds" from "Facility"`)).rows;
     await db.query(`update "Facility" set "totalBeds" = 0`);
