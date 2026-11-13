@@ -7,7 +7,7 @@ import { ApiException } from "../common/errors";
 import { Auth, CurrentSession } from "../auth/guard";
 import type { LiveSession } from "../auth/session.service";
 import { PrescriptionsService } from "../prescriptions/prescriptions.service";
-import { activityRows } from "./activity";
+import { activityRows, newestFirst } from "./activity";
 
 const PAGE = 50;
 
@@ -95,11 +95,7 @@ export class RecordsController {
   ) {
     await this.allowedPerson(session, patientId);
     // One more than a page is loaded, to know whether there is a next page.
-    const events = await this.db.client.auditEvent.findMany({
-      where: { patientId, ...(before ? { id: { lt: before } } : {}) },
-      orderBy: { id: "desc" },
-      take: PAGE + 1,
-    });
+    const events = await newestFirst(this.db.client, { patientId }, before, PAGE + 1);
     const rows = await activityRows(this.db.client, events.slice(0, PAGE), session.patientId!);
     const hasNextPage = events.length > PAGE;
     return { rows, next: hasNextPage ? events[PAGE - 1].id : null };
