@@ -170,6 +170,8 @@ export class CasesController {
       { caseId: newCase.id },
       request.ip,
     );
+    // Every agent's queue shows the new case at once, also while they are Busy, Away or Offline (FR 6.2).
+    this.events.emit("agents", { type: "queue" });
     return { id: newCase.id, existing: false };
   }
 
@@ -350,6 +352,7 @@ export class CasesController {
       { caseId, level: triage.level, ai: ai.ok ? "ok" : ai.error },
       request.ip,
     );
+    this.events.emit("agents", { type: "queue" });
 
     if (triage.level === "URGENT" && !nowhereToGo) {
       await this.flow.suggestFacility(caseId, service, false);

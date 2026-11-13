@@ -172,6 +172,8 @@ export class CaseFlowService {
         queuedAt: new Date(),
       },
     });
+    // An urgent case appears in every agent's queue at once, so a Busy agent can pause for it (FR 6.12).
+    this.events.emit("agents", { type: "queue" });
     await this.suggestFacility(urgentCase.id, service, true);
   }
 
