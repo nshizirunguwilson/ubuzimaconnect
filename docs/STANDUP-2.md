@@ -35,6 +35,8 @@ The facilitator advised against Supabase, so the database now runs on **Azure Da
 - 13 Nov: fixed everything the requirement tests found (1445906): agents alerted at once when no facility has a free bed (FR 5.8); one refreshed alert per waiting case instead of a new row every 2 minutes (a test case left waiting 16 days had made 11,131 alerts; cleared); patient login says "Verification is temporarily unavailable" when the server fails; demo inbox page no longer crashes; a day mental health clinician at Kibagabaga so every shift has mental health cover; the live check now also tests through the website and works at night. After the fixes: **105 of 105 live checks, 200 of 200 automated tests, all 109 requirement rows work.**
 - 13 Nov (evening): on-screen testing of every user type in the browser (patient, agent, clinician, facility manager, administrator), with the staff passwords typed by hand. Everything works. Fixed three things found on screen: new cases now appear on every agent's queue at once (they needed a reload before); activity lists are in true time order (an old entry sat on top); every activity entry now has plain wording. Small layout and wording points are listed in `docs/FR-TEST-CHECKLIST.md`.
 - 13 Nov (night): fixed the small points from on-screen testing (b43b146, 252304c): a Loading sign on staff pages; the website's server code moved from Washington to Mumbai, next to the UAE API, so pages answer in about 0.8 s; roomier agent case screen; clearer routing heading; "No agent online" emailed only when a case waits; turned-off accounts listed last; red-flag questions need Kinyarwanda; average stay in hours.
+- 14 Nov: fixed the translation sheet script. The 23 danger-sign questions had dropped out of the sheet (the seed now splits long questions over several lines, which the script didn't read), and some Kinyarwanda example rows showed a name where a number belonged ("Kevin kuri 5"). Both columns now use the same example values, chosen by parameter name, and the script stops with an error if a question or a draft is missing. The sheet has 421 rows again.
+- 14 Nov: rewrote `docs/VIDEO.md` so the demo video shows all 106 functional requirements, each with an on-screen caption, in three sittings: preparation the day before (for the 24-hour, 48-hour and 7-day rules), a day recording, and a night recording at the 19:00 shift change where the night agent (Eric, `agent2@`) takes over. A table maps every requirement to its scene. New `docs/PRESENTATION.md`: the slide-by-slide plan for the presentation video, with a 3-minute live demo and the deck facts to update (Supabase, 199 tests, 105 of 106).
 
 ## Challenges
 
@@ -57,4 +59,6 @@ The facilitator advised against Supabase, so the database now runs on **Azure Da
 
 ## Next moves
 1. Renew the API certificate in January 2027 (it ends 9 Feb 2027), following DEPLOY.md step 6.
-2. Fix the translation sheet script; refresh stale counts in VIDEO.md (199 tests).
+2. Update the slide deck (see `docs/PRESENTATION.md`), then record the presentation video.
+3. Record the demo video following `docs/VIDEO.md` (sitting 0 the day before; the night sitting from 18:45 Kigali time).
+4. Refill the demo schedule before the end of January: `node scripts/demo-schedule.mjs 12`.

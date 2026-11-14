@@ -12,26 +12,51 @@ import { SENTENCES_FOR_REVIEW } from "../apps/web/src/i18n/sentences";
 type Row = [area: string, key: string, english: string, draft: string, note: string];
 const rows: Row[] = [];
 
-/** Functions are shown with an example value, so the reviewer sees a whole sentence. */
-function example(f: (...a: never[]) => unknown) {
+/**
+ * Functions are shown with example values, so the reviewer sees a whole sentence. The example values are
+ * chosen from the English function and given to both languages, so the two columns always show the same case.
+ */
+/** An example value for each parameter name used in the English texts. */
+const EXAMPLE: Record<string, unknown> = {
+  n: 3,
+  total: 5,
+  age: 7, // a number of years (the records age takes an object: see exampleArgs)
+  days: 7,
+  name: "Kevin",
+  date: "2 June 2026",
+  time: "14:30",
+  by: "Dr. Diane Mukamana",
+  code: "UB-7K2M",
+  host: "ubuzima.wilsonn.tech",
+  km: "2.4 km",
+  d: "Gasabo",
+  why: "the facility is full",
+  phone: "0788 123 456",
+  dose: "2 puffs",
+  often: "when short of breath",
+};
+function exampleArgs(f: (...a: never[]) => unknown) {
   const src = String(f);
-  const args = src.includes("years >=")
-    ? [{ years: 7, months: 84, days: 2550 }]
-    : src.includes("female")
-      ? [true, "imyaka 7 / 7 years", "2 Kamena 2019"]
-      : Array.from({ length: f.length || 1 }, (_, i) => (/\bn\b|days|age|total/.test(src) && i < 2 ? 3 : "Kevin"));
-  return String((f as (...a: unknown[]) => unknown)(...args));
+  if (/years\s*>=/.test(src)) return [{ years: 7, months: 84, days: 2550 }];
+  if (src.includes("female")) return [true, "imyaka 7 / 7 years", "2 Kamena 2019"];
+  const params = (src.match(/^\(?([^)=]*)\)?\s*=>/)?.[1] ?? "")
+    .split(",")
+    .map((p) => p.trim())
+    .filter(Boolean);
+  return params.map((p) => {
+    if (!(p in EXAMPLE)) throw new Error(`No example value for parameter "${p}" in ${src}`);
+    return EXAMPLE[p];
+  });
 }
+const call = (f: unknown, args: unknown[]) => String((f as (...a: unknown[]) => unknown)(...args));
 function walk(e: unknown, r: unknown, path: string[]) {
-  if (typeof e === "string" || typeof e === "function") {
-    const isFn = typeof e === "function";
-    rows.push([
-      path[0],
-      path.slice(1).join("."),
-      isFn ? example(e as never) : (e as string),
-      isFn ? example(r as never) : (r as string),
-      isFn ? "Example: the name or number changes" : "",
-    ]);
+  if (typeof e === "function") {
+    const args = exampleArgs(e as never);
+    rows.push([path[0], path.slice(1).join("."), call(e, args), call(r, args), "Example: the name or number changes"]);
+    return;
+  }
+  if (typeof e === "string") {
+    rows.push([path[0], path.slice(1).join("."), e, r as string, ""]);
     return;
   }
   for (const k of Object.keys(e as object))
@@ -45,11 +70,16 @@ for (const [english, draft] of Object.entries(SENTENCES_FOR_REVIEW.exact))
 // The red-flag questions live in the database; the drafts are in the seed. Medical wording: check with a clinician too.
 const seed = readFileSync(resolve(import.meta.dirname, "../apps/api/src/seed.ts"), "utf8");
 const english = Object.fromEntries(
-  [...seed.matchAll(/code: "(\w+)", group: "\w", textEn: "([^"]+)"/g)].map((m) => [m[1], m[2]]),
+  // Short entries sit on one line, long ones are split over several by the formatter: allow any spacing.
+  [...seed.matchAll(/code:\s*"(\w+)",\s*group:\s*"\w",\s*textEn:\s*"([^"]+)"/g)].map((m) => [m[1], m[2]]),
 );
 const drafts = Object.fromEntries(
-  [...seed.matchAll(/^ {2}(\w+): "([^"]+)",$/gm)].filter((m) => m[1] in english).map((m) => [m[1], m[2]]),
+  [...seed.matchAll(/^ {2}(\w+):\s*"([^"]+)",$/gm)].filter((m) => m[1] in english).map((m) => [m[1], m[2]]),
 );
+if (Object.keys(english).length !== 23)
+  throw new Error(`Expected 23 red-flag questions in the seed, found ${Object.keys(english).length}`);
+const missing = Object.keys(english).filter((code) => !drafts[code]);
+if (missing.length) throw new Error(`No Kinyarwanda draft found for ${missing.join(", ")}`);
 for (const code of Object.keys(english))
   rows.push(["red flag", code, english[code], drafts[code] ?? "", "Danger sign: also check with a clinician"]);
 
