@@ -184,6 +184,18 @@ describe("staff login (FR 2)", () => {
   });
 });
 
+describe("patient session (FR 1.7)", () => {
+  it("ends a patient session after 15 minutes without activity", async () => {
+    const b = browser();
+    expect((await b("/auth/patient/login", { nationalId: "1199270045823116", dateOfBirth: "1992-03-14", name: "Aline" })).status).toBe(200);
+    expect((await b("/auth/me")).status).toBe(200);
+    const row = (await db.query(`select "expiresAt" - "lastSeenAt" as idle from "Session" where "patientId" is not null order by "createdAt" desc limit 1`)).rows[0];
+    expect(row.idle.minutes ?? row.idle.hours * 60).toBe(15); // the session lasts 15 minutes from the last request
+    await db.query(`update "Session" set "expiresAt" = now() at time zone 'utc' - interval '1 second' where "patientId" is not null`);
+    expect((await b("/auth/me")).status).toBe(401);
+  });
+});
+
 describe("mock NIDA access", () => {
   it("refuses calls without the right key", async () => {
     const r = await fetch(`${NIDA}/v1/verify`, { method: "POST", headers: { "x-api-key": "wrong" } });

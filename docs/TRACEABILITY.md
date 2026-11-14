@@ -71,7 +71,7 @@ Source: the FR headings of the SRS (Assignment 2 copy, 23 Oct 2026).
 | 3.3 | Capture current location | 1 | Done: device GPS with permission (`/cases/new`) |
 | 3.4 | Manual location fallback | 1 | Done: Province → District → Sector, using the sector’s centre from NISR boundaries (`packages/shared/src/data`, `cases.test.ts`) |
 | 3.5 | Save nearby facilities | 1 | Done: the 5 nearest facilities with name, distance, services and phone are saved on the device; never on a device that isn’t the patient’s (`cases.test.ts`) |
-| 3.6 | Red-flag checklist | 1 | Done: one question at a time; groups A, C, N and P by age and sex; pregnancy asked only of females 12–55 (`cases.test.ts`, `triage.test.ts`) |
+| 3.6 | Red-flag checklist | 1 | Done: every sign that applies on one screen, a tap is Yes, "None of these" after the last sign (SRS revised 25 Oct); groups A, C, N and P by age and sex; pregnancy asked only of females 12–55 (`cases.test.ts`, `triage.test.ts`) |
 | 3.7 | Submit symptoms | 1 | Done: own words, how long (4 choices), how bad (1–10) (`cases.test.ts`) |
 | 3.8 | Prefer a call | 1 | Done: from the home screen and the case screen; the agent sees the number and whose it is (`agent.test.ts`, `cases.test.ts`) |
 | 3.9 | Phone number not required | 1 | Done: a phone number is asked only here and kept on that case (`cases.test.ts`) |
@@ -294,7 +294,7 @@ Source: the three use case tables in the SRS (Assignment 2 copy), read on 24 Oct
 | 2 | Authentication strength | 2FA, 15-minute sessions, both lock rules | 0 | Done (`auth.test.ts`) |
 | 3 | Confidentiality | Role-based access, synthetic data and photos only, no identity sent to the AI | 0–1 | Done: role guards (`phase2.test.ts`), synthetic data, and no name, ID or location sent to the AI (FR 4.6, `cases.test.ts`) |
 | 4 | Performance | 95% of common actions in 3 s on 3G; AI in 10 s; chat in 3 s | 3 | Partly: at the SRS's scale with 20 people at once, 95% of API answers in 15 to 77 ms; modelled on 3G, common actions take about 0.6 to 0.7 s; chat under 3 s and the AI limit of 10 s are tested; a first page visit is about 3 s on 3G, repeat visits about 1.5 s ([`docs/PERFORMANCE.md`](PERFORMANCE.md), `scale.test.ts`). Still to do: a check on a real phone over a real 3G line (phase 4) |
-| 5 | Scalability | 1,000 patients a day, 50 facilities, 100 staff; more instances behind the load balancer | 3 | Partly: one instance handles 50 facilities, 100 staff and 30,000 requests a month with a wide margin (`scale.test.ts`); the dispatcher and timers already run once across instances. The live-update bus must move to Postgres LISTEN/NOTIFY before a second instance (phase 4) |
+| 5 | Scalability | 1,000 patients a day, 50 facilities, 100 staff; more instances behind the load balancer | 3 | Done: one instance handles 50 facilities, 100 staff and 30,000 requests a month with a wide margin (`scale.test.ts`); live events cross instances through Postgres LISTEN/NOTIFY and a second instance delivers chat within 3 s (`instances.test.ts`, D70); the dispatcher and timers run once across instances |
 | 6 | Reliability | 99% a month; works without AI, GPS or connection | 3 | Partly: works without the AI (FR 4.7), without GPS (sector list, FR 3.4) and without a connection (FR 3.10, 1.9). The 99% monthly figure can only be measured once deployed (phase 4) |
 | 7 | Usability | Kinyarwanda and English; a case in 3 minutes or less; "Prefer a call" | 3 | Partly: every patient and pharmacy screen in Kinyarwanda or English, chosen on any screen and kept on the record (red flags, notifications); dates with Kinyarwanda month names; screen readers told the language (`i18n.test.ts`, `cases.test.ts`); "Prefer a call" built. Waiting on: the native-speaker review of the drafts, and timing a case with real users (phase 4) |
 | 8 | Compatibility | PWA on Chrome, Edge, Safari, Brave, phone and computer | 3 | Partly: installable (manifest, icons, service worker, Install button on Chrome, Edge and Android, Home Screen hint on iPhone), squircle fallback for Safari and Firefox; checked in Chromium only. Installing on a real iPhone and Android phone is part of the phase 4 device checks |
@@ -303,6 +303,15 @@ Source: the three use case tables in the SRS (Assignment 2 copy), read on 24 Oct
 | 11 | Ownership | Standard Node.js and PostgreSQL; works without AI | 0 | Done (stack) |
 | 12 | Staffing | At least 1 agent online 24/7 through the schedule | 1–3 | Done: the agent schedule shows every shift with nobody on it (`setup.test.ts`); the on-duty dashboard flags scheduled agents who are Offline (`records.test.ts`); the administrator is alerted and emailed after 5 minutes with no agent online (`timers.test.ts`). Filling the schedule is the service's job |
 | 13 | Notification privacy | Notifications never contain medical details | 3 | Done: every notification says only “You have a new message.”; proved by decrypting what the API sends, as a browser would (`push.test.ts`) |
+
+## Submission (phase 4)
+
+| Rubric line | Where | Status |
+|---|---|---|
+| Code availability: public GitHub, clear setup | https://github.com/nshizirunguwilson/ubuzimaconnect, README (setup, tests, deployment, known limitations) | Done |
+| Solution deployment: public URL | https://ubuzima.wilsonn.tech, following [`docs/DEPLOY.md`](DEPLOY.md) (D67) | — waiting on the sign-ins to Azure, Supabase, Vercel, Resend and get.tech |
+| Operation: login, sign-up, buttons, redirects | Staff can log in on the live site through the demo inbox (D66) | Partly: built and tested locally; to check on the live site |
+| Presentation video, and every user's functions visible | [`docs/VIDEO.md`](VIDEO.md): one patient's story across all six roles | Partly: plan written; recording after deployment |
 
 ## Browser checks
 

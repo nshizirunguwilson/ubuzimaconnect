@@ -176,7 +176,7 @@ After reading the full requirement text, I fixed these details:
 - **Why not through `/api`:** the Next.js docs warn that proxied long connections are closed on timeout. A direct stream avoids that. Locally the cookie reaches `localhost:4000` because cookies don't depend on the port. In production `COOKIE_DOMAIN=.ubuzima.wilsonn.tech` shares it with `api.ubuzima.wilsonn.tech`, and CORS allows only the web address, with credentials.
 - **Why not Socket.IO (the earlier plan):** chat here is one-way pushes plus ordinary sends. Server-Sent Events do that with the existing cookie check, reconnect on their own, and add no extra library or second login path.
 - **Proof:** an agent's message reaches the patient's stream in under 3 seconds, as NFR 4 requires (`agent.test.ts`).
-- **Limit:** the event bus is in memory, which is right for one API instance. With more instances it becomes Postgres LISTEN/NOTIFY (NFR 5, phase 3).
+- **Several instances:** events also travel through Postgres LISTEN/NOTIFY (D70).
 
 ### D35. "Connected" means the agent's stream is open
 - **Decision:** while an agent's stream is open, the API marks them as seen every 15 seconds. The stream is opened on every staff page, not only the queue. The dispatcher treats 60 seconds without it as a lost connection (FR 6.14).
@@ -226,7 +226,7 @@ After reading the full requirement text, I fixed these details:
 - **Why:** the user couldn't tell the chosen status from the others when all three looked alike.
 
 ### D44. Demo identities follow the real ID layout
-- **Decision:** IDs are shown and typed in the card's six parts: `1 2006 8 0041223 1 72`. The parts are nationality (1 Rwandan, 2 refugee, 3 foreign resident), year of birth, sex (8 male, 7 female), birth-order number, times issued, and two check digits. The form groups the digits as they are typed. The API refuses 16 digits whose first or sixth digit can't be right.
+- **Decision:** IDs are shown and typed in the card's six parts: `1 1987 8 0592371 0 64`. The parts are nationality (1 Rwandan, 2 refugee, 3 foreign resident), year of birth, sex (8 male, 7 female), birth-order number, times issued, and two check digits. The form groups the digits as they are typed. The API refuses 16 digits whose first or sixth digit can't be right.
 - **Demo people:** each ID's year and sex digit match the person's date of birth and sex. Names follow Rwandan custom: each person has their own Kinyarwanda name, so a child seldom shares a parent's surname. Given names fit the generation: Esperance (1960), Jean Claude (1985), Aline (1992), Ange (2009), Keza (2026). Claudine's birth year moved from 1978 to 1996, because a 48-year-old mother of a 5-week-old was unlikely. The check digits are invented: NIDA doesn't publish the method.
 - **Words:** patient screens say "device", not "phone": the same screens are used on laptops.
 
@@ -283,9 +283,9 @@ After reading the full requirement text, I fixed these details:
 ## Phase 3, batch A (timers, escalations, alerts)
 
 ### D53. One timer loop, beside the dispatcher
-- **Decision:** `TimersService` runs every 15 seconds (`TIMER_MS`; 300 ms in tests) under its own Postgres advisory lock, so only one instance runs it. It expires routings (24 h), releases held beds (6 h), reassigns patients whose clinician's shift ended, escalates waiting cases, watches for no agent online, and counts AI failures.
+- **Decision:** `TimersService` runs every 10 seconds (`TIMER_MS`; 300 ms in tests) under its own Postgres advisory lock, so only one instance runs it. It expires routings (24 h), releases held beds (6 h), reassigns patients whose clinician's shift ended, escalates waiting cases, watches for no agent online, and counts AI failures.
 - **Why separate from the dispatcher:** the dispatcher must answer within seconds (offers last 30 s). These jobs work in minutes and hours. Keeping them apart means a slow pass of one never delays the other.
-- **Why every 15 seconds:** the tightest deadline here is 2 minutes (FR 6.10). 15 s keeps every alert within 15 s of its deadline and costs a few small queries.
+- **Why every 10 seconds:** the SRS deployment diagram (Appendix B, Figure 11) says the timers are checked every ten seconds. The tightest deadline is 2 minutes (FR 6.10), so every alert fires within 10 s of its deadline, for a few small queries.
 
 ### D54. Escalation is measured from when the case started waiting again
 - **Decision:** a case returned to the queue (released, paused, lost connection, or a facility that can't take the patient) gets a fresh waiting time and escalation level 0.
@@ -361,3 +361,48 @@ After reading the full requirement text, I fixed these details:
 ### D65. Bed counts for all facilities in one go
 - **Found by measuring:** the list of facilities an agent routes to counted beds with 2 queries per facility. At 50 facilities its 95th percentile was 208 ms.
 - **Decision:** two grouped queries for all facilities. It's now 55 ms, under the same rule as `setup/beds.ts` (free = total − occupied − reserved).
+
+## Phase 4 (deployment, GitHub, README and the video plan)
+
+### D66. A demo inbox for the made-up staff accounts
+- **Problem:** staff log in with a password and a 6-digit emailed code (FR 2). Graders can't read email sent to `agent@ubuzima.test`, so without help they could never log in as staff on the live site.
+- **Decision:** the page `/demo/inbox` shows the last 20 emails sent to `@ubuzima.test` addresses only. It's on in production only when `DEMO_INBOX=1`; otherwise it answers 404. Emails to `@ubuzima.test` are never handed to Resend, so nothing is sent to a domain nobody owns. Real staff addresses go through Resend and never appear on the page.
+- **On the code screen:** a demo account is told "This is a demo account" with a link to the inbox, so a grader isn't left waiting for an email.
+- **Trade-off:** anyone can log in as a demo staff member. That's the point of a demo; the accounts only see synthetic patients (README, Known limitations).
+
+### D67. How the code reaches Azure, and the two proxies in front of the API
+- **Plan:** as agreed before phase 4: Vercel for the web app, one Azure App Service B1 plan in Central India for the API and the mock NIDA, Supabase in Mumbai next to it, Resend for email, DNS at get.tech ([`docs/DEPLOY.md`](../DEPLOY.md)).
+- **Packaging:** `scripts/azure-package.sh` builds each app and uses `pnpm deploy --prod` to copy only its runtime packages into `.deploy/<app>`, then zips it. Azure runs `node dist/main.js` and builds nothing (`SCM_DO_BUILD_DURING_DEPLOYMENT=false`), so what was tested locally is what runs. Optional peers (the Prisma CLI and Studio) are left out: 43 MB instead of 399 MB.
+- **Two proxies:** a patient's request passes through Vercel and then Azure's front end. The guessing pauses and rate limits count per address, so the API must read the patient's address, not a proxy's. `TRUST_PROXY_HOPS` (1 by default, 2 in production) tells Express how many proxies to skip.
+- **The generated Prisma client** isn't committed; `pnpm install` generates it.
+- **Found on the first upload:** Azure's Node startup script moves a top-level `node_modules` to `/node_modules`. CommonJS finds it there through `NODE_PATH`; our ES modules don't, and the app crashed with "Cannot find package 'reflect-metadata'". Each zip therefore holds the app in `app/` (started with `node app/dist/main.js`), with pnpm's flat layout so no symlinks are lost.
+- **Found on the first login:** Azure's front end writes the caller into X-Forwarded-For as "address:port". Express took the whole string as the address, so the mock NIDA refused the API, and every connection would have counted as a new visitor for the guessing pauses. Both apps now drop the port before Express reads the header (`forwarded.ts`, tested in `forwarded.test.ts`). Proved live: the same call to the mock NIDA went from 403 to 200 once the fix was uploaded.
+- **Found on Vercel:** Turborepo's strict mode hides environment variables a task doesn't declare (except `NEXT_PUBLIC_*`). The web build never saw `API_URL`, fell back to `http://localhost:4000`, and Vercel refused the rewrite with DNS_HOSTNAME_RESOLVED_PRIVATE. `turbo.json` now declares `API_URL` and `NEXT_PUBLIC_API_URL` for the build.
+- **The API's certificate** is a Let's Encrypt certificate uploaded to Azure (valid to 23 Jan 2027), because Azure's free managed certificate never completed for `api.ubuzima.wilsonn.tech`, twice. Renewal: request a new one with a DNS TXT record (`lego --dns manual`), then upload it.
+- **The mock NIDA keeps its Azure address** (`ubuzima-nida.azurewebsites.net`): only the API calls it, so a custom domain would add nothing.
+
+
+### D68. Logos as vectors, three placements
+- **Decision:** the logos come from the UbuzimaConnect Logo Pack's `.ai` files, converted to SVG with `pdftocairo -svg` and cropped to the artwork (the pack's PNGs carry a wide empty border, which made the old header logo about 13 px tall). They live in `apps/web/public/brand/`, and `components/app/logo.tsx` places them by height.
+- **Where each one goes** (revised after Wilson's review: one line, centred, and no symbol repeated inside the app):
+  - **Horizontal with the tagline** ("Your Health, On Time"), centred: the welcome page, the patient login and the staff login, where the brand is seen first.
+  - **The name alone (wordmark), 22 px tall:** headers inside the app (patient pages on a computer, the staff sidebar, the prescription check). The symbol beside it would only repeat the brand.
+  - **The symbol alone, under 640 px:** headers that share a phone-width row with Log out or the language switch. The name would push the button off a 375 px screen.
+  - **Black wordmark:** printed pages, including the printable summary (FR 7.2).
+- **The icons** (favicon, Apple touch, PWA 192 and 512, maskable) were already the pack's own files, byte for byte.
+
+### D69. The live demo stays staffed
+- **Found by the live tests (25 Oct):** the seed filled only the week it ran in, with one clinician per specialty working either every day shift or every night shift. In the day no paediatrician was on duty anywhere, so a child could not be routed, and from Monday 26 October nobody was on duty at all: routing would have found no facility for anyone.
+- **Decision:** `scripts/demo-schedule.mjs` does, through the app's own API, what the managers and the administrator would do. Kacyiru's manager invites a partner for each specialty (6 clinicians), so every specialty there is covered day and night; the administrator creates a manager for Remera Health Centre; each manager fills 12 weeks of shifts, and the administrator the two agents'. It is safe to run again and only adds what is missing.
+- **Why through the API, not the seed:** it needs no database password, it leaves the same trail in the activity log as a real manager would, and it proves FR 2.6, 8.2 and 8.4 work on the live site.
+- **Gaps kept on purpose:** Kibagabaga has no emergency clinician at night and Remera no one at night, so the coverage view and the shift-gap report still show real gaps.
+- **Before mid-January 2027** run it again (`node scripts/demo-schedule.mjs 12`), or the schedule runs out.
+
+### D70. Live events cross API instances through Postgres (NFR 5)
+- **Decision:** `EventsService` delivers each event to the browsers connected to its own instance at once, and also sends it with `pg_notify('uc_live', …)`. Every instance keeps one connection that `LISTEN`s on that channel and passes the other instances' events to its own browsers. Its own events are skipped by an instance id, so nothing arrives twice.
+- **Why Postgres:** the database is already shared by every instance, so this adds no new service (no Redis), and Supabase's session pooler supports LISTEN.
+- **Push notifications** are sent only by the instance where the event started, so a phone is never notified twice. The "app is open" check is per instance: a patient whose app is open on another instance may still get a push, which carries no medical details anyway.
+- **Large messages:** NOTIFY refuses payloads of 8000 bytes or more. A longer chat message reaches the other instances as "case changed", and their browsers reload the case.
+- **Already safe before this:** the dispatcher and the timers each run under a Postgres advisory lock, so only one instance offers cases or fires a timer at a time.
+- **Proof:** `instances.test.ts` starts a second API instance on the same database: a message sent through one reaches a patient connected to the other within 3 seconds, and back.
+- **Scaling out** is then only a setting: Azure App Service → Scale out → more instances, behind its built-in load balancer (NFR 5, SRS deployment diagram). The B1 plan allows up to 3.

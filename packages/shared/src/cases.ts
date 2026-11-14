@@ -13,6 +13,8 @@ export type CaseLocation = z.infer<typeof location>;
 export const startCase = z.object({ subjectId: z.string().uuid(), location });
 
 export const redFlagAnswer = z.object({ questionId: z.string().uuid(), answer: z.boolean() });
+/** The whole checklist on one screen: the danger sign tapped, or null for "None of these". */
+export const redFlagChecklist = z.object({ yes: z.string().uuid().nullable() });
 export const pregnancyAnswer = z.object({ pregnant: z.boolean() });
 
 /** FR 3.7: own words, how long, how bad (1 to 10). */

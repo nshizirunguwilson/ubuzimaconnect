@@ -41,7 +41,10 @@ const clean = (ip = "") => ip.replace(/^::ffff:/, "");
 class ApiKeyGuard implements CanActivate {
   canActivate(ctx: ExecutionContext) {
     const req = ctx.switchToHttp().getRequest<Request>();
-    if (!allowed.has(clean(req.ip))) throw new ForbiddenException();
+    if (!allowed.has(clean(req.ip))) {
+      console.warn(`Refused a caller not on NIDA_ALLOWED_IPS: ${req.ip}`);
+      throw new ForbiddenException();
+    }
     const key = process.env.NIDA_API_KEY ?? "dev-nida-key";
     if (req.header("x-api-key") !== key) throw new UnauthorizedException();
     if (state.outage && !req.path.endsWith("/outage")) throw new ServiceUnavailableException("Identity service is down");
