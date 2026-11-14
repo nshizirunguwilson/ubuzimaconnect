@@ -22,11 +22,25 @@ Design rules and the reasons behind them: [`docs/design/DESIGN.md`](docs/design/
 
 ## Run it locally
 
-You need **Node 22**, **pnpm 12** (`corepack enable pnpm`) and **PostgreSQL 16**.
+You need **Node 22**, **pnpm 12** and **PostgreSQL 16 or newer**, running on port 5432. Node 22 comes with Corepack, which installs the right pnpm:
+
+```bash
+corepack enable pnpm
+```
+
+Get the code:
+
+```bash
+git clone https://github.com/nshizirunguwilson/ubuzimaconnect.git && cd ubuzimaconnect
+```
+
+Install the packages:
 
 ```bash
 pnpm install
 ```
+
+Create the app database and the test database:
 
 ```bash
 createdb ubuzima && createdb ubuzima_test
@@ -38,7 +52,7 @@ Copy the example settings. The defaults work on one computer:
 cp apps/api/.env.example apps/api/.env && cp apps/web/.env.example apps/web/.env.local && cp packages/db/.env.example packages/db/.env
 ```
 
-In `packages/db/.env` and `apps/api/.env`, set `DATABASE_URL=postgresql://<your-user>@localhost:5432/ubuzima`. In `apps/api/.env`, set `APP_SECRET` to any long random string.
+In `packages/db/.env` and `apps/api/.env`, set `DATABASE_URL=postgresql://<your-user>@localhost:5432/ubuzima` (your computer user name; `whoami` prints it). In `apps/api/.env`, set `APP_SECRET` to any long random string (`openssl rand -hex 32` makes one). Leave everything else as it is: the mock NIDA needs no settings, and without the AI, email and push keys the app still works (see the sections below).
 
 Create the database client, the tables and the demo data:
 
@@ -46,10 +60,26 @@ Create the database client, the tables and the demo data:
 pnpm --filter @ubuzima/db generate && pnpm --filter @ubuzima/db migrate && pnpm --filter @ubuzima/api seed
 ```
 
-Start all three apps:
+Start all three apps, and leave this terminal running:
 
 ```bash
 pnpm dev
+```
+
+The website is at http://localhost:3000. The first page can take a minute to build.
+
+The demo data puts each clinician on either the day or the night shift for the current week. To cover every service day and night for the next weeks, as on the live demo, run this once in a second terminal while the apps are running:
+
+```bash
+API=http://localhost:4000 WEB=http://localhost:3000 node scripts/demo-schedule.mjs 2
+```
+
+Without it, at some times of day no clinician of a service is on duty, and patients needing that service are told to call 912 (FR 5.9).
+
+To check the whole system works, run the same 105 checks used on the live site (about 3 minutes). Locally, one check fails by design: the login cookie is marked Secure only over HTTPS.
+
+```bash
+API=http://localhost:4000 WEB=http://localhost:3000 node scripts/live-check.mjs
 ```
 
 ## Try it
@@ -150,6 +180,8 @@ Without the keys everything works except notifications. Try it in Chrome: open a
 pnpm test
 ```
 
+The tests use the `ubuzima_test` database at `localhost:5432`. If your PostgreSQL is elsewhere, set `TEST_DATABASE_URL` to its address first.
+
 - **API:** starts the built API and mock NIDA against `ubuzima_test`: logins (FR 1, 2), cases and AI triage, the agent's work, routing and beds, clinicians, prescriptions, records and activity, role access, and the whole flow end to end.
 - **Web:** checks the contrast of every colour pair, the offline queue, and that every Kinyarwanda text exists.
 - **Shared and mock NIDA:** check the validation and identity rules.
@@ -172,7 +204,7 @@ Vercel (web), Azure App Service in UAE North (API and mock NIDA), Azure Database
 - **FullCalendar's timeline is free for non-commercial use only.** The staff schedule uses its premium resource timeline under the non-commercial licence (D77). A commercial deployment needs a paid licence, or the free time grid instead.
 - **Measured on one computer.** Page loads on 3G are calculated, not measured on a phone. A first visit is about 3 seconds on 3G, at the limit. Installing on a real iPhone and Android phone hasn't been tried yet.
 - **iPhone notifications** need the app added to the Home Screen first (an Apple rule).
-- **Data protection.** The database and API are in India, and the AI is Google's Gemini (it receives no name, ID or location). Rwanda's Law No. 058/2021 asks for authorisation to store personal data outside Rwanda, so real patient data needs that authorisation, or hosting in Rwanda.
+- **Data protection.** The database and API are in Azure UAE North, and the AI is Google's Gemini (it receives no name, ID or location). Rwanda's Law No. 058/2021 asks for authorisation to store personal data outside Rwanda, so real patient data needs that authorisation, or hosting in Rwanda.
 - **The code-guessing pause works per address.** Someone calling the API directly can hide their address. The codes are 40 random bits, so guessing stays impractical anyway.
 
 ## Status
