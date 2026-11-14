@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { cookies } from "next/headers";
+import { sessionCookie } from "@/lib/session";
 import { notFound, redirect } from "next/navigation";
 import { Suspense } from "react";
 import { DesktopHeader } from "@/components/patient/desktop-header";
@@ -24,9 +24,9 @@ export default function Page({ params }: PageProps<"/cases/[id]">) {
 
 async function Inner({ params }: { params: PageProps<"/cases/[id]">["params"] }) {
   const { id } = await params;
-  const session = (await cookies()).get("uc_session")?.value;
-  if (!session) redirect("/login");
-  const res = await fetch(`${apiUrl}/cases/${encodeURIComponent(id)}`, { headers: { cookie: `uc_session=${session}` }, cache: "no-store" });
+  const cookie = await sessionCookie("patient");
+  if (!cookie) redirect("/login");
+  const res = await fetch(`${apiUrl}/cases/${encodeURIComponent(id)}`, { headers: { cookie, "x-uc-app": "patient" }, cache: "no-store" });
   if (res.status === 401) redirect("/login?ended=1");
   if (!res.ok) notFound();
   const view: CaseView = await res.json();

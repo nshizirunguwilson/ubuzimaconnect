@@ -1,4 +1,4 @@
-import { Body, Controller, Get, HttpCode, Param, ParseUUIDPipe, Post, Put, Query, Req } from "@nestjs/common";
+import { Body, Controller, Get, HttpCode, Param, ParseUUIDPipe, Post, Put, Query, Req, Res } from "@nestjs/common";
 import {
   age,
   ageLabel,
@@ -12,7 +12,8 @@ import {
   triageReview,
   type Service,
 } from "@ubuzima/shared";
-import type { Request } from "express";
+import type { Request, Response } from "express";
+import { saveVoice, sendVoice } from "../common/voice";
 import { AuditService } from "../common/audit.service";
 import { DbService } from "../common/db.service";
 import { ApiException } from "../common/errors";
@@ -166,7 +167,7 @@ export class AgentController {
       ai: full.aiResult,
       call: full.callRequested ? { number: full.callNumber, owner: full.callNumberOwner } : null,
       calls: full.calls.map((x) => ({ id: x.id, answered: x.answered, note: x.note, by: x.staff.name, at: x.createdAt })),
-      messages: full.messages.map((m) => ({ id: m.id, sender: m.sender, text: m.text, createdAt: m.createdAt, staffName: m.staff?.name ?? null })),
+      messages: full.messages.map((m) => ({ id: m.id, sender: m.sender, text: m.text, createdAt: m.createdAt, staffName: m.staff?.name ?? null, audioMs: m.audioMs })),
       changes: full.changes,
       routings: full.routings.map((r) => ({
         id: r.id,
@@ -222,6 +223,20 @@ export class AgentController {
     });
     // Push notifications for patients not in the app come in phase 3 (FR 6.6, NFR 13).
     return { id: m.id };
+  }
+
+  /** D74: a voice note from the agent handling the case. */
+  @Post("cases/:id/voice")
+  async voice(@Param("id", ParseUUIDPipe) id: string, @Body() body: unknown, @CurrentSession() s: LiveSession) {
+    await this.mine(id, s);
+    return saveVoice(this.db, this.events, { caseId: id, sender: "AGENT", staffId: s.staffId!, staffName: s.staff!.name }, body);
+  }
+
+  /** D74: play a voice note, only while handling the case (FR 9.2). */
+  @Get("cases/:id/voice/:messageId")
+  async playVoice(@Param("id", ParseUUIDPipe) id: string, @Param("messageId", ParseUUIDPipe) messageId: string, @CurrentSession() s: LiveSession, @Res() res: Response) {
+    await this.mine(id, s);
+    await sendVoice(this.db, res, id, messageId);
   }
 
   /**

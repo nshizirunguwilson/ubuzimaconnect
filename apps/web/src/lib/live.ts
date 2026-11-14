@@ -1,5 +1,7 @@
 "use client";
 
+import { currentApp } from "@/lib/api";
+
 import type { LiveEvent } from "@ubuzima/shared";
 import { useEffect, useRef } from "react";
 
@@ -19,7 +21,7 @@ export function useLive(path: string | null, onEvent: (e: LiveEvent) => void, on
 
   useEffect(() => {
     if (!path) return;
-    const source = new EventSource(`${API}${path}`, { withCredentials: true });
+    const source = new EventSource(`${API}${path}${path.includes("?") ? "&" : "?"}as=${currentApp()}`, { withCredentials: true });
     let opened = false;
     source.onopen = () => {
       if (opened) reconnect.current?.();

@@ -6,7 +6,7 @@ The agreed plan (DECISIONS.md D67):
 |---|---|---|
 | Web app (`apps/web`) | Vercel, from this GitHub repo, root directory `apps/web` | https://ubuzima.wilsonn.tech |
 | API (`apps/api`) | Azure App Service, Linux, B1 plan, Central India (Azure for Students) | https://api.ubuzima.wilsonn.tech |
-| Mock NIDA (`apps/nida-mock`) | Same App Service plan, open only to the API's addresses | https://ubuzima-nida.azurewebsites.net (only the API calls it, so it needs no custom domain) |
+| Mock NIDA (`apps/nida-mock`) | Same App Service plan, open only to the API's addresses | https://nida.ubuzima.wilsonn.tech (only the API calls it) |
 | Database | Supabase, region Mumbai (ap-south-1) | |
 | Email | Resend, sending as `noreply@ubuzima.wilsonn.tech` | |
 | DNS | get.tech, where `wilsonn.tech` is registered | |
@@ -65,7 +65,7 @@ az webapp update -g ubuzima-rg -n ubuzima-nida --https-only true
 | `APP_SECRET` | a new random string: `openssl rand -hex 32` |
 | `WEB_URL` | `https://ubuzima.wilsonn.tech` |
 | `COOKIE_DOMAIN` | `.ubuzima.wilsonn.tech` (the browser opens live streams straight to the API, D34) |
-| `NIDA_URL` | `https://ubuzima-nida.azurewebsites.net` |
+| `NIDA_URL` | `https://nida.ubuzima.wilsonn.tech` |
 | `NIDA_API_KEY` | a new random string, the same on both apps |
 | `GEMINI_API_KEY` | from `apps/api/.env` |
 | `GEMINI_MODEL`, `GEMINI_THINKING` | as in `apps/api/.env` |
@@ -84,6 +84,7 @@ az webapp update -g ubuzima-rg -n ubuzima-nida --https-only true
 | `NIDA_API_KEY` | the same value as on the API |
 | `NIDA_ALLOWED_IPS` | every address the API may call from: `az webapp show -g ubuzima-rg -n ubuzima-api --query possibleOutboundIpAddresses -o tsv` |
 | `TRUST_PROXY` | `1` |
+| `NIDA_DATABASE_URL` | the same database, but logged in as its own user `nida_svc`, which can only work in the `nida` schema (D73). Create it once as the database owner: `create role nida_svc login password '…'; grant nida_svc to postgres; create schema nida authorization nida_svc;`. On Supabase's pooler the user name is `nida_svc.<project-ref>`. Without this setting the mock NIDA still verifies the built-in people but can't add new ones. |
 
 The mock NIDA refuses every other address (and every caller without the key). Azure's front end writes the caller as "address:port"; both apps drop the port before checking (D67).
 
@@ -130,6 +131,8 @@ Add the domain `ubuzima.wilsonn.tech` in Resend, add the DNS records it shows (s
 |---|---|---|
 | `ubuzima` | CNAME | the value Vercel shows under Domains |
 | `api.ubuzima` | CNAME | `ubuzima-api.azurewebsites.net` |
+| `nida.ubuzima` | CNAME | `ubuzima-nida.azurewebsites.net` |
+| `asuid.nida.ubuzima` | TXT | the same verification ID as `asuid.api.ubuzima` |
 | `asuid.api.ubuzima` | TXT | the API's verification ID: `az webapp show -g ubuzima-rg -n ubuzima-api --query customDomainVerificationId -o tsv` |
 | Resend's records | as shown | |
 

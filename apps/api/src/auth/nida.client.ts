@@ -12,6 +12,18 @@ export type NidaPerson = {
 };
 export type NidaResult = { match: false } | { match: true; person: NidaPerson; children: NidaPerson[] };
 
+export type NidaListed = {
+  ref: string;
+  nationalId: string | null;
+  names: string[];
+  dateOfBirth: string;
+  sex: "FEMALE" | "MALE";
+  district: string;
+  parentRefs: string[];
+  hasPhoto?: boolean;
+  addedAt?: string | null;
+};
+
 export class NidaUnavailable extends Error {}
 
 /** The national identity service (mocked in apps/nida-mock). Slow or failing calls count as unavailable (FR 1.5). */
@@ -27,9 +39,34 @@ export class NidaClient {
     });
   }
 
-  async photo(ref: string): Promise<string> {
+  /** The identity photo: an uploaded JPEG or PNG for people added through the form (D73), else an SVG silhouette. */
+  async photo(ref: string): Promise<{ type: string; body: Buffer }> {
     const res = await this.raw(`/v1/photos/${encodeURIComponent(ref)}`, {});
-    return res.text();
+    return { type: res.headers.get("content-type")?.split(";")[0] ?? "image/svg+xml", body: Buffer.from(await res.arrayBuffer()) };
+  }
+
+  /** D73: everyone in the mock NIDA, for the administrator. */
+  async people(): Promise<NidaListed[]> {
+    return this.call<NidaListed[]>("/v1/people", {});
+  }
+
+  /** D73: add a made-up person. A refusal by the mock NIDA comes back as its message, not as "unavailable". */
+  async addPerson(body: unknown): Promise<{ ok: true; person: NidaListed } | { ok: false; message: string }> {
+    let res: Response;
+    try {
+      res = await fetch(env.nidaUrl + "/v1/people", {
+        method: "POST",
+        headers: { "content-type": "application/json", "x-api-key": env.nidaKey },
+        body: JSON.stringify(body),
+        signal: AbortSignal.timeout(10_000),
+      });
+    } catch (e) {
+      this.log.warn(`Unavailable: ${(e as Error).message}`);
+      throw new NidaUnavailable();
+    }
+    if (res.status === 400) return { ok: false, message: ((await res.json().catch(() => ({}))) as { message?: string }).message ?? "Check the details" };
+    if (!res.ok) throw new NidaUnavailable();
+    return { ok: true, person: (await res.json()) as NidaListed };
   }
 
   private async call<T>(path: string, init: RequestInit): Promise<T> {

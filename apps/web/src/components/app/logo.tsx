@@ -8,6 +8,7 @@ import Link from "next/link";
  * - hero: symbol, name and tagline in one line, centred on the pages where the brand is seen first.
  * - header: the name alone, inside the app, where the symbol would only repeat what the page already says.
  * - compact: the symbol alone under 640 px, where a header row also holds a button; the name above.
+ * - symbol: the heart alone, in the folded staff menu.
  * Both header variants print in the pack's black version.
  */
 const ART = {
@@ -17,7 +18,7 @@ const ART = {
   symbol: { src: "/brand/logo-symbol.svg", ratio: 212 / 203 },
 } as const;
 
-type Variant = "hero" | "header" | "compact";
+type Variant = "hero" | "header" | "compact" | "symbol";
 
 function Art({ art, height, className }: { art: keyof typeof ART; height: number; className?: string }) {
   const { src, ratio } = ART[art];
@@ -29,6 +30,13 @@ export function Logo({ href = "/", variant = "header", height }: { href?: string
     return (
       <Link href={href} className="inline-flex shrink-0 self-center" aria-label="UbuzimaConnect home">
         <Art art="tagline" height={height ?? 56} />
+      </Link>
+    );
+  }
+  if (variant === "symbol") {
+    return (
+      <Link href={href} className="inline-flex shrink-0" aria-label="UbuzimaConnect home">
+        <Art art="symbol" height={height ?? 32} />
       </Link>
     );
   }

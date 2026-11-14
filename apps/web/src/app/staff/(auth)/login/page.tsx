@@ -14,5 +14,5 @@ export default function StaffLoginPage({ searchParams }: PageProps<"/staff/login
 
 async function Inner({ searchParams }: { searchParams: PageProps<"/staff/login">["searchParams"] }) {
   const q = await searchParams;
-  return <StaffLoginForm ended={q.ended === "1"} done={q.done === "password" ? "password" : q.done === "unlocked" ? "unlocked" : null} />;
+  return <StaffLoginForm ended={q.ended === "1"} other={q.other === "1"} done={q.done === "password" ? "password" : q.done === "unlocked" ? "unlocked" : null} />;
 }

@@ -1,4 +1,4 @@
-import { Body, Controller, Get, HttpCode, Param, ParseUUIDPipe, Post, Req } from "@nestjs/common";
+import { Body, Controller, Get, HttpCode, Param, ParseUUIDPipe, Post, Req, Res } from "@nestjs/common";
 import type { Case, Patient } from "@ubuzima/db";
 import {
   age,
@@ -24,7 +24,8 @@ import {
   triageLevel,
   type Service,
 } from "@ubuzima/shared";
-import type { Request } from "express";
+import type { Request, Response } from "express";
+import { saveVoice, sendVoice } from "../common/voice";
 import { AuditService } from "../common/audit.service";
 import { DbService } from "../common/db.service";
 import { ApiException } from "../common/errors";
@@ -433,6 +434,21 @@ export class CasesController {
     return { id: m.id };
   }
 
+  /** D74: a voice note from the patient, on an open case. */
+  @Post(":id/voice")
+  async voice(@Param("id", ParseUUIDPipe) id: string, @Body() body: unknown, @CurrentSession() s: LiveSession) {
+    const c = await this.own(s, id);
+    if (c.status === "CLOSED" || !c.triageLevel) throw new ApiException(409, "CONFLICT", "You can't send messages on this case.");
+    return saveVoice(this.db, this.events, { caseId: id, sender: "PATIENT" }, body);
+  }
+
+  /** D74: play a voice note on one of the patient's own cases (open or closed). */
+  @Get(":id/voice/:messageId")
+  async playVoice(@Param("id", ParseUUIDPipe) id: string, @Param("messageId", ParseUUIDPipe) messageId: string, @CurrentSession() s: LiveSession, @Res() res: Response) {
+    await this.own(s, id);
+    await sendVoice(this.db, res, id, messageId);
+  }
+
   /** FR 6.15: after closing, the patient rates the help from 1 to 5, once. */
   @Post(":id/rating")
   @HttpCode(200)
@@ -710,6 +726,7 @@ export class CasesController {
         text: m.text,
         createdAt: m.createdAt,
         staffName: m.staff ? m.staff.name.split(" ")[0] : null,
+        audioMs: m.audioMs,
       })),
       createdAt: c.createdAt,
     };

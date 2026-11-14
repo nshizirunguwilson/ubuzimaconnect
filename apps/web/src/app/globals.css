@@ -275,3 +275,42 @@
     animation-iteration-count: 1 !important;
   }
 }
+
+/* D77: FullCalendar in the design tokens. Its own stylesheet is injected by the library; this only re-colours it. */
+.uc-calendar .fc {
+  --fc-border-color: var(--color-border);
+  --fc-page-bg-color: var(--color-surface);
+  --fc-neutral-bg-color: var(--color-gray-50);
+  --fc-today-bg-color: var(--color-accent-soft);
+  --fc-now-indicator-color: var(--color-urgent);
+  --fc-highlight-color: rgb(0 130 251 / 0.12);
+  --fc-event-border-color: transparent;
+  font-family: var(--font-sans);
+  font-size: var(--text-small);
+  color: var(--color-fg);
+}
+.uc-calendar {
+  overflow: hidden;
+  border: 1px solid var(--color-border);
+  border-radius: 16px;
+  background: var(--color-surface);
+}
+.uc-calendar .fc-scrollgrid { border: 0; }
+.uc-calendar .fc-timeline-slot-cushion,
+.uc-calendar .fc-datagrid-cell-cushion { font-size: var(--text-caption); color: var(--color-fg-muted); font-weight: 500; }
+.uc-calendar .fc-timeline-header-row:first-child .fc-timeline-slot-cushion { color: var(--color-fg); }
+.uc-calendar .fc-datagrid-cell-cushion { padding: 8px 12px; }
+.uc-calendar .fc-timeline-lane:not(.fc-day-past) .fc-timeline-slot-lane { cursor: pointer; }
+.uc-calendar .fc-day-past.fc-timeline-slot-lane { background: var(--color-gray-50); }
+.uc-calendar .fc-timeline-event { margin: 4px 3px; border-radius: 6px; padding: 0; }
+.uc-calendar .fc-timeline-event-harness { top: 0 !important; }
+.uc-calendar .uc-ev-on { background: var(--color-accent-soft); color: var(--color-info-fg); box-shadow: inset 3px 0 0 var(--color-primary); }
+.uc-calendar .uc-ev-off { background: var(--color-warning-soft); color: var(--color-warning-fg); box-shadow: inset 3px 0 0 var(--color-warning); }
+.uc-calendar .uc-ev-gap { background: var(--color-warning-soft); color: var(--color-warning-fg); cursor: help; }
+.uc-calendar .uc-ev-covered { background: transparent; color: var(--color-success); cursor: default; }
+.uc-calendar .uc-ev-past { opacity: 0.55; cursor: default; }
+.uc-calendar .fc-event-main { color: inherit; }
+.uc-calendar .fc-resource-group, .uc-calendar tr:last-child .fc-datagrid-cell { background: var(--color-gray-50); }
+.uc-calendar .fc-timegrid-slot { height: 2.25rem; }
+.uc-calendar .fc-timegrid-slot-label-cushion, .uc-calendar .fc-col-header-cell-cushion { font-size: var(--text-caption); color: var(--color-fg-muted); font-weight: 500; }
+.uc-calendar .fc-timegrid-event { border-radius: 6px; }

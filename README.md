@@ -62,7 +62,7 @@ All staff accounts use the password **`Ubuzima-demo-2026`** (set in [`apps/api/s
 
 | Role | Email | Name | What to try |
 |---|---|---|---|
-| Administrator | `admin@ubuzima.test` | Patrick Nkurunziza | Staff accounts and invitations, facilities, agent schedule, on duty, red-flag list, AI switch, alerts, activity log, reports |
+| Administrator | `admin@ubuzima.test` | Patrick Nkurunziza | Staff accounts and invitations, facilities, agent schedule, on duty, red-flag list, AI switch, alerts, activity log, reports, and **Mock NIDA**: add your own made-up person, then log in as them |
 | Health agent | `agent@ubuzima.test` | Diane Umutoni | Set **Available**, accept the offer, chat, call note, triage, routing, prescription, close |
 | Health agent | `agent2@ubuzima.test` | Eric Habineza | A second agent, for offers passing between agents |
 | Facility manager | `manager@ubuzima.test` | Olivier Rukundo | Kacyiru District Hospital: profile, beds, clinicians, weekly schedule, reports |
@@ -99,12 +99,14 @@ Log in at **/login** with one of these fictional people from the mock NIDA ([`ap
 | 1 1996 7 0078215 1 35 | 18 Apr 1996 | Claudine | A woman of 30 ("Are you pregnant?"), and a 5-week-old baby who gets the young-baby sign N1 |
 | 1 1960 7 0012689 2 41 | 25 Dec 1960 | Mukamana | Aged 65, no children in the record |
 
+To make your own patient, log in as the administrator and open **Mock NIDA**: add a person (with a photo if you like), and the page shows the new ID to log in with.
+
 Children have no ID of their own: a parent chooses them under "Who is sick?". The example ID in the login hint is made up and is not in the mock NIDA. Five wrong tries lock an ID for 15 minutes (FR 1.6).
 
 ### No account needed
 
 - **Emergency:** the Emergency button on the first screen (`/emergency`): 912 and the nearest emergency facility.
-- **Pharmacist:** `/check`, then a prescription code such as `RX-449Q-XJYX`, or scan a prescription's QR code with a phone camera.
+- **Pharmacist:** `/check`, then the code of a prescription issued in the demo (an agent or clinician issues one in a minute), or scan its QR code with a phone camera. An unknown code shows "Prescription not found".
 
 ### Try a whole case
 
@@ -165,7 +167,7 @@ Vercel (web), Azure App Service in Central India (API and mock NIDA), Supabase i
 - **Kinyarwanda is a draft.** Every text was written by the developer, who isn't a native speaker, and needs checking by a Kinyarwanda speaker. The 23 danger-sign questions also need a clinician's check ([`docs/translations`](docs/translations/README.md)).
 - **The national ID service is a mock.** It holds fictional people. Connecting to the real NIDA needs an agreement with NIDA and changes only `apps/api/src/auth/nida.client.ts`.
 - **The live site is a public demo.** The demo staff passwords are in this README, and their login codes appear at `/demo/inbox`, so anyone can log in as a demo agent, clinician or administrator. All data is fictional. For real use: set `DEMO_INBOX` off and give staff real accounts.
-- **One API instance.** Live updates (chat, offers, alerts) travel through memory. A second instance first needs them moved to Postgres LISTEN/NOTIFY (D34, [`docs/PERFORMANCE.md`](docs/PERFORMANCE.md)).
+- **FullCalendar's timeline is free for non-commercial use only.** The staff schedule uses its premium resource timeline under the non-commercial licence (D77). A commercial deployment needs a paid licence, or the free time grid instead.
 - **Measured on one computer.** Page loads on 3G are calculated, not measured on a phone. A first visit is about 3 seconds on 3G, at the limit. Installing on a real iPhone and Android phone hasn't been tried yet.
 - **iPhone notifications** need the app added to the Home Screen first (an Apple rule).
 - **Data protection.** The database and API are in India, and the AI is Google's Gemini (it receives no name, ID or location). Rwanda's Law No. 058/2021 asks for authorisation to store personal data outside Rwanda, so real patient data needs that authorisation, or hosting in Rwanda.

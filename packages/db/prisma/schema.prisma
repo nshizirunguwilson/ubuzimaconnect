@@ -522,9 +522,20 @@ model ChatMessage {
   staffId   String?       @db.Uuid
   staff     Staff?        @relation(fields: [staffId], references: [id])
   text      String
+  /// D74: a voice note's length; its sound is in ChatAudio, loaded only when played
+  audioMs   Int?
+  audio     ChatAudio?
   createdAt DateTime      @default(now())
 
   @@index([caseId, createdAt])
+}
+
+/// D74: the recorded sound of a voice note. Kept apart so loading a chat never loads the audio.
+model ChatAudio {
+  messageId String      @id @db.Uuid
+  message   ChatMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  mimeType  String
+  data      Bytes
 }
 
 /// FR 6.7: one call attempt and its note.

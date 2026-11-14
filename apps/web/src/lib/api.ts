@@ -12,6 +12,10 @@ export class ApiFailure extends Error {
 
 const offline: ApiError = { code: "VALIDATION", message: "You seem to be offline. Check your connection and try again." };
 
+/** Which app this page belongs to: the staff app lives under /staff (D76). */
+export const currentApp = (): "staff" | "patient" =>
+  typeof window !== "undefined" && window.location.pathname.startsWith("/staff") ? "staff" : "patient";
+
 /** Browser calls to the API through the same-origin /api rewrite. */
 export async function api<T = unknown>(path: string, body?: unknown, init: RequestInit = {}): Promise<T> {
   let res: Response;
@@ -19,7 +23,8 @@ export async function api<T = unknown>(path: string, body?: unknown, init: Reque
     res = await fetch(`/api${path}`, {
       method: body === undefined ? "GET" : "POST",
       credentials: "same-origin",
-      headers: body === undefined ? undefined : { "Content-Type": "application/json" },
+      // D76: each app has its own session cookie; routes either app may call need to know which one is asking.
+      headers: { ...(body === undefined ? {} : { "Content-Type": "application/json" }), "x-uc-app": currentApp() },
       body: body === undefined ? undefined : JSON.stringify(body),
       ...init,
     });

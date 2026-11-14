@@ -66,7 +66,7 @@ export class StaffAuthController {
   @HttpCode(200)
   async code(@Body() body: unknown, @Req() req: Request) {
     const { code } = parse(emailCode, body);
-    const s = await this.sessions.current(req);
+    const s = await this.sessions.current(req, "staff");
     if (!s?.staff || s.verified) {
       throw new ApiException(401, "UNAUTHENTICATED", "This login has timed out. Enter your email and password again.");
     }
@@ -81,7 +81,7 @@ export class StaffAuthController {
   @Post("code/resend")
   @HttpCode(200)
   async resend(@Req() req: Request) {
-    const s = await this.sessions.current(req);
+    const s = await this.sessions.current(req, "staff");
     if (!s?.staff || s.verified) {
       throw new ApiException(401, "UNAUTHENTICATED", "This login has timed out. Enter your email and password again.");
     }
