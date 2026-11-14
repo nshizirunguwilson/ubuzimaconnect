@@ -11,4 +11,3 @@ coverage
 *.log
 **/src/generated
 .deploy
-.claude
