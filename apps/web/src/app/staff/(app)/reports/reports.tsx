@@ -10,8 +10,9 @@ import { Squircle } from "@/components/ui/squircle";
 import { cn } from "@/lib/cn";
 import { formatDate } from "@/lib/time";
 import { useApi } from "@/lib/use-api";
+import { Loading } from "@/components/ui/loading";
 
-type Tile = { label: string; value: number | null; unit?: "min" | "%" | "days" | "/5"; hint?: string };
+type Tile = { label: string; value: number | null; unit?: "min" | "%" | "hours" | "days" | "/5"; hint?: string };
 type Report = {
   title: string;
   period: Period;
@@ -116,7 +117,7 @@ export function Reports() {
       {error ? (
         <p className="text-small font-medium text-urgent-fg">{error}</p>
       ) : !data ? (
-        <div className="h-64" aria-busy />
+        <Loading className="h-64" />
       ) : (
         <>
           <dl className="grid grid-cols-2 gap-3 md:grid-cols-3">

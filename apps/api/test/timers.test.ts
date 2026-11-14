@@ -1,6 +1,6 @@
 import { currentShift } from "@ubuzima/shared";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
-import { browser, db, staffLogin } from "./client";
+import { API, browser, db, staffLogin } from "./client";
 import { startFakeGemini } from "./fake-gemini";
 import { resetDatabase } from "./setup";
 
@@ -221,6 +221,25 @@ describe("escalation (FR 6.10, 6.11)", () => {
         (await one(`select count(*)::int as n from "Alert" where "caseId" = $1 and kind = 'DELAY_INCIDENT'`, [id]))
           .n === 2,
     );
+
+    // Later repeats refresh that one "Still waiting" alert, unread again, instead of adding rows.
+    await db.query(`update "Alert" set "readAt" = now() where "caseId" = $1`, [id]);
+    await db.query(
+      `update "Case" set "escalatedAt" = (now() at time zone 'utc') - interval '3 minutes', "queuedAt" = (now() at time zone 'utc') - interval '9 minutes' where id = $1`,
+      [id],
+    );
+    await until(
+      async () =>
+        (
+          await one(
+            `select count(*)::int as n from "Alert" where "caseId" = $1 and "readAt" is null and message like 'Still waiting:%9 minutes%'`,
+            [id],
+          )
+        ).n === 1,
+    );
+    expect(
+      (await one(`select count(*)::int as n from "Alert" where "caseId" = $1 and kind = 'DELAY_INCIDENT'`, [id])).n,
+    ).toBe(2);
   });
 
   it("starts the clock again when a case goes back to the queue", async () => {
@@ -268,6 +287,20 @@ describe("no agent online (FR 6.13)", () => {
   });
 });
 
+describe("no agent online with nobody waiting", () => {
+  it("alerts the administrator in the app but sends no email", async () => {
+    await db.query(`update "Staff" set "agentStatus" = 'OFFLINE' where role = 'AGENT'`);
+    await db.query(`delete from "Alert" where kind = 'NO_AGENT'`);
+    await until(async () => (await one(`select "noAgentSince" from "SystemSettings" where id = 1`))?.noAgentSince);
+    await db.query(
+      `update "SystemSettings" set "noAgentSince" = (now() at time zone 'utc') - interval '6 minutes', "noAgentAlerted" = false where id = 1`,
+    );
+    const alert = await until(async () => one(`select emailed, message from "Alert" where kind = 'NO_AGENT'`));
+    expect(alert).toMatchObject({ emailed: false });
+    expect(alert.message).toContain("0 cases are waiting");
+  });
+});
+
 describe("administrator alerts (FR 12.7, 4.7, 5.9)", () => {
   it("raises one alert for more than 5 AI failures in 5 minutes", async () => {
     for (let attempt = 0; attempt < 6; attempt++)
@@ -286,6 +319,67 @@ describe("administrator alerts (FR 12.7, 4.7, 5.9)", () => {
     );
     const { id } = await waiting("minor");
     expect(await one(`select kind from "Alert" where "caseId" = $1`, [id])).toEqual({ kind: "NO_CAPACITY" });
+  });
+
+  it("tells every agent's queue at once when a case starts waiting, even while they are Away (FR 6.2)", async () => {
+    const controller = new AbortController();
+    const stream = await fetch(`${API}/events/agent`, {
+      headers: { cookie: agent.cookie() },
+      signal: controller.signal,
+    });
+    const reader = stream.body!.getReader();
+    await wait(300);
+    let received = "";
+    try {
+      await urgent();
+      const timer = setTimeout(() => controller.abort(), 4000);
+      try {
+        while (!received.includes('"queue"')) {
+          const { value, done } = await reader.read();
+          if (done) break;
+          received += new TextDecoder().decode(value);
+        }
+      } catch {
+        /* timed out */
+      }
+      clearTimeout(timer);
+    } finally {
+      controller.abort();
+    }
+    expect(received).toContain('"queue"');
+  });
+
+  it("alerts the agents at once when no suitable facility has a free bed (FR 5.8)", async () => {
+    const beds = (await db.query(`select id, "totalBeds" from "Facility"`)).rows;
+    await db.query(`update "Facility" set "totalBeds" = 0`);
+    const controller = new AbortController();
+    const stream = await fetch(`${API}/events/agent`, {
+      headers: { cookie: agent.cookie() },
+      signal: controller.signal,
+    });
+    const reader = stream.body!.getReader();
+    await wait(300);
+    try {
+      const { caseId } = await urgent();
+      let received = "";
+      const timer = setTimeout(() => controller.abort(), 4000);
+      try {
+        while (!received.includes("No beds currently available")) {
+          const { value, done } = await reader.read();
+          if (done) break;
+          received += new TextDecoder().decode(value);
+        }
+      } catch {
+        /* timed out */
+      }
+      clearTimeout(timer);
+      expect(received).toContain("No beds currently available");
+      expect(await one(`select kind from "Alert" where "caseId" = $1`, [caseId])).toEqual({ kind: "NO_CAPACITY" });
+    } finally {
+      controller.abort();
+      for (const row of beds)
+        await db.query(`update "Facility" set "totalBeds" = $2 where id = $1`, [row.id, row.totalBeds]);
+    }
   });
 
   it("lists alerts for the administrator only, and marks them read", async () => {

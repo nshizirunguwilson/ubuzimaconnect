@@ -15,6 +15,7 @@ import { toast } from "@/components/ui/toast";
 import { api, ApiFailure } from "@/lib/api";
 import { check } from "@/lib/form";
 import { useApi } from "@/lib/use-api";
+import { Loading } from "@/components/ui/loading";
 
 type Group = keyof typeof RED_FLAG_GROUP_LABEL;
 type Q = {
@@ -59,7 +60,7 @@ export function RedFlags() {
         </p>
       )}
       {data === null ? (
-        <div className="h-96" aria-busy />
+        <Loading className="h-96" />
       ) : (
         (Object.keys(RED_FLAG_GROUP_LABEL) as Group[]).map((groupKey) => {
           const qs = data.filter((question) => question.group === groupKey);
@@ -144,7 +145,7 @@ function QuestionDialog({ question, onDone }: { question?: Q; onDone: () => Prom
       ...form,
       group: form.group || undefined,
       service: form.service || undefined,
-      textRw: form.textRw || undefined,
+      textRw: form.textRw,
       source: form.source || undefined,
     });
     if (!result.data) return setErrors(result.errors);
@@ -217,7 +218,6 @@ function QuestionDialog({ question, onDone }: { question?: Q; onDone: () => Prom
           />
           <Textarea
             label="Question in Kinyarwanda"
-            optional
             rows={3}
             value={form.textRw}
             onChange={set("textRw")}

@@ -14,6 +14,7 @@ import { toast } from "@/components/ui/toast";
 import { api, ApiFailure } from "@/lib/api";
 import { check } from "@/lib/form";
 import { formatDateTime } from "@/lib/time";
+import { Loading } from "@/components/ui/loading";
 
 type Row = {
   id: string;
@@ -58,7 +59,7 @@ export function Team({ meId }: { meId: string }) {
 
       <Card className="overflow-hidden p-0 md:p-0">
         {rows === null ? (
-          <div className="h-48" aria-busy />
+          <Loading className="h-48" />
         ) : rows.length === 0 ? (
           <EmptyState icon={PiUsersBold} message="No staff accounts yet." />
         ) : (

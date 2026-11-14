@@ -200,7 +200,15 @@ describe("red flags and the AI switch (FR 12.6, 4.8)", () => {
       textEn: "Is the sick person bleeding from the ears after a fall?",
       service: "SURGERY",
     });
-    expect(added.status).toBe(201);
+    // FR 12.6: both languages are needed.
+    expect(added.status).toBe(400);
+    const addedBoth = await admin("/red-flags", {
+      group: "A",
+      textEn: "Is the sick person bleeding from the ears after a fall?",
+      textRw: "Umurwayi aravirira mu matwi nyuma yo kugwa?",
+      service: "SURGERY",
+    });
+    expect(addedBoth.status).toBe(201);
     const agent = await staffLogin("agent@ubuzima.test");
     expect((await agent("/red-flags")).status).toBe(403);
     const logged = await db.query(`select count(*)::int as n from "AuditEvent" where action = 'redflag.added'`);
@@ -227,7 +235,12 @@ describe("red flags and the AI switch (FR 12.6, 4.8)", () => {
       (
         await admin(
           `/red-flags/${question.id}`,
-          { group: "A", textEn: "Was the sick person bitten by a snake or a dog?", service: "EMERGENCY_CARE" },
+          {
+            group: "A",
+            textEn: "Was the sick person bitten by a snake or a dog?",
+            textRw: "Umurwayi yarumwe n'inzoka cyangwa imbwa?",
+            service: "EMERGENCY_CARE",
+          },
           "PUT",
         )
       ).status,
@@ -260,5 +273,8 @@ describe("account administration (FR 12.2, 12.3)", () => {
     const id = (await db.query(`select id from "Staff" where email = 'eric.h@ubuzima.test'`)).rows[0].id;
     expect((await admin(`/staff/${id}/deactivate`, {})).status).toBe(200);
     expect((await db.query(`select status from "Staff" where id = $1`, [id])).rows[0].status).toBe("DEACTIVATED");
+    // Turned-off accounts are listed after everyone else.
+    const statuses = ((await admin("/staff")).body as { status: string }[]).map((person) => person.status);
+    expect(statuses.indexOf("DEACTIVATED")).toBeGreaterThan(statuses.lastIndexOf("ACTIVE"));
   });
 });

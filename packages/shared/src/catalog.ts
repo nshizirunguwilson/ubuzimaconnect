@@ -165,7 +165,8 @@ export const unavailability = z.object({
 export const redFlagQuestion = z.object({
   group: z.enum(["A", "C", "N", "P"], "Choose a group"),
   textEn: z.string().trim().min(10, "Write the question in English").max(300),
-  textRw: z.string().trim().max(300).optional(),
+  // FR 12.6: every question in both languages, so Kinyarwanda patients never see English instead.
+  textRw: z.string().trim().min(10, "Write the question in Kinyarwanda").max(300),
   service: z.enum(SERVICES, "Choose the service needed"),
   source: z.string().trim().max(200).optional(),
 });

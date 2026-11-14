@@ -11,6 +11,7 @@ import { cn } from "@/lib/cn";
 import { useLive } from "@/lib/live";
 import { formatDateTime } from "@/lib/time";
 import { useApi } from "@/lib/use-api";
+import { Loading } from "@/components/ui/loading";
 
 type Kind = "ESCALATION" | "DELAY_INCIDENT" | "NO_AGENT" | "NO_CAPACITY" | "AI_FAILURES";
 type Data = {
@@ -42,7 +43,7 @@ export function Alerts() {
     (event) => event.type === "admin-alert" && void reload(),
     () => void reload(),
   );
-  if (!data) return <div className="h-96" aria-busy />;
+  if (!data) return <Loading className="h-96" />;
 
   return (
     <div className="flex max-w-[900px] flex-col gap-6">

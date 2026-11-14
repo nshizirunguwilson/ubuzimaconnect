@@ -44,6 +44,7 @@ import { api, ApiFailure } from "@/lib/api";
 import { useLive } from "@/lib/live";
 import { formatDate, formatDateTime } from "@/lib/time";
 import { useApi } from "@/lib/use-api";
+import { Loading } from "@/components/ui/loading";
 
 type Level = "URGENT" | "UNCERTAIN" | "MINOR";
 type Routing = {
@@ -136,7 +137,7 @@ export function Workspace({ id }: { id: string }) {
       </div>
     );
   }
-  if (!data) return <div className="h-96" aria-busy />;
+  if (!data) return <Loading className="h-96" />;
 
   const active =
     data.routings.find((routing) => routing.status === "SUGGESTED" || routing.status === "CONFIRMED") ?? null;
@@ -157,12 +158,12 @@ export function Workspace({ id }: { id: string }) {
         </div>
       </div>
 
-      <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_400px]">
+      <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_340px] xl:grid-cols-[minmax(0,1fr)_400px]">
         <div className="flex flex-col gap-6">
           <PatientCard data={data} />
           {/* One part of the work at a time; forceMount keeps half-filled forms when switching. */}
           <Tabs defaultValue="case" className="flex flex-col gap-6">
-            <TabsList aria-label="Case sections">
+            <TabsList aria-label="Case sections" className="gap-4 xl:gap-6">
               <Tab value="case">Case</Tab>
               <Tab value="routing">Routing</Tab>
               <Tab value="prescribe" count={data.prescriptions.length}>
@@ -362,7 +363,7 @@ function Review({ data, onSaved }: { data: View; onSaved: () => Promise<void> })
             />
           ))}
         </fieldset>
-        <div className="grid gap-5 sm:grid-cols-2">
+        <div className="grid gap-5 xl:grid-cols-2">
           <Select
             label="Category"
             placeholder="No category"
@@ -480,7 +481,7 @@ function RoutingPanel({ data, active, onDone }: { data: View; active: Routing | 
         </Notice>
       )}
       {!options ? (
-        <div className="h-24" aria-busy />
+        <Loading className="h-24" />
       ) : options.kind === "NO_MATCH" ? (
         <Notice tone="urgent" title="No facility offers this service with a clinician on duty">
           Tell the patient to call 912. Try another service if it fits.
@@ -489,7 +490,7 @@ function RoutingPanel({ data, active, onDone }: { data: View; active: Routing | 
         <form onSubmit={submit} className="flex flex-col gap-4">
           {options.kind === "NO_BEDS" && <Notice tone="warning" title="No beds currently available" />}
           <fieldset className="flex flex-col gap-2">
-            <legend className="mb-1 text-small font-medium text-fg">Facility, nearest first</legend>
+            <legend className="mb-1 text-small font-medium text-fg">Facility: suitable first, then nearest</legend>
             {options.facilities.slice(0, 5).map((facility) => (
               <ChoiceRow
                 key={facility.id}

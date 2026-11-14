@@ -134,6 +134,17 @@ async function A() {
     home.status,
   );
 
+  // Everything else here calls the API directly. Users reach it through the website's /api, which depends on
+  // Vercel's API_URL: on 13 Nov 2026 that still named a deleted server and every login on the site failed.
+  const viaWeb = await fetch(`${WEB}/api/health`).catch(() => null);
+  check("A1", "NFR 1", "The website reaches the API (/api on the site)", viaWeb?.ok, viaWeb?.status);
+  const webLogin = await fetch(`${WEB}/api/auth/patient/login`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(ALINE),
+  }).catch(() => null);
+  check("A1", "FR 1.1", "A patient can log in through the website", webLogin?.status === 200, webLogin?.status);
+
   const a = await patient(ALINE);
   check(
     "A1",
@@ -570,7 +581,10 @@ async function CDE() {
   check("C12", "FR 6.15", "Patient rates the help 1 to 5", rate.status < 300, rate.body);
 
   // D4, D5, E: the clinician at Kacyiru
-  const doc = await staff(clinician?.email ?? "clinician@ubuzima.test");
+  // The routing lists clinicians by name; log in as the one it picked, who is on duty now (Day or Night).
+  const roster = (await (await staff("admin@ubuzima.test"))("/staff")).body;
+  const doctorEmail = roster.find((s) => s.id === clinician?.id)?.email ?? "clinician@ubuzima.test";
+  const doc = await staff(doctorEmail);
   const docName = clinician?.name;
   check("E1", "FR 2.1-2.2", `Clinician logs in (${docName ?? "paeds"})`, doc.loginStatus === 200, doc.loginStatus);
   const list = (await doc("/clinician/patients")).body;
@@ -607,7 +621,8 @@ async function CDE() {
     full.status === 200,
     full.status,
   );
-  const other = await staff("maternity@ubuzima.test");
+  // Another clinician at the same facility, whoever is on duty, must not open the visit.
+  const other = await staff(doctorEmail === "maternity@ubuzima.test" ? "gp@ubuzima.test" : "maternity@ubuzima.test");
   const notMine = await other(`/clinician/visits/${visitId}`);
   check(
     "D5",

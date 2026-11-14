@@ -32,7 +32,14 @@ export default function DemoInbox() {
 
 async function List() {
   await connection();
-  const res = await fetch(`${process.env.API_URL ?? "http://localhost:4000"}/demo/inbox`, { cache: "no-store" });
+  // If the API can't be reached, say so instead of failing the whole page.
+  const res = await fetch(`${process.env.API_URL ?? "http://localhost:4000"}/demo/inbox`, { cache: "no-store" }).catch(
+    () => null,
+  );
+  if (!res)
+    return (
+      <p className="text-body text-fg-secondary">The inbox can&apos;t be reached right now. Try again in a minute.</p>
+    );
   if (res.status === 404) notFound();
   const emails: Email[] = res.ok ? await res.json() : [];
   if (emails.length === 0) return <p className="text-body text-fg-secondary">No emails yet.</p>;
