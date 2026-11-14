@@ -12,7 +12,7 @@ A telehealth triage platform for Rwanda. A patient logs in with their national I
 
 ## Links
 
-- **Live site:** https://ubuzima.wilsonn.tech (patients) and https://ubuzima.wilsonn.tech/staff/login (staff). Being deployed now, following [`docs/DEPLOY.md`](docs/DEPLOY.md).
+- **Live site:** https://ubuzima.wilsonn.tech (patients) and https://ubuzima.wilsonn.tech/staff/login (staff). Live since 25 Oct 2026; how it's hosted: [`docs/DEPLOY.md`](docs/DEPLOY.md).
 - **Code:** https://github.com/nshizirunguwilson/ubuzimaconnect
 - **Demo video:** link added once recorded. The plan is in [`docs/VIDEO.md`](docs/VIDEO.md).
 
@@ -162,7 +162,7 @@ Code style: `pnpm format` lays out every TypeScript file with Prettier (120 char
 
 ## Deployment
 
-Vercel (web), Azure App Service in Central India (API and mock NIDA), Supabase in Mumbai (database), Resend (email), and the domain `wilsonn.tech`. Step by step, with every setting: [`docs/DEPLOY.md`](docs/DEPLOY.md).
+Vercel (web), Azure App Service in UAE North (API and mock NIDA), Azure Database for PostgreSQL in UAE North (database, plain PostgreSQL 17), Resend (email), and the domain `wilsonn.tech`. Step by step, with every setting: [`docs/DEPLOY.md`](docs/DEPLOY.md).
 
 ## Known limitations
 
