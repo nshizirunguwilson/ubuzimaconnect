@@ -8,7 +8,7 @@ export function startFakeGemini(port = 4299) {
   const calls: string[] = [];
   const server: Server = createServer((req, res) => {
     let body = "";
-    req.on("data", (c) => (body += c));
+    req.on("data", (chunk) => (body += chunk));
     req.on("end", () => {
       calls.push(body);
       const text = body.toLowerCase();
@@ -23,9 +23,13 @@ export function startFakeGemini(port = 4299) {
         reason: "Cough and mild fever without danger signs.",
       };
       res.writeHead(200, { "content-type": "application/json" });
-      res.end(JSON.stringify({ candidates: [{ content: { role: "model", parts: [{ text: JSON.stringify(answer) }] }, finishReason: "STOP" }] }));
+      res.end(
+        JSON.stringify({
+          candidates: [{ content: { role: "model", parts: [{ text: JSON.stringify(answer) }] }, finishReason: "STOP" }],
+        }),
+      );
     });
   });
   server.listen(port, "127.0.0.1");
-  return { calls, close: () => new Promise<void>((r) => server.close(() => r())) };
+  return { calls, close: () => new Promise<void>((resolve) => server.close(() => resolve())) };
 }

@@ -19,8 +19,8 @@ describe("shared rules", () => {
   });
 
   it("treats the shared-phone choice as off unless chosen (FR 1.8)", () => {
-    const r = patientLogin.parse({ nationalId: "1199270045823116", dateOfBirth: "1992-03-14", name: "Aline" });
-    expect(r.sharedDevice).toBe(false);
+    const login = patientLogin.parse({ nationalId: "1199270045823116", dateOfBirth: "1992-03-14", name: "Aline" });
+    expect(login.sharedDevice).toBe(false);
   });
 
   it("asks for at least 8 characters in a password (NIST SP 800-63B-4, with a second factor)", () => {

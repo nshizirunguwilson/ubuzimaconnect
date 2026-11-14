@@ -1,6 +1,6 @@
 "use client";
 
-import { LuLogOut } from "react-icons/lu";
+import { PiSignOutBold } from "react-icons/pi";
 import { Confirm } from "@/components/app/confirm";
 import { Button } from "@/components/ui/button";
 import { api } from "@/lib/api";
@@ -13,32 +13,34 @@ import { useT } from "@/i18n/client";
  */
 export function LogoutButton({ to, iconOnly = false }: { to: string; iconOnly?: boolean }) {
   const staff = to.startsWith("/staff");
-  // Patients see it in their language (NFR 7); staff screens are English.
+  // Patients see it in their language; staff screens are English.
   const { t } = useT();
   return (
     <Confirm
       trigger={
         iconOnly ? (
-          <Button variant="ghost" size="icon" aria-label={staff ? "Log out" : t.logout.button} title={staff ? "Log out" : t.logout.button} className="mx-auto">
-            <LuLogOut />
+          <Button
+            variant="ghost"
+            size="icon"
+            aria-label={staff ? "Log out" : t.logout.button}
+            title={staff ? "Log out" : t.logout.button}
+            className="mx-auto"
+          >
+            <PiSignOutBold />
           </Button>
         ) : (
-          <Button variant="ghost" size="compact" icon={<LuLogOut />}>
+          <Button variant="ghost" size="compact" icon={<PiSignOutBold />}>
             {staff ? "Log out" : t.logout.button}
           </Button>
         )
       }
       title={staff ? "Log out?" : t.logout.title}
-      description={
-        staff
-          ? "To come back you'll need your password and a new code from your email."
-          : t.logout.body
-      }
+      description={staff ? "To come back you'll need your password and a new code from your email." : t.logout.body}
       confirmLabel={staff ? "Log out" : t.logout.button}
       variant="primary"
       onConfirm={async () => {
         await api("/auth/logout", {}).catch(() => null);
-        // FR 1.8: answers waiting for a connection don't stay on the device either.
+        // Answers waiting for a connection don't stay on the device either.
         clearOutboxes();
         window.location.replace(to);
       }}

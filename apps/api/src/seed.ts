@@ -13,60 +13,345 @@ import { hashPassword } from "./common/crypto";
 /** Test-only password for the seeded accounts. Never used in production. */
 const DEV_PASSWORD = process.env.SEED_PASSWORD ?? "Ubuzima-demo-2026";
 
-const ALL: Service[] = ["EMERGENCY_CARE", "GENERAL_MEDICINE", "INTERNAL_MEDICINE", "PAEDIATRICS", "MATERNITY", "SURGERY", "MENTAL_HEALTH"];
-
-type F = { name: string; level: FacilityLevel; district: string; sector: string; lat: number; lng: number; beds: number; services: Service[]; phone?: string };
-const facilities: F[] = [
-  { name: "Kacyiru District Hospital", level: "DISTRICT_HOSPITAL", district: "Gasabo", sector: "Kacyiru", lat: -1.9368, lng: 30.0846, beds: 120, services: ALL.filter((s) => s !== "MENTAL_HEALTH"), phone: "0788 300 101" },
-  { name: "Kibagabaga Level Two Teaching Hospital", level: "PROVINCIAL_HOSPITAL", district: "Gasabo", sector: "Kimironko", lat: -1.9306, lng: 30.1139, beds: 200, services: ALL, phone: "0788 300 102" },
-  { name: "Remera Health Centre", level: "HEALTH_CENTRE", district: "Gasabo", sector: "Remera", lat: -1.9549, lng: 30.1082, beds: 10, services: ["GENERAL_MEDICINE", "PAEDIATRICS", "MATERNITY"], phone: "0788 300 103" },
-  { name: "University Teaching Hospital of Kigali", level: "REFERRAL_HOSPITAL", district: "Nyarugenge", sector: "Nyarugenge", lat: -1.9447, lng: 30.0611, beds: 500, services: ALL, phone: "0788 300 104" },
-  { name: "Masaka District Hospital", level: "DISTRICT_HOSPITAL", district: "Kicukiro", sector: "Masaka", lat: -1.9905, lng: 30.1875, beds: 100, services: ["EMERGENCY_CARE", "GENERAL_MEDICINE", "PAEDIATRICS", "MATERNITY", "SURGERY"], phone: "0788 300 105" },
-  { name: "Ndera Neuropsychiatric Hospital", level: "REFERRAL_HOSPITAL", district: "Gasabo", sector: "Ndera", lat: -1.9443, lng: 30.1625, beds: 300, services: ["MENTAL_HEALTH", "GENERAL_MEDICINE"], phone: "0788 300 106" },
+const ALL: Service[] = [
+  "EMERGENCY_CARE",
+  "GENERAL_MEDICINE",
+  "INTERNAL_MEDICINE",
+  "PAEDIATRICS",
+  "MATERNITY",
+  "SURGERY",
+  "MENTAL_HEALTH",
 ];
 
-type S = { email: string; name: string; role: StaffRole; facility?: number; licence?: string; specialty?: Service };
-const staff: S[] = [
+type SeedFacility = {
+  name: string;
+  level: FacilityLevel;
+  district: string;
+  sector: string;
+  lat: number;
+  lng: number;
+  beds: number;
+  services: Service[];
+  phone?: string;
+};
+const facilities: SeedFacility[] = [
+  {
+    name: "Kacyiru District Hospital",
+    level: "DISTRICT_HOSPITAL",
+    district: "Gasabo",
+    sector: "Kacyiru",
+    lat: -1.9368,
+    lng: 30.0846,
+    beds: 120,
+    services: ALL.filter((service) => service !== "MENTAL_HEALTH"),
+    phone: "0788 300 101",
+  },
+  {
+    name: "Kibagabaga Level Two Teaching Hospital",
+    level: "PROVINCIAL_HOSPITAL",
+    district: "Gasabo",
+    sector: "Kimironko",
+    lat: -1.9306,
+    lng: 30.1139,
+    beds: 200,
+    services: ALL,
+    phone: "0788 300 102",
+  },
+  {
+    name: "Remera Health Centre",
+    level: "HEALTH_CENTRE",
+    district: "Gasabo",
+    sector: "Remera",
+    lat: -1.9549,
+    lng: 30.1082,
+    beds: 10,
+    services: ["GENERAL_MEDICINE", "PAEDIATRICS", "MATERNITY"],
+    phone: "0788 300 103",
+  },
+  {
+    name: "University Teaching Hospital of Kigali",
+    level: "REFERRAL_HOSPITAL",
+    district: "Nyarugenge",
+    sector: "Nyarugenge",
+    lat: -1.9447,
+    lng: 30.0611,
+    beds: 500,
+    services: ALL,
+    phone: "0788 300 104",
+  },
+  {
+    name: "Masaka District Hospital",
+    level: "DISTRICT_HOSPITAL",
+    district: "Kicukiro",
+    sector: "Masaka",
+    lat: -1.9905,
+    lng: 30.1875,
+    beds: 100,
+    services: ["EMERGENCY_CARE", "GENERAL_MEDICINE", "PAEDIATRICS", "MATERNITY", "SURGERY"],
+    phone: "0788 300 105",
+  },
+  {
+    name: "Ndera Neuropsychiatric Hospital",
+    level: "REFERRAL_HOSPITAL",
+    district: "Gasabo",
+    sector: "Ndera",
+    lat: -1.9443,
+    lng: 30.1625,
+    beds: 300,
+    services: ["MENTAL_HEALTH", "GENERAL_MEDICINE"],
+    phone: "0788 300 106",
+  },
+];
+
+type SeedStaff = {
+  email: string;
+  name: string;
+  role: StaffRole;
+  facility?: number;
+  licence?: string;
+  specialty?: Service;
+};
+const staff: SeedStaff[] = [
   { email: "admin@ubuzima.test", name: "Patrick Nkurunziza", role: "ADMIN" },
   { email: "agent@ubuzima.test", name: "Diane Umutoni", role: "AGENT", licence: "RNMC-22817" },
   { email: "agent2@ubuzima.test", name: "Eric Habineza", role: "AGENT", licence: "RNMC-30455" },
   { email: "manager@ubuzima.test", name: "Olivier Rukundo", role: "FACILITY_MANAGER", facility: 0 },
   { email: "manager2@ubuzima.test", name: "Grace Mukandori", role: "FACILITY_MANAGER", facility: 1 },
-  { email: "clinician@ubuzima.test", name: "Dr. Samuel Mugisha", role: "CLINICIAN", facility: 0, licence: "RMDC-04521", specialty: "EMERGENCY_CARE" },
-  { email: "paeds@ubuzima.test", name: "Dr. Claudine Ingabire", role: "CLINICIAN", facility: 0, licence: "RMDC-05102", specialty: "PAEDIATRICS" },
-  { email: "maternity@ubuzima.test", name: "Marie Uwera", role: "CLINICIAN", facility: 0, licence: "RNMC-17734", specialty: "MATERNITY" },
-  { email: "surgery@ubuzima.test", name: "Dr. Jean Bosco Nsengimana", role: "CLINICIAN", facility: 0, licence: "RMDC-03998", specialty: "SURGERY" },
-  { email: "gp@ubuzima.test", name: "Dr. Yvette Uwamahoro", role: "CLINICIAN", facility: 0, licence: "RMDC-06231", specialty: "GENERAL_MEDICINE" },
-  { email: "internal@ubuzima.test", name: "Dr. Emmanuel Kayitare", role: "CLINICIAN", facility: 0, licence: "RMDC-04877", specialty: "INTERNAL_MEDICINE" },
-  { email: "kib.er@ubuzima.test", name: "Dr. Aimable Ndayisaba", role: "CLINICIAN", facility: 1, licence: "RMDC-05560", specialty: "EMERGENCY_CARE" },
-  { email: "kib.mh@ubuzima.test", name: "Dr. Solange Uwase", role: "CLINICIAN", facility: 1, licence: "RMDC-06012", specialty: "MENTAL_HEALTH" },
-  { email: "remera@ubuzima.test", name: "Josiane Mukeshimana", role: "CLINICIAN", facility: 2, licence: "RNMC-21190", specialty: "GENERAL_MEDICINE" },
+  {
+    email: "clinician@ubuzima.test",
+    name: "Dr. Samuel Mugisha",
+    role: "CLINICIAN",
+    facility: 0,
+    licence: "RMDC-04521",
+    specialty: "EMERGENCY_CARE",
+  },
+  {
+    email: "paeds@ubuzima.test",
+    name: "Dr. Claudine Ingabire",
+    role: "CLINICIAN",
+    facility: 0,
+    licence: "RMDC-05102",
+    specialty: "PAEDIATRICS",
+  },
+  {
+    email: "maternity@ubuzima.test",
+    name: "Marie Uwera",
+    role: "CLINICIAN",
+    facility: 0,
+    licence: "RNMC-17734",
+    specialty: "MATERNITY",
+  },
+  {
+    email: "surgery@ubuzima.test",
+    name: "Dr. Jean Bosco Nsengimana",
+    role: "CLINICIAN",
+    facility: 0,
+    licence: "RMDC-03998",
+    specialty: "SURGERY",
+  },
+  {
+    email: "gp@ubuzima.test",
+    name: "Dr. Yvette Uwamahoro",
+    role: "CLINICIAN",
+    facility: 0,
+    licence: "RMDC-06231",
+    specialty: "GENERAL_MEDICINE",
+  },
+  {
+    email: "internal@ubuzima.test",
+    name: "Dr. Emmanuel Kayitare",
+    role: "CLINICIAN",
+    facility: 0,
+    licence: "RMDC-04877",
+    specialty: "INTERNAL_MEDICINE",
+  },
+  {
+    email: "kib.er@ubuzima.test",
+    name: "Dr. Aimable Ndayisaba",
+    role: "CLINICIAN",
+    facility: 1,
+    licence: "RMDC-05560",
+    specialty: "EMERGENCY_CARE",
+  },
+  {
+    email: "kib.mh@ubuzima.test",
+    name: "Dr. Solange Uwase",
+    role: "CLINICIAN",
+    facility: 1,
+    licence: "RMDC-06012",
+    specialty: "MENTAL_HEALTH",
+  },
+  {
+    email: "remera@ubuzima.test",
+    name: "Josiane Mukeshimana",
+    role: "CLINICIAN",
+    facility: 2,
+    licence: "RNMC-21190",
+    specialty: "GENERAL_MEDICINE",
+  },
 ];
 
 /** SRS Appendix C. N2 (babies under 8 days) is a rule in code (FR 4.2), not a question. */
 const redFlags: { code: string; group: RedFlagGroup; textEn: string; service: Service; source: string }[] = [
-  { code: "A1", group: "A", textEn: "Is the sick person unconscious or not responding when you speak to them or touch them?", service: "EMERGENCY_CARE", source: "WHO (n.d.-b); WHO (2005)" },
-  { code: "A2", group: "A", textEn: "Is the sick person struggling to breathe, breathing very fast or with a noisy sound, or are their lips or tongue turning blue?", service: "EMERGENCY_CARE", source: "WHO (n.d.-b); WHO (2005)" },
-  { code: "A3", group: "A", textEn: "Is the sick person having a fit (convulsion) right now, or did they just have one?", service: "EMERGENCY_CARE", source: "WHO (n.d.-b); WHO (2005); PAHO & WHO (2005)" },
-  { code: "A4", group: "A", textEn: "Is there heavy bleeding that does not stop?", service: "SURGERY", source: "WHO (n.d.-b)" },
-  { code: "A5", group: "A", textEn: "Is there sudden swelling of the mouth, tongue, throat or neck?", service: "EMERGENCY_CARE", source: "WHO (n.d.-b)" },
-  { code: "A6", group: "A", textEn: "Has the sick person swallowed poison, a chemical, or too much medicine?", service: "EMERGENCY_CARE", source: "WHO (n.d.-b); WHO (2005)" },
-  { code: "A7", group: "A", textEn: "Was the sick person bitten by a snake?", service: "EMERGENCY_CARE", source: "WHO (n.d.-b)" },
-  { code: "A8", group: "A", textEn: "Did the sick person have a serious injury (road accident, fall from a height, deep wound, or a bone coming through the skin)?", service: "SURGERY", source: "WHO (n.d.-b)" },
-  { code: "A9", group: "A", textEn: "Does the sick person have a large or deep burn, or a burn on the face, hands or private parts?", service: "SURGERY", source: "WHO (n.d.-b); WHO (2005)" },
-  { code: "A10", group: "A", textEn: "Is the sick person very confused or very hard to wake, together with fever, a stiff neck or a bad headache?", service: "EMERGENCY_CARE", source: "WHO (n.d.-b)" },
-  { code: "A11", group: "A", textEn: "Did any of these start suddenly: face drooping on one side, weakness of an arm or leg on one side, difficulty speaking, loss of balance, or loss of vision?", service: "EMERGENCY_CARE", source: "WHO (n.d.-b); Weill Cornell Medicine (n.d.)" },
-  { code: "A12", group: "A", textEn: "Does the sick person have sudden chest pain or pressure?", service: "INTERNAL_MEDICINE", source: "WHO (n.d.-b)" },
-  { code: "A13", group: "A", textEn: "Is the sick person thinking about ending their life or harming themselves right now, or have they just tried?", service: "MENTAL_HEALTH", source: "WHO (n.d.-a)" },
-  { code: "C1", group: "C", textEn: "Is the child unable to drink or breastfeed at all?", service: "PAEDIATRICS", source: "WHO (n.d.-b); PAHO & WHO (2005)" },
-  { code: "C2", group: "C", textEn: "Is the child vomiting everything they eat or drink?", service: "PAEDIATRICS", source: "PAHO & WHO (2005)" },
-  { code: "C3", group: "C", textEn: "Is the child very sleepy, floppy, or very hard to wake?", service: "PAEDIATRICS", source: "WHO (2005); PAHO & WHO (2005)" },
-  { code: "C4", group: "C", textEn: "Does the child have diarrhoea together with sunken eyes, very weak, or drinking very little?", service: "PAEDIATRICS", source: "WHO (n.d.-b); WHO (2005)" },
-  { code: "C5", group: "C", textEn: "Are the child’s hands and feet cold, and is the child very weak?", service: "PAEDIATRICS", source: "WHO (n.d.-b); WHO (2005)" },
-  { code: "N1", group: "N", textEn: "Is the baby (under 2 months) hot with fever, or unusually cold to the touch?", service: "PAEDIATRICS", source: "WHO (n.d.-b); WHO (2005)" },
-  { code: "P1", group: "P", textEn: "Is there any bleeding from the vagina?", service: "MATERNITY", source: "WHO (2013)" },
-  { code: "P2", group: "P", textEn: "Is there a severe headache together with blurred vision?", service: "MATERNITY", source: "WHO (2013)" },
-  { code: "P3", group: "P", textEn: "Is there a fever and is she too weak to get out of bed?", service: "MATERNITY", source: "WHO (2013)" },
+  {
+    code: "A1",
+    group: "A",
+    textEn: "Is the sick person unconscious or not responding when you speak to them or touch them?",
+    service: "EMERGENCY_CARE",
+    source: "WHO (n.d.-b); WHO (2005)",
+  },
+  {
+    code: "A2",
+    group: "A",
+    textEn:
+      "Is the sick person struggling to breathe, breathing very fast or with a noisy sound, or are their lips or tongue turning blue?",
+    service: "EMERGENCY_CARE",
+    source: "WHO (n.d.-b); WHO (2005)",
+  },
+  {
+    code: "A3",
+    group: "A",
+    textEn: "Is the sick person having a fit (convulsion) right now, or did they just have one?",
+    service: "EMERGENCY_CARE",
+    source: "WHO (n.d.-b); WHO (2005); PAHO & WHO (2005)",
+  },
+  {
+    code: "A4",
+    group: "A",
+    textEn: "Is there heavy bleeding that does not stop?",
+    service: "SURGERY",
+    source: "WHO (n.d.-b)",
+  },
+  {
+    code: "A5",
+    group: "A",
+    textEn: "Is there sudden swelling of the mouth, tongue, throat or neck?",
+    service: "EMERGENCY_CARE",
+    source: "WHO (n.d.-b)",
+  },
+  {
+    code: "A6",
+    group: "A",
+    textEn: "Has the sick person swallowed poison, a chemical, or too much medicine?",
+    service: "EMERGENCY_CARE",
+    source: "WHO (n.d.-b); WHO (2005)",
+  },
+  {
+    code: "A7",
+    group: "A",
+    textEn: "Was the sick person bitten by a snake?",
+    service: "EMERGENCY_CARE",
+    source: "WHO (n.d.-b)",
+  },
+  {
+    code: "A8",
+    group: "A",
+    textEn:
+      "Did the sick person have a serious injury (road accident, fall from a height, deep wound, or a bone coming through the skin)?",
+    service: "SURGERY",
+    source: "WHO (n.d.-b)",
+  },
+  {
+    code: "A9",
+    group: "A",
+    textEn: "Does the sick person have a large or deep burn, or a burn on the face, hands or private parts?",
+    service: "SURGERY",
+    source: "WHO (n.d.-b); WHO (2005)",
+  },
+  {
+    code: "A10",
+    group: "A",
+    textEn:
+      "Is the sick person very confused or very hard to wake, together with fever, a stiff neck or a bad headache?",
+    service: "EMERGENCY_CARE",
+    source: "WHO (n.d.-b)",
+  },
+  {
+    code: "A11",
+    group: "A",
+    textEn:
+      "Did any of these start suddenly: face drooping on one side, weakness of an arm or leg on one side, difficulty speaking, loss of balance, or loss of vision?",
+    service: "EMERGENCY_CARE",
+    source: "WHO (n.d.-b); Weill Cornell Medicine (n.d.)",
+  },
+  {
+    code: "A12",
+    group: "A",
+    textEn: "Does the sick person have sudden chest pain or pressure?",
+    service: "INTERNAL_MEDICINE",
+    source: "WHO (n.d.-b)",
+  },
+  {
+    code: "A13",
+    group: "A",
+    textEn:
+      "Is the sick person thinking about ending their life or harming themselves right now, or have they just tried?",
+    service: "MENTAL_HEALTH",
+    source: "WHO (n.d.-a)",
+  },
+  {
+    code: "C1",
+    group: "C",
+    textEn: "Is the child unable to drink or breastfeed at all?",
+    service: "PAEDIATRICS",
+    source: "WHO (n.d.-b); PAHO & WHO (2005)",
+  },
+  {
+    code: "C2",
+    group: "C",
+    textEn: "Is the child vomiting everything they eat or drink?",
+    service: "PAEDIATRICS",
+    source: "PAHO & WHO (2005)",
+  },
+  {
+    code: "C3",
+    group: "C",
+    textEn: "Is the child very sleepy, floppy, or very hard to wake?",
+    service: "PAEDIATRICS",
+    source: "WHO (2005); PAHO & WHO (2005)",
+  },
+  {
+    code: "C4",
+    group: "C",
+    textEn: "Does the child have diarrhoea together with sunken eyes, very weak, or drinking very little?",
+    service: "PAEDIATRICS",
+    source: "WHO (n.d.-b); WHO (2005)",
+  },
+  {
+    code: "C5",
+    group: "C",
+    textEn: "Are the child’s hands and feet cold, and is the child very weak?",
+    service: "PAEDIATRICS",
+    source: "WHO (n.d.-b); WHO (2005)",
+  },
+  {
+    code: "N1",
+    group: "N",
+    textEn: "Is the baby (under 2 months) hot with fever, or unusually cold to the touch?",
+    service: "PAEDIATRICS",
+    source: "WHO (n.d.-b); WHO (2005)",
+  },
+  {
+    code: "P1",
+    group: "P",
+    textEn: "Is there any bleeding from the vagina?",
+    service: "MATERNITY",
+    source: "WHO (2013)",
+  },
+  {
+    code: "P2",
+    group: "P",
+    textEn: "Is there a severe headache together with blurred vision?",
+    service: "MATERNITY",
+    source: "WHO (2013)",
+  },
+  {
+    code: "P3",
+    group: "P",
+    textEn: "Is there a fever and is she too weak to get out of bed?",
+    service: "MATERNITY",
+    source: "WHO (2013)",
+  },
   { code: "P4", group: "P", textEn: "Is there severe pain in the belly?", service: "MATERNITY", source: "WHO (2013)" },
 ];
 
@@ -100,72 +385,85 @@ const redFlagsRw: Record<string, string> = {
 async function main() {
   const db = createDb();
 
-  const ids: string[] = [];
-  for (const f of facilities) {
+  const facilityIds: string[] = [];
+  for (const facility of facilities) {
     const data = {
-      level: f.level,
-      services: f.services,
-      province: provinceOf(f.district)!,
-      district: f.district,
-      sector: f.sector,
-      latitude: f.lat,
-      longitude: f.lng,
-      totalBeds: f.beds,
-      phone: f.phone ?? null,
+      level: facility.level,
+      services: facility.services,
+      province: provinceOf(facility.district)!,
+      district: facility.district,
+      sector: facility.sector,
+      latitude: facility.lat,
+      longitude: facility.lng,
+      totalBeds: facility.beds,
+      phone: facility.phone ?? null,
     };
-    const existing = await db.facility.findFirst({ where: { name: f.name } });
-    ids.push((existing ? await db.facility.update({ where: { id: existing.id }, data }) : await db.facility.create({ data: { name: f.name, ...data } })).id);
+    const existing = await db.facility.findFirst({ where: { name: facility.name } });
+    const saved = existing
+      ? await db.facility.update({ where: { id: existing.id }, data })
+      : await db.facility.create({ data: { name: facility.name, ...data } });
+    facilityIds.push(saved.id);
   }
 
   const passwordHash = await hashPassword(DEV_PASSWORD);
   const staffIds: { id: string; role: StaffRole }[] = [];
-  for (const s of staff) {
+  for (const person of staff) {
     const data = {
-      name: s.name,
-      role: s.role,
+      name: person.name,
+      role: person.role,
       status: "ACTIVE" as const,
       passwordHash,
-      facilityId: s.facility === undefined ? null : ids[s.facility],
-      licenceNumber: s.licence ?? null,
-      specialty: s.specialty ?? null,
+      facilityId: person.facility === undefined ? null : facilityIds[person.facility],
+      licenceNumber: person.licence ?? null,
+      specialty: person.specialty ?? null,
     };
-    const row = await db.staff.upsert({ where: { email: s.email }, create: { email: s.email, ...data }, update: data });
+    const row = await db.staff.upsert({
+      where: { email: person.email },
+      create: { email: person.email, ...data },
+      update: data,
+    });
     staffIds.push({ id: row.id, role: row.role });
   }
 
   // This week: agents cover Day and Night; clinicians alternate so the coverage view has real gaps.
   const admin = staffIds[0].id;
   const days = weekDays(weekStart(currentShift().date));
-  const agents = staffIds.filter((s) => s.role === "AGENT");
-  const clinicians = staffIds.filter((s) => s.role === "CLINICIAN");
+  const agents = staffIds.filter((person) => person.role === "AGENT");
+  const clinicians = staffIds.filter((person) => person.role === "CLINICIAN");
+  const alternateShift = (index: number) => (index % 2 === 0 ? "DAY" : "NIGHT") as "DAY" | "NIGHT";
   const plan: { staffId: string; shift: "DAY" | "NIGHT" }[] = [
-    ...agents.map((a, i) => ({ staffId: a.id, shift: (i % 2 === 0 ? "DAY" : "NIGHT") as "DAY" | "NIGHT" })),
-    ...clinicians.map((c, i) => ({ staffId: c.id, shift: (i % 2 === 0 ? "DAY" : "NIGHT") as "DAY" | "NIGHT" })),
+    ...agents.map((agent, index) => ({ staffId: agent.id, shift: alternateShift(index) })),
+    ...clinicians.map((clinician, index) => ({ staffId: clinician.id, shift: alternateShift(index) })),
   ];
-  for (const date of days) {
-    for (const p of plan) {
-      const d = new Date(`${date}T00:00:00Z`);
+  for (const isoDate of days) {
+    const date = new Date(`${isoDate}T00:00:00Z`);
+    for (const { staffId, shift } of plan) {
       await db.shiftAssignment.upsert({
-        where: { staffId_date_shift: { staffId: p.staffId, date: d, shift: p.shift } },
-        create: { staffId: p.staffId, date: d, shift: p.shift, createdById: admin },
+        where: { staffId_date_shift: { staffId, date, shift } },
+        create: { staffId, date, shift, createdById: admin },
         update: {},
       });
     }
   }
 
-  for (const [i, q] of redFlags.entries()) {
+  for (const [index, question] of redFlags.entries()) {
     await db.redFlagQuestion.upsert({
-      where: { code: q.code },
-      create: { ...q, textRw: redFlagsRw[q.code], sortOrder: i + 1 },
+      where: { code: question.code },
+      create: { ...question, textRw: redFlagsRw[question.code], sortOrder: index + 1 },
       update: {},
     });
-    // Fills the Kinyarwanda draft only where none was written yet; an administrator's text is kept.
-    await db.redFlagQuestion.updateMany({ where: { code: q.code, textRw: null }, data: { textRw: redFlagsRw[q.code] } });
+    // Fills the Kinyarwanda draft only where none was written yet; an administrator's own text is kept.
+    await db.redFlagQuestion.updateMany({
+      where: { code: question.code, textRw: null },
+      data: { textRw: redFlagsRw[question.code] },
+    });
   }
 
   await db.systemSettings.upsert({ where: { id: 1 }, create: { id: 1 }, update: {} });
 
-  console.log(`Seeded ${facilities.length} facilities, ${staff.length} staff, ${days.length * plan.length} shifts and ${redFlags.length} red-flag questions.`);
+  console.log(
+    `Seeded ${facilities.length} facilities, ${staff.length} staff, ${days.length * plan.length} shifts and ${redFlags.length} red-flag questions.`,
+  );
   await db.$disconnect();
 }
 

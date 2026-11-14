@@ -17,7 +17,7 @@ import { useT } from "@/i18n/client";
 type Owner = (typeof PHONE_OWNERS)[number];
 
 /**
- * FR 3.8, 3.9: for people who can't read or type well (NFR 7). The only place a phone number is
+ * For people who can't read or type well. The only place a phone number is
  * asked, and it is kept for this request only.
  */
 export function PreferCall({ caseId, people }: { caseId: string | null; people: { id: string; label: string }[] }) {
@@ -29,23 +29,29 @@ export function PreferCall({ caseId, people }: { caseId: string | null; people: 
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [pending, setPending] = usePending(false);
 
-  async function submit(e: FormEvent) {
-    e.preventDefault();
-    const r = caseId
+  async function submit(event: FormEvent) {
+    event.preventDefault();
+    const result = caseId
       ? check(callRequest, { number, owner: owner || undefined })
       : check(homeCallRequest, { number, owner: owner || undefined, subjectId: who || undefined });
-    if (!r.data) {
-      const e = Object.fromEntries(Object.entries(r.errors).map(([k, v]) => [k, tr(v)]));
-      return setErrors({ ...e, ...(r.errors.subjectId ? { subjectId: t.call.chooseWho } : {}) });
+    if (!result.data) {
+      const fieldErrors = Object.fromEntries(
+        Object.entries(result.errors).map(([field, message]) => [field, tr(message)]),
+      );
+      return setErrors({ ...fieldErrors, ...(result.errors.subjectId ? { subjectId: t.call.chooseWho } : {}) });
     }
     setErrors({});
     setPending(true);
     try {
-      const res = await api<{ id: string }>(caseId ? `/cases/${caseId}/call` : "/cases/call", r.data);
+      const res = await api<{ id: string }>(caseId ? `/cases/${caseId}/call` : "/cases/call", result.data);
       router.replace(`/cases/${caseId ?? res.id}`);
     } catch (err) {
       setPending(false);
-      setErrors(err instanceof ApiFailure ? (err.error.fields ?? { form: tr(err.error.message) }) : { form: t.common.couldntSend });
+      setErrors(
+        err instanceof ApiFailure
+          ? (err.error.fields ?? { form: tr(err.error.message) })
+          : { form: t.common.couldntSend },
+      );
     }
   }
 
@@ -60,17 +66,40 @@ export function PreferCall({ caseId, people }: { caseId: string | null; people: 
         {!caseId && people.length > 1 && (
           <fieldset className="flex flex-col gap-3">
             <legend className="mb-1 text-small font-medium text-fg">{t.call.whoNeedsHelp}</legend>
-            {people.map((p) => (
-              <ChoiceRow key={p.id} name="who" value={p.id} label={p.label} checked={who === p.id} onChange={() => setWho(p.id)} />
+            {people.map((person) => (
+              <ChoiceRow
+                key={person.id}
+                name="who"
+                value={person.id}
+                label={person.label}
+                checked={who === person.id}
+                onChange={() => setWho(person.id)}
+              />
             ))}
             {errors.subjectId && <p className="text-small font-medium text-urgent-fg">{errors.subjectId}</p>}
           </fieldset>
         )}
-        <Input label={t.call.number} type="tel" inputMode="tel" autoComplete="tel" value={number} onChange={(e) => setNumber(e.target.value)} error={errors.number} placeholder="0788 123 456" />
+        <Input
+          label={t.call.number}
+          type="tel"
+          inputMode="tel"
+          autoComplete="tel"
+          value={number}
+          onChange={(event) => setNumber(event.target.value)}
+          error={errors.number}
+          placeholder="0788 123 456"
+        />
         <fieldset className="flex flex-col gap-3">
           <legend className="mb-1 text-small font-medium text-fg">{t.call.whose}</legend>
-          {PHONE_OWNERS.map((o) => (
-            <ChoiceRow key={o} name="owner" value={o} label={t.call.owners[o]} checked={owner === o} onChange={() => setOwner(o)} />
+          {PHONE_OWNERS.map((choice) => (
+            <ChoiceRow
+              key={choice}
+              name="owner"
+              value={choice}
+              label={t.call.owners[choice]}
+              checked={owner === choice}
+              onChange={() => setOwner(choice)}
+            />
           ))}
           {errors.owner && <p className="text-small font-medium text-urgent-fg">{errors.owner}</p>}
         </fieldset>

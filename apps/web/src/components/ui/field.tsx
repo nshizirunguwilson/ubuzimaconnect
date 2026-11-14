@@ -1,12 +1,12 @@
 "use client";
 
 import { useId, type ComponentPropsWithoutRef, type ReactNode } from "react";
-import { LuChevronDown, LuCircleAlert } from "react-icons/lu";
+import { PiCaretDownBold, PiWarningCircleBold } from "react-icons/pi";
 import { cn } from "@/lib/cn";
 import { Squircle } from "./squircle";
 
 /**
- * DESIGN.md §9: the label is always above, helper text below, and an error
+ * The label is always above, helper text below, and an error
  * replaces the helper with an icon and a message in red-700. Inputs are 16 px (§3).
  */
 type FieldProps = {
@@ -38,7 +38,7 @@ export function Field({ label, hint, error, optional, className, children }: Fie
             error ? "font-medium text-urgent-fg" : "text-fg-secondary",
           )}
         >
-          {error && <LuCircleAlert className="mt-0.5 size-4 shrink-0" aria-hidden />}
+          {error && <PiWarningCircleBold className="mt-0.5 size-4 shrink-0" aria-hidden />}
           {note}
         </p>
       )}
@@ -46,7 +46,7 @@ export function Field({ label, hint, error, optional, className, children }: Fie
   );
 }
 
-function controlShell(invalid: boolean, disabled?: boolean) {
+export function controlShell(invalid: boolean, disabled?: boolean) {
   return cn(
     "flex w-full items-center sq-bg-surface",
     invalid ? "sq-border-urgent" : "sq-border-border-strong hover:sq-border-gray-500",
@@ -54,7 +54,7 @@ function controlShell(invalid: boolean, disabled?: boolean) {
   );
 }
 
-const controlText =
+export const controlText =
   "w-full min-w-0 bg-transparent text-body text-fg outline-none placeholder:text-fg-muted disabled:cursor-not-allowed";
 
 type InputProps = Omit<ComponentPropsWithoutRef<"input">, "id"> & {
@@ -69,7 +69,18 @@ type InputProps = Omit<ComponentPropsWithoutRef<"input">, "id"> & {
   mono?: boolean;
 };
 
-export function Input({ label, hint, error, optional, leading, trailing, mono, className, disabled, ...rest }: InputProps) {
+export function Input({
+  label,
+  hint,
+  error,
+  optional,
+  leading,
+  trailing,
+  mono,
+  className,
+  disabled,
+  ...rest
+}: InputProps) {
   return (
     <Field label={label} hint={hint} error={error} optional={optional} className={className}>
       {({ id, describedBy, invalid }) => (
@@ -159,13 +170,13 @@ export function Select({
                 {placeholder}
               </option>
             )}
-            {options.map((o) => (
-              <option key={o.value} value={o.value}>
-                {o.label}
+            {options.map((choice) => (
+              <option key={choice.value} value={choice.value}>
+                {choice.label}
               </option>
             ))}
           </select>
-          <LuChevronDown className="pointer-events-none absolute right-3 size-5 text-fg-secondary" aria-hidden />
+          <PiCaretDownBold className="pointer-events-none absolute right-3 size-5 text-fg-secondary" aria-hidden />
         </Squircle>
       )}
     </Field>

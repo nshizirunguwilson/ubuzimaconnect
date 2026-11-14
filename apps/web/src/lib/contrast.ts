@@ -6,10 +6,10 @@ export function contrast(a: string, b: string): number {
 }
 
 function luminance(hex: string): number {
-  const n = parseInt(hex.slice(1), 16);
-  const [r, g, b] = [(n >> 16) & 255, (n >> 8) & 255, n & 255].map((v) => {
-    const c = v / 255;
-    return c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+  const rgb = parseInt(hex.slice(1), 16);
+  const [r, g, b] = [(rgb >> 16) & 255, (rgb >> 8) & 255, rgb & 255].map((channel) => {
+    const fraction = channel / 255;
+    return fraction <= 0.04045 ? fraction / 12.92 : ((fraction + 0.055) / 1.055) ** 2.4;
   });
   return 0.2126 * r + 0.7152 * g + 0.0722 * b;
 }

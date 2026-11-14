@@ -6,11 +6,11 @@ import { Auth, CurrentSession } from "../auth/guard";
 import type { LiveSession } from "../auth/session.service";
 import { EventsService } from "./events.service";
 
+/** A ping this often keeps proxies from closing a quiet stream. Agents are also marked as connected this often. */
 const PING_MS = 15_000;
 
 /**
- * Server-Sent Events, opened by the browser straight to the API with the session cookie
- * (DECISIONS.md D34). A ping every 15 s keeps proxies from closing the stream.
+ * Live streams (Server-Sent Events). The browser opens them straight to the API with its session cookie.
  */
 @Controller("events")
 export class EventsController {
@@ -19,53 +19,78 @@ export class EventsController {
     private db: DbService,
   ) {}
 
-  /** The patient (or parent) of a case, or the agent handling it. */
+  /** Updates on one case, for its patient (or the parent of a child patient) and the agent handling it. */
   @Sse("cases/:id")
   @Auth({ kind: "any" })
-  async caseStream(@Param("id", ParseUUIDPipe) id: string, @CurrentSession() s: LiveSession): Promise<Observable<MessageEvent>> {
-    const c = await this.db.client.case.findUnique({ where: { id }, select: { patientId: true, agentId: true } });
-    if (!c) throw new ApiException(404, "NOT_FOUND", "Not found");
-    let allowed = false;
-    if (s.staff) allowed = c.agentId === s.staffId;
-    else if (s.patientId === c.patientId) allowed = true;
-    else if (s.patientId) {
-      allowed = !!(await this.db.client.familyLink.findUnique({ where: { guardianId_dependantId: { guardianId: s.patientId, dependantId: c.patientId } } }));
-    }
+  async caseStream(
+    @Param("id", ParseUUIDPipe) caseId: string,
+    @CurrentSession() session: LiveSession,
+  ): Promise<Observable<MessageEvent>> {
+    const found = await this.db.client.case.findUnique({
+      where: { id: caseId },
+      select: { patientId: true, agentId: true },
+    });
+    if (!found) throw new ApiException(404, "NOT_FOUND", "Not found");
+
+    const allowed = await this.mayFollowCase(session, found);
     if (!allowed) throw new ApiException(403, "FORBIDDEN", "You don't have access to this.");
-    // While a patient has a case open, they read new messages there; no push needed (FR 6.6).
-    const who = s.patientId ? `patient:${s.patientId}` : `staff:${s.staffId}`;
-    return this.watched(who, this.withPing(this.events.stream([`case:${id}`])));
+
+    // While a patient has their case open they read new messages there, so they get no push notification.
+    const viewer = session.patientId ? `patient:${session.patientId}` : `staff:${session.staffId}`;
+    return this.countAsWatching(viewer, this.withPing(this.events.stream([`case:${caseId}`])));
   }
 
   /**
    * An agent's own stream: offers and queue changes. While it is open the agent counts as connected;
-   * 60 s without it makes them Offline (FR 6.14).
+   * after 60 seconds without it they become Offline.
    */
   @Sse("agent")
   @Auth({ kind: "staff", roles: ["AGENT"] })
-  agentStream(@CurrentSession() s: LiveSession): Observable<MessageEvent> {
-    const staffId = s.staffId!;
-    const seen = () => void this.db.client.staff.update({ where: { id: staffId }, data: { lastSeenAt: new Date() } }).catch(() => null);
-    seen();
-    // Marks the agent as connected every 15 s while the stream is open; sends nothing itself.
-    const heartbeat = interval(PING_MS).pipe(tap(seen), filter(() => false));
-    return this.withPing(merge(this.events.stream([`agent:${staffId}`, "agents"]), heartbeat));
+  agentStream(@CurrentSession() session: LiveSession): Observable<MessageEvent> {
+    const staffId = session.staffId!;
+    const markSeen = () => {
+      void this.db.client.staff.update({ where: { id: staffId }, data: { lastSeenAt: new Date() } }).catch(() => null);
+    };
+    markSeen();
+
+    // Marks the agent as seen every 15 seconds while the stream is open. It sends nothing to the browser.
+    const heartbeat = interval(PING_MS).pipe(
+      tap(markSeen),
+      filter(() => false),
+    );
+    const updates = this.events.stream([`agent:${staffId}`, "agents"]);
+    return this.withPing(merge(updates, heartbeat));
   }
 
   /**
-   * A clinician's stream: their facility's incoming list changed, or a patient was given to them (FR 7.4, 5.12, 7.11).
-   * An administrator's stream: alerts (FR 12.7).
+   * A clinician's stream: their facility's list of incoming patients changed, or a patient was given to them.
+   * An administrator's stream: alerts.
    */
   @Sse("staff")
   @Auth({ kind: "staff", roles: ["CLINICIAN", "ADMIN"] })
-  staffStream(@CurrentSession() s: LiveSession): Observable<MessageEvent> {
-    const channels = s.staff!.role === "ADMIN" ? ["admins"] : [`staff:${s.staffId}`];
-    if (s.staff!.role === "CLINICIAN" && s.staff!.facilityId) channels.push(`facility:${s.staff!.facilityId}`);
-    return this.watched(`staff:${s.staffId}`, this.withPing(this.events.stream(channels)));
+  staffStream(@CurrentSession() session: LiveSession): Observable<MessageEvent> {
+    const staff = session.staff!;
+    const channels = staff.role === "ADMIN" ? ["admins"] : [`staff:${session.staffId}`];
+    if (staff.role === "CLINICIAN" && staff.facilityId) {
+      channels.push(`facility:${staff.facilityId}`);
+    }
+    return this.countAsWatching(`staff:${session.staffId}`, this.withPing(this.events.stream(channels)));
+  }
+
+  /** The case's agent, the patient themself, or a parent linked to the patient. */
+  private async mayFollowCase(session: LiveSession, found: { patientId: string; agentId: string | null }) {
+    if (session.staff) return found.agentId === session.staffId;
+    if (session.patientId === found.patientId) return true;
+    if (!session.patientId) return false;
+
+    const parentLink = await this.db.client.familyLink.findUnique({
+      where: { guardianId_dependantId: { guardianId: session.patientId, dependantId: found.patientId } },
+    });
+    return parentLink !== null;
   }
 
   /** Counts the person as having the app open for as long as this stream is open. */
-  private watched(key: string, source: Observable<MessageEvent>): Observable<MessageEvent> {
+  private countAsWatching(key: string, source: Observable<MessageEvent>): Observable<MessageEvent> {
     return defer(() => {
       this.events.watch(key);
       return source.pipe(finalize(() => this.events.unwatch(key)));
@@ -73,9 +98,8 @@ export class EventsController {
   }
 
   private withPing(source: Observable<unknown>): Observable<MessageEvent> {
-    return merge(
-      source.pipe(map((data) => ({ data }) as MessageEvent)),
-      interval(PING_MS).pipe(map(() => ({ type: "ping", data: "" }) as MessageEvent)),
-    );
+    const updates = source.pipe(map((data) => ({ data }) as MessageEvent));
+    const pings = interval(PING_MS).pipe(map(() => ({ type: "ping", data: "" }) as MessageEvent));
+    return merge(updates, pings);
   }
 }

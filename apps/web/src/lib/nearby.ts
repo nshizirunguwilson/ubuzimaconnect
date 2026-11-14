@@ -1,6 +1,6 @@
 /**
- * FR 3.5 and 3.10: the 5 nearest facilities are kept on the device so they can be shown without internet.
- * Not kept on a device that isn't the patient's (FR 1.8). Facility details only; nothing about the patient.
+ * The 5 nearest facilities are kept on the device so they can be shown without internet.
+ * Not kept on a device that isn't the patient's. Facility details only; nothing about the patient.
  */
 export type NearbyFacility = { name: string; distance: string; services: string[]; phone: string | null };
 export const NEARBY_KEY = "uc_nearby";

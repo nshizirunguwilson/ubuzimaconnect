@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 import type { IconType } from "react-icons";
 import { cn } from "@/lib/cn";
 
-/** Empty state (DESIGN.md §9): one icon, one sentence, at most one action. No illustrations. */
+/** Empty state: one icon, one sentence, at most one action. No illustrations. */
 export function EmptyState({
   icon: Icon,
   message,

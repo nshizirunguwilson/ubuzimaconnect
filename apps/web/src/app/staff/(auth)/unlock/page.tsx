@@ -12,7 +12,7 @@ import { api, ApiFailure } from "@/lib/api";
 import { check } from "@/lib/form";
 import { usePending, useOnHide } from "@/lib/pending";
 
-/** FR 2.4: after a second lock, only the emailed code (valid 15 minutes) opens the account. */
+/** After a second lock, only the emailed code (valid 15 minutes) opens the account. */
 export default function UnlockPage() {
   const router = useRouter();
   const [email, setEmail] = useState("");
@@ -27,12 +27,12 @@ export default function UnlockPage() {
 
   async function submit(e: FormEvent) {
     e.preventDefault();
-    const r = check(unlockRequest, { email, code });
-    if (!r.data) return setErrors(r.errors);
+    const result = check(unlockRequest, { email, code });
+    if (!result.data) return setErrors(result.errors);
     setErrors({});
     setPending(true);
     try {
-      await api("/auth/staff/unlock", r.data);
+      await api("/auth/staff/unlock", result.data);
       router.replace("/staff/login?done=unlocked");
     } catch (err) {
       setPending(false);
@@ -41,16 +41,26 @@ export default function UnlockPage() {
   }
 
   async function resend() {
-    const r = check(resetRequest, { email });
-    if (!r.data) return setErrors(r.errors);
-    await api("/auth/staff/unlock/resend", r.data).catch(() => null);
+    const result = check(resetRequest, { email });
+    if (!result.data) return setErrors(result.errors);
+    await api("/auth/staff/unlock/resend", result.data).catch(() => null);
     toast.success("If the account is locked, a new code is on its way");
   }
 
   return (
-    <AuthCard title="Unlock your account" intro={`Enter the code from the email we sent. It works for ${LIMITS.unlockCodeMinutes} minutes.`}>
+    <AuthCard
+      title="Unlock your account"
+      intro={`Enter the code from the email we sent. It works for ${LIMITS.unlockCodeMinutes} minutes.`}
+    >
       <form onSubmit={submit} noValidate className="flex flex-col gap-6">
-        <Input label="Email" type="email" autoComplete="username" value={email} onChange={(e) => setEmail(e.target.value)} error={errors.email} />
+        <Input
+          label="Email"
+          type="email"
+          autoComplete="username"
+          value={email}
+          onChange={(event) => setEmail(event.target.value)}
+          error={errors.email}
+        />
         <CodeInput label="Unlock code" value={code} onChange={setCode} error={errors.code} />
         <div className="flex flex-col gap-3 sm:flex-row-reverse sm:justify-between">
           <Button type="submit" variant="primary" loading={pending} className="w-full sm:w-auto">

@@ -1,8 +1,8 @@
 import type { MetadataRoute } from "next";
 
 /**
- * NFR 8: an installable app (a Progressive Web App) on Android, iPhone and computers. Installing it is also
- * what lets an iPhone receive notifications (D57). Patients start at the welcome page; staff use the browser.
+ * An installable app (a Progressive Web App) on Android, iPhone and computers. Installing it is also
+ * what lets an iPhone receive notifications. Patients start at the welcome page; staff use the browser.
  */
 export default function manifest(): MetadataRoute.Manifest {
   return {
@@ -22,6 +22,13 @@ export default function manifest(): MetadataRoute.Manifest {
       { src: "/icons/icon-512.png", sizes: "512x512", type: "image/png", purpose: "any" },
       { src: "/icons/maskable-1024.png", sizes: "1024x1024", type: "image/png", purpose: "maskable" },
     ],
-    shortcuts: [{ name: "Emergency: call 912", short_name: "Emergency", url: "/emergency", icons: [{ src: "/icons/icon-192.png", sizes: "192x192" }] }],
+    shortcuts: [
+      {
+        name: "Emergency: call 912",
+        short_name: "Emergency",
+        url: "/emergency",
+        icons: [{ src: "/icons/icon-192.png", sizes: "192x192" }],
+      },
+    ],
   };
 }

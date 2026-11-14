@@ -7,7 +7,7 @@ import { api } from "@/lib/api";
 const events = ["pointerdown", "keydown", "scroll", "touchstart"] as const;
 
 /**
- * FR 1.7 and 2.5: the server ends a session after 15 idle minutes. This leaves the screen
+ * The server ends a session after 15 idle minutes. This leaves the screen
  * at the same moment, so health details are not left showing on an unattended device.
  */
 export function IdleLogout({ to }: { to: string }) {
@@ -22,10 +22,10 @@ export function IdleLogout({ to }: { to: string }) {
       }, LIMITS.sessionIdleMinutes * 60_000);
     };
     reset();
-    events.forEach((e) => window.addEventListener(e, reset, { passive: true }));
+    events.forEach((eventName) => window.addEventListener(eventName, reset, { passive: true }));
     return () => {
       clearTimeout(timer);
-      events.forEach((e) => window.removeEventListener(e, reset));
+      events.forEach((eventName) => window.removeEventListener(eventName, reset));
     };
   }, [to]);
   return null;

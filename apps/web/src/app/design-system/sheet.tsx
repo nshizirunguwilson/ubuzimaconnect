@@ -3,15 +3,15 @@
 import Image from "next/image";
 import { useState, type ReactNode } from "react";
 import {
-  LuActivity,
-  LuArrowRight,
-  LuCircleCheck,
-  LuCircleHelp,
-  LuIdCard,
-  LuInbox,
-  LuSend,
-  LuTriangleAlert,
-} from "react-icons/lu";
+  PiPulseBold,
+  PiArrowRightBold,
+  PiCheckCircleBold,
+  PiQuestionBold,
+  PiIdentificationCardBold,
+  PiTrayBold,
+  PiPaperPlaneTiltBold,
+  PiWarningBold,
+} from "react-icons/pi";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Checkbox, ChoiceRow, Radio } from "@/components/ui/choice";
@@ -29,7 +29,7 @@ import { contrast } from "@/lib/contrast";
 import { palette, pairs } from "@/lib/tokens";
 
 /**
- * The Stage 2 component sheet: every building block from DESIGN.md §9 with real
+ * The component sheet: every building block from the design system, with real
  * UbuzimaConnect content, for review before any screen is built.
  */
 export function ComponentSheet() {
@@ -79,8 +79,13 @@ function Header() {
       </div>
       <p className="flex flex-wrap items-center gap-2 text-small text-fg-secondary">
         Squircles in this browser:
-        <StatusBadge tone="neutral">{mode === "native" ? "Native corner-shape" : mode === "fallback" ? "SVG fallback" : "…"}</StatusBadge>
-        <a className="font-medium text-link underline underline-offset-2" href={mode === "fallback" ? "?" : "?sq=fallback"}>
+        <StatusBadge tone="neutral">
+          {mode === "native" ? "Native corner-shape" : mode === "fallback" ? "SVG fallback" : "…"}
+        </StatusBadge>
+        <a
+          className="font-medium text-link underline underline-offset-2"
+          href={mode === "fallback" ? "?" : "?sq=fallback"}
+        >
           {mode === "fallback" ? "Show native" : "Show fallback"}
         </a>
       </p>
@@ -145,7 +150,11 @@ function Colour() {
             <div className="grid grid-cols-3 gap-3 sm:grid-cols-5">
               {items.map(([name, shade]) => (
                 <div key={name} className="flex flex-col gap-1.5">
-                  <Squircle radius="sm" className="h-12 sq-border-border" style={{ ["--sq-bg" as string]: palette[shade] }} />
+                  <Squircle
+                    radius="sm"
+                    className="h-12 sq-border-border"
+                    style={{ ["--sq-bg" as string]: palette[shade] }}
+                  />
                   <span className="text-caption text-fg">{name}</span>
                   <span className="font-mono text-caption text-fg-muted">{palette[shade]}</span>
                 </div>
@@ -177,7 +186,9 @@ function Colour() {
                       Aa
                     </span>
                   </td>
-                  <td className="py-2 text-right text-fg tabular-nums">{contrast(palette[fg], palette[bg]).toFixed(2)}</td>
+                  <td className="py-2 text-right text-fg tabular-nums">
+                    {contrast(palette[fg], palette[bg]).toFixed(2)}
+                  </td>
                   <td className="py-2 text-right text-fg-secondary tabular-nums">{min}</td>
                 </tr>
               ))}
@@ -196,7 +207,11 @@ const typeScale = [
   ["H1 · Outfit 24/32", "text-h1 font-heading font-semibold", "Your case"],
   ["H2 · Outfit 20/28", "text-h2 font-heading font-semibold", "Incoming patients"],
   ["H3 · Outfit 16/24", "text-h3 font-heading font-semibold", "Kacyiru District Hospital"],
-  ["Body · Google Sans Flex 16/24", "text-body", "An agent will reply in a few minutes. You can close the app; we will notify you."],
+  [
+    "Body · Google Sans Flex 16/24",
+    "text-body",
+    "An agent will reply in a few minutes. You can close the app; we will notify you.",
+  ],
   ["Body small · 14/20", "text-small", "Waiting since 10:42 · Gasabo, Kigali"],
   ["Label · 14/20 medium", "text-small font-medium", "Date of birth"],
   ["Caption · 12/16 medium", "text-caption font-medium", "24 Oct 2026, 10:42"],
@@ -232,15 +247,19 @@ function Shape() {
   return (
     <Section title="Shape" source="DESIGN.md §5 · every rounded shape is a squircle; only true circles stay round">
       <div className="flex flex-wrap items-end gap-6">
-        {(Object.keys(RADIUS) as Radius[]).map((r) => {
-          const size = { xs: 20, sm: 40, md: 64, lg: 96, xl: 128 }[r];
+        {(Object.keys(RADIUS) as Radius[]).map((radiusName) => {
+          const size = { xs: 20, sm: 40, md: 64, lg: 96, xl: 128 }[radiusName];
           return (
-            <div key={r} className="flex flex-col gap-2">
-              <Squircle radius={r} className="sq-bg-accent-soft sq-border-blue-200" style={{ width: size, height: size }} />
+            <div key={radiusName} className="flex flex-col gap-2">
+              <Squircle
+                radius={radiusName}
+                className="sq-bg-accent-soft sq-border-blue-200"
+                style={{ width: size, height: size }}
+              />
               <span className="text-caption font-medium text-fg">
-                {r} · {RADIUS[r]} px
+                {radiusName} · {RADIUS[radiusName]} px
               </span>
-              <span className="text-caption text-fg-muted">{shapeUse[r]}</span>
+              <span className="text-caption text-fg-muted">{shapeUse[radiusName]}</span>
             </div>
           );
         })}
@@ -260,7 +279,7 @@ function Buttons() {
   return (
     <Section title="Buttons" source="DESIGN.md §9 · one primary per screen; 48 px on phones, 40 px on desktop">
       <div className="flex flex-wrap items-center gap-3">
-        <Button variant="primary" icon={<LuSend />}>
+        <Button variant="primary" icon={<PiPaperPlaneTiltBold />}>
           Submit case
         </Button>
         <Button variant="secondary">Save for later</Button>
@@ -275,7 +294,7 @@ function Buttons() {
           Submit case
         </Button>
         <Button variant="secondary" size="icon" aria-label="Next">
-          <LuArrowRight />
+          <PiArrowRightBold />
         </Button>
       </div>
     </Section>
@@ -284,13 +303,23 @@ function Buttons() {
 
 /* ---------- Fields ---------- */
 
-const districts = ["Gasabo", "Kicukiro", "Nyarugenge"].map((d) => ({ value: d.toLowerCase(), label: d }));
+const districts = ["Gasabo", "Kicukiro", "Nyarugenge"].map((district) => ({
+  value: district.toLowerCase(),
+  label: district,
+}));
 
 function Fields() {
   return (
     <Section title="Form fields" source="DESIGN.md §9 · label above, hint below, errors say what to do next">
       <div className="grid max-w-[720px] gap-6 md:grid-cols-2">
-        <Input label="National ID" inputMode="numeric" mono leading={<LuIdCard />} hint="16 digits, on the front of your ID card" placeholder="1 1990 8 0012345 0 12" />
+        <Input
+          label="National ID"
+          inputMode="numeric"
+          mono
+          leading={<PiIdentificationCardBold />}
+          hint="16 digits, on the front of your ID card"
+          placeholder="1 1990 8 0012345 0 12"
+        />
         <Input
           label="Date of birth"
           type="date"
@@ -318,7 +347,9 @@ function Choices() {
     <Section title="Choices" source="DESIGN.md §9 · choice rows from RESEARCH R1; 44 px targets">
       <div className="grid gap-10 md:grid-cols-2">
         <fieldset className="flex flex-col gap-3">
-          <legend className="mb-3 text-h3 font-heading font-semibold text-fg">Is the person having trouble breathing?</legend>
+          <legend className="mb-3 text-h3 font-heading font-semibold text-fg">
+            Is the person having trouble breathing?
+          </legend>
           <ChoiceRow name="breathing" value="yes" label="Yes" />
           <ChoiceRow name="breathing" value="no" label="No" defaultChecked />
           <ChoiceRow name="breathing" value="unsure" label="I'm not sure" />
@@ -328,14 +359,14 @@ function Choices() {
           <ChoiceRow
             name="level"
             value="urgent"
-            icon={<LuTriangleAlert className="text-urgent" />}
+            icon={<PiWarningBold className="text-urgent" />}
             label="Urgent"
             description="Needs care today. Route to the nearest hospital."
           />
           <ChoiceRow
             name="level"
             value="uncertain"
-            icon={<LuCircleHelp className="text-warning-fg" />}
+            icon={<PiQuestionBold className="text-warning-fg" />}
             label="Uncertain"
             description="Ask a clinician before routing."
             defaultChecked
@@ -343,7 +374,7 @@ function Choices() {
           <ChoiceRow
             name="level"
             value="minor"
-            icon={<LuCircleCheck className="text-success" />}
+            icon={<PiCheckCircleBold className="text-success" />}
             label="Minor"
             description="Advice and a health centre visit if it gets worse."
           />
@@ -392,38 +423,45 @@ const queue = {
     { id: "UC-20261024-0042", meta: "Breathing problem · Gasabo", time: "4 min", label: "Waiting 4 minutes" },
     { id: "UC-20261024-0039", meta: "Chest pain · Kicukiro", time: "9 min", label: "Waiting 9 minutes" },
   ],
-  uncertain: [
-    { id: "UC-20261024-0041", meta: "Fever, child · Nyarugenge", time: "6 min", label: "Waiting 6 minutes" },
-  ],
+  uncertain: [{ id: "UC-20261024-0041", meta: "Fever, child · Nyarugenge", time: "6 min", label: "Waiting 6 minutes" }],
   minor: [] as { id: string; meta: string; time: string; label: string }[],
 };
 
 function Queue() {
   const [selected, setSelected] = useState(queue.urgent[0].id);
   return (
-    <Section title="Tabs and queue rows" source="DESIGN.md §9 · RESEARCH R2 (tabs with counts, time on the right) and R3">
+    <Section
+      title="Tabs and queue rows"
+      source="DESIGN.md §9 · RESEARCH R2 (tabs with counts, time on the right) and R3"
+    >
       <Card className="max-w-[720px] p-0 md:p-0">
         <Tabs defaultValue="urgent">
           <TabsList className="px-4 md:px-6">
-            <Tab value="urgent" count={queue.urgent.length}>Urgent</Tab>
-            <Tab value="uncertain" count={queue.uncertain.length}>Uncertain</Tab>
-            <Tab value="minor" count={0}>Minor</Tab>
+            <Tab value="urgent" count={queue.urgent.length}>
+              Urgent
+            </Tab>
+            <Tab value="uncertain" count={queue.uncertain.length}>
+              Uncertain
+            </Tab>
+            <Tab value="minor" count={0}>
+              Minor
+            </Tab>
           </TabsList>
           {(["urgent", "uncertain", "minor"] as const).map((level) => (
             <TabsContent key={level} value={level} className="flex flex-col gap-1 p-2 outline-none" aria-live="polite">
               {queue[level].length === 0 ? (
-                <EmptyState icon={LuInbox} message="No minor cases waiting." />
+                <EmptyState icon={PiTrayBold} message="No minor cases waiting." />
               ) : (
-                queue[level].map((c) => (
+                queue[level].map((item) => (
                   <QueueRow
-                    key={c.id}
-                    title={c.id}
-                    meta={c.meta}
+                    key={item.id}
+                    title={item.id}
+                    meta={item.meta}
                     status={<TriageBadge level={level} />}
-                    time={c.time}
-                    timeLabel={c.label}
-                    selected={selected === c.id}
-                    onClick={() => setSelected(c.id)}
+                    time={item.time}
+                    timeLabel={item.label}
+                    selected={selected === item.id}
+                    onClick={() => setSelected(item.id)}
                   />
                 ))
               )}
@@ -439,7 +477,10 @@ function Queue() {
 
 function Flow() {
   return (
-    <Section title="Progress, codes and cards" source="DESIGN.md §9 · RESEARCH R1 (segmented progress) and R4 (one highlighted card)">
+    <Section
+      title="Progress, codes and cards"
+      source="DESIGN.md §9 · RESEARCH R1 (segmented progress) and R4 (one highlighted card)"
+    >
       <div className="grid gap-6 md:grid-cols-2">
         <Card className="flex flex-col gap-6">
           <StepProgress current={2} total={5} label="Symptoms" />
@@ -455,7 +496,7 @@ function Flow() {
             <p className="font-mono text-small font-medium text-fg-secondary">UC-20261024-0042</p>
           </Card>
           <Card className="flex items-start gap-3">
-            <LuActivity className="mt-0.5 size-5 shrink-0 text-fg-secondary" aria-hidden />
+            <PiPulseBold className="mt-0.5 size-5 shrink-0 text-fg-secondary" aria-hidden />
             <div className="flex flex-col gap-1">
               <h3 className="text-h3 text-fg">Kacyiru District Hospital</h3>
               <p className="text-small text-fg-secondary">Gasabo · 2.1 km · open 24 hours</p>
@@ -471,7 +512,10 @@ function Flow() {
 
 function Overlays() {
   return (
-    <Section title="Dialog, toast and empty state" source="DESIGN.md §9 · a bottom sheet on phones, a dialog on desktop">
+    <Section
+      title="Dialog, toast and empty state"
+      source="DESIGN.md §9 · a bottom sheet on phones, a dialog on desktop"
+    >
       <div className="flex flex-wrap gap-3">
         <Dialog>
           <DialogTrigger asChild>
@@ -502,7 +546,7 @@ function Overlays() {
         </Button>
       </div>
       <Card className="max-w-[720px]">
-        <EmptyState icon={LuInbox} message="No incoming patients right now. New cases appear here." />
+        <EmptyState icon={PiTrayBold} message="No incoming patients right now. New cases appear here." />
       </Card>
     </Section>
   );

@@ -3,9 +3,9 @@ import { LangProvider } from "@/i18n/client";
 import { getLang } from "@/i18n/server";
 
 /**
- * The patient app is phone first: one column (DESIGN.md §4). From 1024 px the frame widens; forms and
- * questions stay in one readable column, and the home and case pages use two (DECISIONS.md D38).
- * NFR 7: everything inside is in the patient's language, read from the cookie on the server (D62).
+ * The patient app is phone first: one column. From 1024 px the frame widens; forms and
+ * questions stay in one readable column, and the home and case pages use two.
+ * Everything inside is in the patient's language, read from the cookie on the server.
  */
 export default function PatientLayout({ children }: LayoutProps<"/">) {
   return (

@@ -1,7 +1,7 @@
 # UbuzimaConnect: Design Rules (Stage 2)
 
 Status: Draft for approval
-Built from: [`RESEARCH.md`](./RESEARCH.md). References are cited as R1–R5 and sections 2.x of that file.
+Built from: [`RESEARCH.md`](./RESEARCH.md). References are cited as R1-R5 and sections 2.x of that file.
 
 Every screen must pass the checklist in section 12 before it is shown.
 
@@ -42,11 +42,11 @@ Every screen must pass the checklist in section 12 before it is shown.
 
 ### Triage levels (SRS FR 4.4)
 
-| Level | Icon (Lucide) | Colour | Label |
+| Level | Icon (Phosphor) | Colour | Label |
 |---|---|---|---|
-| Urgent | `LuTriangleAlert` | Urgent red | "Urgent" |
-| Uncertain | `LuCircleHelp` | Warning amber | "Uncertain" |
-| Minor | `LuCircleCheck` | Success green | "Minor" |
+| Urgent | `PiWarningBold` | Urgent red | "Urgent" |
+| Uncertain | `PiQuestionBold` | Warning amber | "Uncertain" |
+| Minor | `PiCheckCircleBold` | Success green | "Minor" |
 
 ### Other tokens
 - **Focus ring:** a 2 px blue-500 ring with a 2 px white gap, on every interactive element (WCAG 2.4.7).
@@ -117,8 +117,9 @@ Headings use **Outfit**; everything else uses **Google Sans Flex** (optical size
 
 ## 7. Icons
 
-- **Lucide through `react-icons/lu`, only this family.**
-- Sizes 16 (inline), 20 (buttons, rows), 24 (navigation, empty states). The stroke is Lucide's default; never mix weights.
+- **Phosphor through `react-icons/pi`, Bold weight only, only this family** (D80).
+- Sizes 16 (inline), 20 (buttons, rows), 24 (navigation, empty states). Never mix weights.
+- An AI suggestion is marked with a lightbulb (`PiLightbulbBold`), meaning a suggestion, never with sparkles.
 - Colour is `currentColor`, so it follows the text it sits with.
 - **No icon without a label**, except universal controls (close, back, more), which get an `aria-label`.
 
@@ -140,7 +141,7 @@ Headings use **Outfit**; everything else uses **Google Sans Flex** (optical size
 | **Input / Select / Textarea** | A label always above (never placeholder-only); helper text below; an error state with icon + message in red-700. |
 | **Choice row** | A full-width row with an icon, a label and an optional one-line explanation; the selected row is tinted. Used for red-flag answers and triage confirmation (R1). |
 | **Checkbox / Radio** | 20 px controls inside a 44 px target. |
-| **Card** | Surface, 1 px border, lg squircle, 16–24 padding. The "highlighted" variant uses accent-soft, **at most one per screen**. |
+| **Card** | Surface, 1 px border, lg squircle, 16-24 padding. The "highlighted" variant uses accent-soft, **at most one per screen**. |
 | **Status badge** | Icon + label + tint (section 2). Never colour-only. |
 | **Tabs with counts** | e.g. "Urgent 3" (R2). The active tab is underlined in blue. |
 | **Queue row / table row** | Primary text, one status badge, time on the right (R2, R3). Hover = sunken. The whole row is clickable. |

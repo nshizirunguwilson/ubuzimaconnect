@@ -5,9 +5,9 @@ const base = { names: "Uwase Aline", sex: "FEMALE", dateOfBirth: "1990-05-01", d
 
 describe("adding a person to the mock NIDA (D73)", () => {
   it("accepts a valid adult and normalises names and phone", () => {
-    const r = nidaPersonInput.parse({ ...base, names: "  Mukamana   Uwase ", phone: "0788 123 456" });
-    expect(r.names).toEqual(["Mukamana", "Uwase"]);
-    expect(r.phone).toBe("0788123456");
+    const person = nidaPersonInput.parse({ ...base, names: "  Mukamana   Uwase ", phone: "0788 123 456" });
+    expect(person.names).toEqual(["Mukamana", "Uwase"]);
+    expect(person.phone).toBe("0788123456");
   });
   it("refuses SQL and markup in names: letters only", () => {
     for (const names of ["Robert'); DROP TABLE nida.person;--", "Aline <script>", "Aline 1"]) {

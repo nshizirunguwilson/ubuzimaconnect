@@ -4,10 +4,10 @@ import { clearOutboxes, flushOutbox, queueStep, readOutbox } from "./outbox";
 // A stand-in for the browser's localStorage.
 const data = new Map<string, string>();
 globalThis.localStorage = {
-  getItem: (k: string) => data.get(k) ?? null,
-  setItem: (k: string, v: string) => void data.set(k, v),
-  removeItem: (k: string) => void data.delete(k),
-  key: (i: number) => [...data.keys()][i] ?? null,
+  getItem: (key: string) => data.get(key) ?? null,
+  setItem: (key: string, value: string) => void data.set(key, value),
+  removeItem: (key: string) => void data.delete(key),
+  key: (index: number) => [...data.keys()][index] ?? null,
   get length() {
     return data.size;
   },
@@ -15,7 +15,7 @@ globalThis.localStorage = {
 } as Storage;
 
 const offline = new Error("offline");
-const isOffline = (e: unknown) => e === offline;
+const isOffline = (error: unknown) => error === offline;
 
 describe("the offline outbox (FR 3.10)", () => {
   beforeEach(() => data.clear());
@@ -25,7 +25,9 @@ describe("the offline outbox (FR 3.10)", () => {
     queueStep("c1", { path: "/answers", body: { q: 2 } });
     queueStep("c1", { path: "/symptoms", body: { d: "cough" } });
     const sent: string[] = [];
-    expect(await flushOutbox("c1", async (s) => void sent.push(`${s.path}:${JSON.stringify(s.body)}`), isOffline)).toBe("sent");
+    expect(
+      await flushOutbox("c1", async (step) => void sent.push(`${step.path}:${JSON.stringify(step.body)}`), isOffline),
+    ).toBe("sent");
     expect(sent).toEqual(['/answers:{"q":1}', '/answers:{"q":2}', '/symptoms:{"d":"cough"}']);
     expect(readOutbox("c1")).toEqual([]);
   });

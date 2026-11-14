@@ -24,7 +24,14 @@ async function Inner({ searchParams }: { searchParams: PageProps<"/cases/new">["
   const { for: forId } = await searchParams;
   const people = [
     { id: me.id, name: me.name, label: t.common.me, self: true },
-    ...me.family.map((f) => ({ id: f.id, name: f.name, label: t.start.childLabel(f.name.split(" ")[0], f.age), self: false })),
+    ...me.family.map((member) => ({
+      id: member.id,
+      name: member.name,
+      label: t.start.childLabel(member.name.split(" ")[0], member.age),
+      self: false,
+    })),
   ];
-  return <StartCase people={people} preselected={typeof forId === "string" ? forId : null} sharedDevice={me.sharedDevice} />;
+  return (
+    <StartCase people={people} preselected={typeof forId === "string" ? forId : null} sharedDevice={me.sharedDevice} />
+  );
 }

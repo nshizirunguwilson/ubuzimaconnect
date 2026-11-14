@@ -14,7 +14,7 @@ import { usePending, useOnHide } from "@/lib/pending";
 
 type Link = { purpose: "INVITATION" | "PASSWORD_RESET"; name: string; email: string };
 
-/** FR 2.6 (first password from an invitation) and FR 2.7 (new password from a reset link). */
+/** Choosing a password: the first one from an invitation, or a new one from a reset link. */
 export function SetPassword({ token, purpose }: { token: string; purpose: Link["purpose"] }) {
   const router = useRouter();
   const [link, setLink] = useState<Link | "invalid" | null>(null);
@@ -31,19 +31,19 @@ export function SetPassword({ token, purpose }: { token: string; purpose: Link["
 
   useEffect(() => {
     api<Link>(`/auth/staff/links/${encodeURIComponent(token)}`)
-      .then((l) => setLink(l.purpose === purpose ? l : "invalid"))
+      .then((link) => setLink(link.purpose === purpose ? link : "invalid"))
       .catch(() => setLink("invalid"));
   }, [token, purpose]);
 
   async function submit(e: FormEvent) {
     e.preventDefault();
-    const r = check(setPassword, { token, password });
-    if (!r.data) return setErrors(r.errors);
+    const result = check(setPassword, { token, password });
+    if (!result.data) return setErrors(result.errors);
     if (confirm !== password) return setErrors({ confirm: "The two passwords don't match" });
     setErrors({});
     setPending(true);
     try {
-      await api("/auth/staff/password", r.data);
+      await api("/auth/staff/password", result.data);
       router.replace("/staff/login?done=password");
     } catch (err) {
       setPending(false);
@@ -52,7 +52,8 @@ export function SetPassword({ token, purpose }: { token: string; purpose: Link["
     }
   }
 
-  if (link === null) return <AuthCard title={purpose === "INVITATION" ? "Set your password" : "Choose a new password"}>{null}</AuthCard>;
+  if (link === null)
+    return <AuthCard title={purpose === "INVITATION" ? "Set your password" : "Choose a new password"}>{null}</AuthCard>;
 
   if (link === "invalid") {
     return (
@@ -62,7 +63,10 @@ export function SetPassword({ token, purpose }: { token: string; purpose: Link["
             ? "Invitation links work for 48 hours and only once. Ask your administrator to invite you again."
             : "Reset links work for 30 minutes and only once. Ask for a new one."}
         </Notice>
-        <Link href={purpose === "INVITATION" ? "/staff/login" : "/staff/reset"} className="text-small font-medium text-link underline underline-offset-2">
+        <Link
+          href={purpose === "INVITATION" ? "/staff/login" : "/staff/reset"}
+          className="text-small font-medium text-link underline underline-offset-2"
+        >
           {purpose === "INVITATION" ? "Back to staff login" : "Get a new link"}
         </Link>
       </AuthCard>
@@ -86,14 +90,14 @@ export function SetPassword({ token, purpose }: { token: string; purpose: Link["
           hint="At least 8 characters. A short sentence is easy to remember."
           autoComplete="new-password"
           value={password}
-          onChange={(e) => setPw(e.target.value)}
+          onChange={(event) => setPw(event.target.value)}
           error={errors.password}
         />
         <PasswordInput
           label="Type it again"
           autoComplete="new-password"
           value={confirm}
-          onChange={(e) => setConfirm(e.target.value)}
+          onChange={(event) => setConfirm(event.target.value)}
           error={errors.confirm}
         />
         <Button type="submit" variant="primary" loading={pending} className="w-full sm:w-auto sm:self-end">

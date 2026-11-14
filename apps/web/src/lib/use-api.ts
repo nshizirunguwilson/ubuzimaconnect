@@ -14,12 +14,12 @@ export function useApi<T>(path: string | null) {
     if (!path) return;
     let live = true;
     api<T>(path).then(
-      (d) => {
+      (result) => {
         if (!live) return;
-        setData(d);
+        setData(result);
         setError(null);
       },
-      (e) => live && setError(message(e)),
+      (error) => live && setError(message(error)),
     );
     return () => {
       live = false;
@@ -31,8 +31,8 @@ export function useApi<T>(path: string | null) {
     try {
       setData(await api<T>(path));
       setError(null);
-    } catch (e) {
-      setError(message(e));
+    } catch (error) {
+      setError(message(error));
     }
   }, [path]);
 

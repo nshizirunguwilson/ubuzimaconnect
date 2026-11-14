@@ -3,8 +3,8 @@
 import { cn } from "@/lib/cn";
 
 /**
- * An on/off switch for a setting that takes effect at once (FR 4.8). The track is a true pill
- * and the knob a true circle, so no squircle is needed (DESIGN.md §5). 44 px target.
+ * An on/off switch for a setting that takes effect at once. The track is a true pill
+ * and the knob a true circle, so no squircle is needed. 44 px target.
  */
 export function Switch({
   checked,
@@ -34,7 +34,12 @@ export function Switch({
           disabled && "opacity-50",
         )}
       >
-        <span className={cn("size-6 rounded-full bg-white shadow-overlay transition-transform duration-150", checked && "translate-x-5")} />
+        <span
+          className={cn(
+            "size-6 rounded-full bg-white shadow-overlay transition-transform duration-150",
+            checked && "translate-x-5",
+          )}
+        />
       </span>
     </button>
   );

@@ -1,12 +1,12 @@
 "use client";
 
 import type { ComponentPropsWithoutRef, ReactNode } from "react";
-import { LuCheck } from "react-icons/lu";
+import { PiCheckBold } from "react-icons/pi";
 import { cn } from "@/lib/cn";
 import { Squircle } from "./squircle";
 
 /**
- * Choice row (DESIGN.md §9, RESEARCH R1): a full-width row with an icon, a label and an
+ * Choice row: a full-width row with an icon, a label and an
  * optional one-line explanation. The chosen row is tinted. It is a real radio or checkbox,
  * so keyboard and screen readers work without extra code.
  */
@@ -58,13 +58,13 @@ function Indicator({ type }: { type: "radio" | "checkbox" }) {
       radius="xs"
       className="flex size-5 shrink-0 items-center justify-center sq-bg-surface sq-border-border-strong text-transparent peer-checked:sq-bg-primary peer-checked:sq-border-primary peer-checked:text-white"
     >
-      <LuCheck className="size-3.5" strokeWidth={3} />
+      <PiCheckBold className="size-3.5" />
     </Squircle>
   );
 }
 
 /**
- * Checkbox and radio for plain lists (DESIGN.md §9): a 20 px control inside a 44 px target.
+ * Checkbox and radio for plain lists: a 20 px control inside a 44 px target.
  */
 type CheckProps = Omit<ComponentPropsWithoutRef<"input">, "type"> & { label: string };
 
@@ -79,7 +79,7 @@ export function Checkbox({ label, className, ...rest }: CheckProps) {
         focus="peer"
         className="flex size-5 shrink-0 items-center justify-center sq-bg-surface sq-border-border-strong text-transparent peer-checked:sq-bg-primary peer-checked:sq-border-primary peer-checked:text-white peer-disabled:sq-bg-sunken"
       >
-        <LuCheck className="size-3.5" strokeWidth={3} />
+        <PiCheckBold className="size-3.5" />
       </Squircle>
       <span className="peer-disabled:text-fg-disabled">{label}</span>
     </label>

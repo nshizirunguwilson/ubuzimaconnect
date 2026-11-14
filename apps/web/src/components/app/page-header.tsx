@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 
-/** One H1 per page, one purpose line, and at most one primary action on the right (DESIGN.md §1). */
+/** One H1 per page, one purpose line, and at most one primary action on the right. */
 export function PageHeader({ title, intro, action }: { title: string; intro?: ReactNode; action?: ReactNode }) {
   return (
     <div className="flex flex-wrap items-end justify-between gap-4">

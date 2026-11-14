@@ -6,7 +6,7 @@ import { env } from "../common/env";
 export const DEMO_DOMAIN = "@ubuzima.test";
 
 /**
- * D66: the emails a grader needs to log in as a demo staff member (codes, invitations, reset links).
+ * The emails a grader needs to log in as a demo staff member (codes, invitations, reset links).
  * Locally: every email, since none is really sent. On the live site, only with DEMO_INBOX=1, and only
  * emails to the demo addresses: a real staff member's email never appears here.
  */

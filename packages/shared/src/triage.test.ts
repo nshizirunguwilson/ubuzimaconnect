@@ -20,7 +20,7 @@ describe("red-flag groups (Appendix C, FR 3.6, 4.2)", () => {
     expect(isNewborn(age("2026-10-16", now))).toBe(false); // 8 days
   });
 
-  it("asks A always, C under 12, N under 2 months, P only when pregnant and female 12–55", () => {
+  it("asks A always, C under 12, N under 2 months, P only when pregnant and female 12 to 55", () => {
     expect(redFlagGroups("MALE", age("1990-01-01", now), null)).toEqual(["A"]);
     expect(redFlagGroups("MALE", age("2019-06-02", now), null)).toEqual(["A", "C"]);
     expect(redFlagGroups("FEMALE", age("2026-09-10", now), null)).toEqual(["A", "C", "N"]);
@@ -35,8 +35,12 @@ describe("red-flag groups (Appendix C, FR 3.6, 4.2)", () => {
 describe("needed service (FR 5.1, in order)", () => {
   it("takes the red-flag question's service, Maternity for a pregnant woman with A2 or A3", () => {
     expect(chooseService({ redFlag: { code: "A4", service: "SURGERY" }, years: 30 })).toBe("SURGERY");
-    expect(chooseService({ redFlag: { code: "A2", service: "EMERGENCY_CARE" }, pregnant: true, years: 30 })).toBe("MATERNITY");
-    expect(chooseService({ redFlag: { code: "A2", service: "EMERGENCY_CARE" }, pregnant: false, years: 30 })).toBe("EMERGENCY_CARE");
+    expect(chooseService({ redFlag: { code: "A2", service: "EMERGENCY_CARE" }, pregnant: true, years: 30 })).toBe(
+      "MATERNITY",
+    );
+    expect(chooseService({ redFlag: { code: "A2", service: "EMERGENCY_CARE" }, pregnant: false, years: 30 })).toBe(
+      "EMERGENCY_CARE",
+    );
   });
 
   it("then pregnancy, children, injuries and burns, heart, mental health, general", () => {
@@ -53,8 +57,11 @@ describe("needed service (FR 5.1, in order)", () => {
 
 describe("triage level (FR 4.4, 4.5)", () => {
   const long = "I have had a bad cough and fever since yesterday evening";
-  const ai = (urgency: "URGENT" | "MINOR" | null, confidence: "LOW" | "MEDIUM" | "HIGH" | null, category: "RESPIRATORY" | null = "RESPIRATORY") =>
-    ({ ok: true as const, category, urgency, confidence, reason: "r" });
+  const ai = (
+    urgency: "URGENT" | "MINOR" | null,
+    confidence: "LOW" | "MEDIUM" | "HIGH" | null,
+    category: "RESPIRATORY" | null = "RESPIRATORY",
+  ) => ({ ok: true as const, category, urgency, confidence, reason: "r" });
 
   it("is Urgent when the AI says urgent, at any confidence, even with a short description", () => {
     expect(triageLevel(ai("URGENT", "LOW"), "pain", false).level).toBe("URGENT");
@@ -77,8 +84,13 @@ describe("triage level (FR 4.4, 4.5)", () => {
 });
 
 describe("facility matching (FR 5.3, 5.4, 5.8, 5.9)", () => {
-  const at = { lat: -1.95, lng: 30.09 };
-  const f = (id: string, lat: number, lng: number, over: Partial<FacilityForMatch> = {}): FacilityForMatch => ({
+  const patient = { lat: -1.95, lng: 30.09 };
+  const facility = (
+    id: string,
+    lat: number,
+    lng: number,
+    overrides: Partial<FacilityForMatch> = {},
+  ): FacilityForMatch => ({
     id,
     name: id,
     active: true,
@@ -88,7 +100,7 @@ describe("facility matching (FR 5.3, 5.4, 5.8, 5.9)", () => {
     phone: null,
     freeBeds: 5,
     onDuty: ["EMERGENCY_CARE", "GENERAL_MEDICINE"],
-    ...over,
+    ...overrides,
   });
 
   it("measures straight-line distance (Haversine)", () => {
@@ -99,23 +111,23 @@ describe("facility matching (FR 5.3, 5.4, 5.8, 5.9)", () => {
 
   it("picks the nearest suitable facility, skipping inactive ones and ones without the specialty on duty", () => {
     const list = [
-      f("near-inactive", -1.951, 30.091, { active: false }),
-      f("near-no-specialist", -1.952, 30.092, { onDuty: ["GENERAL_MEDICINE"] }),
-      f("mid", -1.96, 30.1),
-      f("far", -2.1, 30.3),
+      facility("near-inactive", -1.951, 30.091, { active: false }),
+      facility("near-no-specialist", -1.952, 30.092, { onDuty: ["GENERAL_MEDICINE"] }),
+      facility("mid", -1.96, 30.1),
+      facility("far", -2.1, 30.3),
     ];
-    const m = matchFacilities(list, at, "EMERGENCY_CARE", false);
-    expect(m.kind).toBe("SUITABLE");
-    if (m.kind === "SUITABLE") expect(m.ranked.map((r) => r.facility.id)).toEqual(["mid", "far"]);
+    const match = matchFacilities(list, patient, "EMERGENCY_CARE", false);
+    expect(match.kind).toBe("SUITABLE");
+    if (match.kind === "SUITABLE") expect(match.ranked.map((ranked) => ranked.facility.id)).toEqual(["mid", "far"]);
   });
 
   it("needs a free bed when a bed is needed, and falls back to 'no beds' then 'no match'", () => {
-    const full = [f("a", -1.96, 30.1, { freeBeds: 0 }), f("b", -2.1, 30.3, { freeBeds: 0 })];
-    const m = matchFacilities(full, at, "EMERGENCY_CARE", true);
-    expect(m.kind).toBe("NO_BEDS");
-    if (m.kind === "NO_BEDS") expect(m.facility.id).toBe("a");
-    expect(matchFacilities(full, at, "EMERGENCY_CARE", false).kind).toBe("SUITABLE");
-    expect(matchFacilities(full, at, "MATERNITY", false).kind).toBe("NO_MATCH");
+    const full = [facility("a", -1.96, 30.1, { freeBeds: 0 }), facility("b", -2.1, 30.3, { freeBeds: 0 })];
+    const match = matchFacilities(full, patient, "EMERGENCY_CARE", true);
+    expect(match.kind).toBe("NO_BEDS");
+    if (match.kind === "NO_BEDS") expect(match.facility.id).toBe("a");
+    expect(matchFacilities(full, patient, "EMERGENCY_CARE", false).kind).toBe("SUITABLE");
+    expect(matchFacilities(full, patient, "MATERNITY", false).kind).toBe("NO_MATCH");
   });
 });
 
@@ -123,6 +135,8 @@ describe("sectors (FR 3.4)", () => {
   it("has all 416 sectors inside Rwanda", () => {
     expect(SECTORS).toHaveLength(416);
     expect(sectorsOf("Gasabo")).toHaveLength(15);
-    expect(SECTORS.every((s) => s.lat < -1 && s.lat > -2.9 && s.lng > 28.8 && s.lng < 30.9)).toBe(true);
+    expect(
+      SECTORS.every((sector) => sector.lat < -1 && sector.lat > -2.9 && sector.lng > 28.8 && sector.lng < 30.9),
+    ).toBe(true);
   });
 });

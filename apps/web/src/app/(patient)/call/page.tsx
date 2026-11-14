@@ -22,6 +22,9 @@ async function Inner({ searchParams }: { searchParams: PageProps<"/call">["searc
   const me = await requirePatient();
   const t = await getT();
   const { case: caseId } = await searchParams;
-  const people = [{ id: me.id, label: t.common.me }, ...me.family.map((f) => ({ id: f.id, label: f.name.split(" ")[0] }))];
+  const people = [
+    { id: me.id, label: t.common.me },
+    ...me.family.map((member) => ({ id: member.id, label: member.name.split(" ")[0] })),
+  ];
   return <PreferCall caseId={typeof caseId === "string" ? caseId : null} people={people} />;
 }

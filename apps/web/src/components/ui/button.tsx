@@ -1,19 +1,17 @@
 "use client";
 
 import type { ComponentPropsWithoutRef, ReactNode } from "react";
-import { LuLoaderCircle } from "react-icons/lu";
+import { PiCircleNotchBold } from "react-icons/pi";
 import { cn } from "@/lib/cn";
 import { Squircle } from "./squircle";
 
 /**
- * DESIGN.md §9. Primary is the only blue button on a screen.
+ * Buttons. Primary is the only blue button on a screen.
  * Heights: 48 px on phones, 40 px from md up (§4). Labels are verbs.
  */
 const variants = {
-  primary:
-    "sq-bg-primary text-white hover:sq-bg-primary-hover active:sq-bg-primary-pressed",
-  secondary:
-    "sq-bg-surface sq-border-border-strong text-fg hover:sq-bg-sunken active:sq-bg-gray-200",
+  primary: "sq-bg-primary text-white hover:sq-bg-primary-hover active:sq-bg-primary-pressed",
+  secondary: "sq-bg-surface sq-border-border-strong text-fg hover:sq-bg-sunken active:sq-bg-gray-200",
   ghost: "text-fg hover:sq-bg-sunken active:sq-bg-gray-200",
   danger: "sq-bg-urgent text-white hover:sq-bg-urgent-fg active:sq-bg-urgent-fg",
 } as const;
@@ -68,7 +66,7 @@ export function Button({
       )}
       {...rest}
     >
-      {loading ? <LuLoaderCircle className="animate-spin" aria-hidden /> : icon}
+      {loading ? <PiCircleNotchBold className="animate-spin" aria-hidden /> : icon}
       {/* An icon-only button has no text to keep: the spinner takes the icon's place */}
       {loading && size === "icon" ? null : children}
     </Squircle>
