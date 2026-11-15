@@ -14,7 +14,7 @@ A telehealth triage platform for Rwanda. A patient logs in with their national I
 
 - **Live site:** https://ubuzima.wilsonn.tech (patients) and https://ubuzima.wilsonn.tech/staff/login (staff). Live since 25 Oct 2026; how it's hosted: [`docs/DEPLOY.md`](docs/DEPLOY.md).
 - **Code:** https://github.com/nshizirunguwilson/ubuzimaconnect
-- **Demo video:** link added once recorded. The plans are in [`docs/VIDEO.md`](docs/VIDEO.md) (every requirement) and [`docs/PRESENTATION.md`](docs/PRESENTATION.md) (the slide talk).
+- **Demo video:** link added once recorded. The script and shot list are in [`docs/VIDEO.md`](docs/VIDEO.md).
 
 What the SRS asks for, and the status of every requirement: [`docs/TRACEABILITY.md`](docs/TRACEABILITY.md).
 

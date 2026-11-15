@@ -11,3 +11,6 @@ coverage
 *.log
 **/src/generated
 .deploy
+
+# Video recording files (voice, shots, slides); only the script in docs/VIDEO.md is shared
+/video/
