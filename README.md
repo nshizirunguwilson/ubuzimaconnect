@@ -158,7 +158,7 @@ How fast the app is at the SRS's scale, and on a 3G phone, is in [`docs/PERFORMA
 
 ## Kinyarwanda
 
-Every patient and pharmacy screen has a **Kinyarwanda · English** switch. The Kinyarwanda is a draft waiting for review by a native speaker: see [`docs/translations`](docs/translations/README.md). After correcting the texts, make the review sheet again with:
+Every patient and pharmacy screen has a **Kinyarwanda · English** switch. The Kinyarwanda texts were reviewed on 19 Nov 2026. The review sheet and where corrections go are in [`docs/translations`](docs/translations/README.md). After correcting any text, make the review sheet again with:
 
 ```bash
 pnpm translations
@@ -198,7 +198,7 @@ Vercel (web), Azure App Service in UAE North (API and mock NIDA), Azure Database
 
 ## Known limitations
 
-- **Kinyarwanda is a draft.** Every text was written by the developer, who isn't a native speaker, and needs checking by a Kinyarwanda speaker. The 23 danger-sign questions also need a clinician's check ([`docs/translations`](docs/translations/README.md)).
+- **The danger-sign questions need a clinician's check.** The Kinyarwanda texts were reviewed on 19 Nov 2026, but the 23 danger-sign questions should also be checked by a clinician, in both languages ([`docs/translations`](docs/translations/README.md)).
 - **The national ID service is a mock.** It holds fictional people. Connecting to the real NIDA needs an agreement with NIDA and changes only `apps/api/src/auth/nida.client.ts`.
 - **The live site is a public demo.** The demo staff passwords are in this README, and their login codes appear at `/demo/inbox`, so anyone can log in as a demo agent, clinician or administrator. All data is fictional. For real use: set `DEMO_INBOX` off and give staff real accounts.
 - **FullCalendar's timeline is free for non-commercial use only.** The staff schedule uses its premium resource timeline under the non-commercial licence (D77). A commercial deployment needs a paid licence, or the free time grid instead.
