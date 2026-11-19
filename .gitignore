@@ -11,3 +11,6 @@ coverage
 *.log
 **/src/generated
 .deploy
+
+# Video recording files
+/video/

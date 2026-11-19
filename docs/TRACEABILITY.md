@@ -332,7 +332,7 @@ Features added after the live testing and Wilson's review. Each has its decision
 | Code availability: public GitHub, clear setup | https://github.com/nshizirunguwilson/ubuzimaconnect, README (setup, tests, deployment, known limitations) | Done |
 | Solution deployment: public URL | https://ubuzima.wilsonn.tech, following [`docs/DEPLOY.md`](DEPLOY.md) (D67) | Done: the website on Vercel, the API and mock NIDA on Azure App Service, the database on Azure Database for PostgreSQL (UAE North, moved from Supabase on 10 Nov 2026, D81) and email through Resend, at ubuzima.wilsonn.tech and api.ubuzima.wilsonn.tech (the mock NIDA, called only by the API, stays on its Azure address) |
 | Operation: login, sign-up, buttons, redirects | Staff can log in on the live site through the demo inbox (D66) | Done: checked on the live site on 1 Nov 2026: a facility manager logs in with password and emailed code and opens the schedule, reports and facility; a patient logs in through the mock NIDA and opens their requests |
-| Presentation video, and every user's functions visible | [`docs/VIDEO.md`](VIDEO.md): all 106 requirements by scene, day and night shifts, every role; [`docs/PRESENTATION.md`](PRESENTATION.md): the slide talk | Partly: plans written; recording next |
+| Presentation video, and every user's functions visible | The demo video (link in the README once recorded) | Partly: recording next |
 
 ## Browser checks
 
