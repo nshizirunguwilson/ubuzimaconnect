@@ -1,42 +1,45 @@
 # Final Project video: script and shot list
 
-**One video, 9 minutes 30 seconds** (the brief allows 5 to 10). It covers, in this order: what the system is, the problem, why it is a problem, the solution, and a demo that shows every user's functions from the SRS and the system design.
+**One video, about 9 minutes 15 seconds, never more than 9:45** (the brief allows 5 to 10). In this order: what the system is, the problem, why it is a problem, the solution and its design, a demo, the live site, and the close.
 
-**How it is made:**
+The demo doesn't try to show every requirement. It follows **one patient from "my son is sick" to a bed at a facility that can treat him**, and adds only the features that prove the solution is safe, works around the clock, and holds up when things go wrong.
 
-1. **Your voice:** you record each clip below, word for word, as its own audio file.
-2. **The screen:** every demo shot is recorded by script on a local copy of the app (the same code as the live site). The slides come from the deck.
-3. **The edit:** each shot is fitted to your clip. A small label in the corner names each requirement as it appears, for example `FR 6.3 Offer a case`.
-4. **The live site:** a short shot of https://ubuzima.wilsonn.tech in a normal browser, with the address bar, proves the deployment.
+## How it is made
 
-Long waits (15 minutes, 6 hours, 24 hours, 7 days) are not sat through. On the local copy the record's time is moved back, so the app's own rules act at once, and the label says **"time skipped"**.
+1. **Your voice:** you record each clip below, word for word, as its own audio file. This is the only thing you do.
+2. **The demo (clips 03 to 08):** recorded by script on a **local copy** of the system (the same code as the live site), so every login, code and ID is typed by the script. Each account has its own browser window, so several accounts can be on screen at once.
+3. **The live site (clip 09):** recorded by script on https://ubuzima.wilsonn.tech, with the address bar showing. Only pages that need no login.
+4. **The slides:** exported from the deck "UbuzimaConnect | Your Health on Time" (already updated on 19 Nov).
+5. **The edit:** each shot is fitted to your clip. A small label names each requirement as it appears, for example `FR 6.3 Offer a case`.
+
+No long waits are needed. The one wait in the demo (an urgent case left for 2 minutes) is filmed for real and cut, with a "2 minutes later" label. The night shift is recorded with the local copy's clock at 18:59 Kigali time.
 
 ## Recording your voice
 
 - One file per clip, named exactly as below (for example `03-patient.m4a`). Voice Memos or QuickTime is fine.
 - Quiet room, phone or headset microphone about a hand's width from your mouth.
-- Calm pace, about 140 words a minute. The target time is a guide: a few seconds over or under is fine, the video is fitted to you.
+- Calm pace, about 140 words a minute. The times are a guide: the video is fitted to your voice.
 - Leave one second of silence at the start and end of each file.
-- If you stumble, record that clip again. You can change any words so they sound like you; keep the meaning.
+- If you stumble, record that clip again. You can change words so they sound like you; keep the meaning.
 - Put the files in `video/voice/` inside the project folder (not pushed to GitHub).
 
 ## Overview
 
-About 1171 words in all: roughly 8 minutes of speech at a calm pace, plus pauses on the screens.
+| Clip | Time | Part | Screen | Words |
+|---|---|---|---|---:|
+| 00 | 0:00 to 0:20 | What the system is | Slides | 43 |
+| 01 | 0:20 to 1:20 | The problem, and why it is a problem | Slides | 130 |
+| 02 | 1:20 to 2:05 | The solution and the design | Slides | 93 |
+| 03 | 2:05 to 3:40 | Demo: patient | Local | 155 |
+| 04 | 3:40 to 5:20 | Demo: health agent, day and night | Local | 173 |
+| 05 | 5:20 to 6:20 | Demo: clinician | Local | 92 |
+| 06 | 6:20 to 6:45 | Demo: emergency page and pharmacy | Local | 36 |
+| 07 | 6:45 to 7:15 | Demo: facility manager | Local | 41 |
+| 08 | 7:15 to 7:55 | Demo: administrator | Local | 48 |
+| 09 | 7:55 to 8:40 | The live site | Live | 51 |
+| 10 | 8:40 to 9:15 | Testing, limits and close | Slides | 67 |
 
-| Clip | Time | Part | Words |
-|---|---|---|---:|
-| 00 | 0:00 to 0:20 | What the system is | 43 |
-| 01 | 0:20 to 1:30 | The problem, and why it is a problem | 150 |
-| 02 | 1:30 to 2:15 | The solution, the users and the design | 93 |
-| 03 | 2:15 to 3:55 | Demo: patient | 235 |
-| 04 | 3:55 to 5:35 | Demo: health agent, day and night | 224 |
-| 05 | 5:35 to 6:35 | Demo: clinician | 133 |
-| 06 | 6:35 to 7:00 | Demo: public and pharmacy | 39 |
-| 07 | 7:00 to 7:40 | Demo: facility manager | 52 |
-| 08 | 7:40 to 8:30 | Demo: administrator | 91 |
-| 09 | 8:30 to 8:50 | The live site | 30 |
-| 10 | 8:50 to 9:30 | Testing, limits and close | 81 |
+About 930 words: roughly 6.5 minutes of speech, plus pauses on the screens. That leaves 30 seconds of room under 9:45.
 
 ---
 
@@ -50,23 +53,23 @@ About 1171 words in all: roughly 8 minutes of speech at a calm pace, plus pauses
 
 ---
 
-## 01 · The problem, and why it is a problem (0:20 to 1:30) · `01-problem.m4a`
+## 01 · The problem, and why it is a problem (0:20 to 1:20) · `01-problem.m4a`
 
 **Say:**
 
-> In Rwanda, many patients travel to the wrong facility, or arrive too late. A trip to a health centre costs time and money, and when the facility has no free bed or no doctor for that problem, the patient has to travel again.
+> In Rwanda, many patients travel to the wrong facility, or arrive too late. The trip costs time and money, and when the facility has no free bed or no doctor for that problem, the patient travels again.
 >
-> Digital care has worked here before. Babyl served about two point eight million people, around one in five Rwandans. But it was owned abroad, and when its parent company failed in 2023, the service closed overnight. More than a thousand respiratory and malaria cases went straight back to facilities that weren't ready for them.
+> Digital care has worked here before. Babyl served about two point eight million people, one in five Rwandans. But it was owned abroad, and when its parent company failed in 2023, it closed overnight. Over a thousand respiratory and malaria cases went back to facilities that weren't ready for them.
 >
-> e-Ubuzima, the national record system, keeps records, but it is in fifteen of thirty districts so far, and nothing in it checks how urgent a case is or sends the patient to a facility with space.
+> e-Ubuzima keeps national records, but only in fifteen of thirty districts so far, and nothing in it checks how urgent a case is or finds a facility with space.
 >
-> So the gap isn't only records. It's getting the right patient to the right place, in time.
+> So the gap is getting the right patient to the right place, in time.
 
-**Screen:** problem slide, then the evidence slide with its four numbers (2.8M, overnight, 1,055 + 246, 15 districts).
+**Screen:** Problem Context slide, then the Evidence slide with its four numbers (2.8M, Overnight, 1,055 + 246, 15 districts).
 
 ---
 
-## 02 · The solution, the users and the design (1:30 to 2:15) · `02-solution.m4a`
+## 02 · The solution and the design (1:20 to 2:05) · `02-solution.m4a`
 
 **Say:**
 
@@ -76,201 +79,169 @@ About 1171 words in all: roughly 8 minutes of speech at a calm pace, plus pauses
 >
 > The website runs on Vercel, and the API, the database and a mock national ID service run together in Azure.
 
-**Screen:** objectives slide, then the system design slide (the six user types and the architecture), then the deployment diagram (`docs/srs/deployment-diagram.png`).
+**Screen:** Objectives slide, then the System Design slide, then the deployment diagram (`docs/srs/deployment-diagram.png`).
 
 ---
 
-## 03 · Demo: patient (2:15 to 3:55) · `03-patient.m4a`
+## 03 · Demo: patient (2:05 to 3:40) · `03-patient.m4a`
 
 **Say:**
 
-> Let's follow a patient. Aline logs in with her national ID, her date of birth and one name. There's no password: the details are checked against the national ID service. Wrong details are refused with a clear message, five wrong tries lock the ID for fifteen minutes, and if the service is down, she's told so and can still reach emergency help. She can also say she's on a shared phone, and nothing stays behind.
+> Let's follow a patient. Aline logs in with her national ID, her date of birth and one name, checked against the national ID service. There's no password to forget. Wrong details are refused, and five wrong tries lock the ID.
 >
-> As a parent, she sees her own record and her children's. A seventeen-year-old logs in herself and sees only her own.
+> As a parent, she sees her children too. Her son Kevin is sick. She picks him and shares her location.
 >
-> Her son Kevin is sick. She picks him, shares her location, or chooses her sector if she prefers. The phone saves the five nearest facilities, so they still show without internet.
+> First come the danger signs, all on one screen. She answers none of these, then describes the problem, how long, and how bad. The AI suggests a level, and the case goes straight to a health agent.
 >
-> First, the danger signs, all on one screen. Here she answers "None", and describes the problem, how long, and how bad. The AI gives its suggestion, and the case goes to a health agent. A very short description is never marked minor.
+> If she had answered yes to a danger sign, the case would be urgent at once, and she'd see the nearest facility with emergency care and the emergency number, without waiting for anyone.
 >
-> If she had answered yes to a danger sign, the case would be urgent at once, with the nearest facility and the emergency number. A newborn baby is urgent straight away.
->
-> She can ask for a call instead, and only then is a phone number needed. She can cancel, she can keep going offline, and later she sees all her records, prescriptions, and who opened them.
+> And with no internet, the request is kept on the phone and sent as soon as she's back online, while the nearest facilities still show.
 
 **Screen (patient in phone view, 375 px):**
 
 | Shot | What happens | Labels |
 |---|---|---|
 | 3.1 | Login: ID in six boxes, date of birth, name; logged in | FR 1.1 Verify national ID · FR 1.2 Knowledge-based check |
-| 3.2 | Wrong name: plain message; then a made-up ID refused | FR 1.4 Reject invalid access |
-| 3.3 | Fifth wrong try: "locked for 15 minutes" with the Emergency button | FR 1.6 Lock after failed attempts |
-| 3.4 | Mock NIDA switched off: "Verification is temporarily unavailable" with the Emergency button | FR 1.5 Verification unavailable |
-| 3.5 | "This is not my device" ticked; later the idle logout back to the login page (time skipped) | FR 1.8 Shared device option · FR 1.7 Patient session timeout |
-| 3.6 | Home: Aline, Kevin, Grace; her record with the identity photo | FR 1.3 Family access model · FR 1.10 Identity photo |
-| 3.7 | Ange (17) logs in and sees only herself; her sister's record address is refused | FR 1.3 · FR 9.1 Patient access |
-| 3.8 | Get help → Who is sick? → Kevin; Use my location | FR 3.1 Choose who is sick · FR 3.3 Capture current location |
-| 3.9 | Grace: location refused, Province, District, Sector picker | FR 3.4 Manual location fallback |
-| 3.10 | The 5 saved facilities shown offline | FR 3.5 Save nearby facilities |
-| 3.11 | Danger-sign checklist on one screen, "None of these" last | FR 3.6 Red-flag checklist |
-| 3.12 | Description, how long, how bad; sent; "Get help" again opens the same case | FR 3.7 Submit symptoms · FR 3.2 One open case per person |
-| 3.13 | The AI result reaches the agent's queue (split screen) | FR 4.3 Categorise issue · FR 4.4 Set triage level · FR 4.9 Human review of every case |
-| 3.14 | Two-word description: Uncertain | FR 4.5 Escalate uncertainty |
-| 3.15 | Claudine: "Yes" to a danger sign: Urgent at once, nearest facility, distance, 912, "An agent will contact you." | FR 4.1 Red-flag override · FR 5.5 Immediate guidance |
-| 3.16 | A 3-day-old baby: Urgent with no questions | FR 4.2 Automatic urgency for newborns |
-| 3.17 | Prefer a call: number and whose it is; no number asked anywhere else | FR 3.8 Prefer a call · FR 3.9 Phone number not required |
-| 3.18 | Offline: "Not sent yet", saved facilities, then sent when back online | FR 3.10 Work offline |
-| 3.19 | "I no longer need help": Cancelled by patient | FR 3.11 Cancel a case |
-| 3.20 | After a case: the 1 to 5 rating | FR 6.15 Close a case (rating) |
-| 3.21 | Records: visit, notes, prescriptions including an expired one; Print summary; Activity list | FR 7.2 Patient view of records · FR 11.4 Keep after expiry · FR 10.2 Patient activity list |
+| 3.2 | Wrong name: a plain message; the fifth wrong try: "locked for 15 minutes", with the Emergency button | FR 1.4 Reject invalid access · FR 1.6 Lock after failed attempts |
+| 3.3 | Home: Aline, Kevin and Grace | FR 1.3 Family access model |
+| 3.4 | Get help → Who is sick? → Kevin; Use my location | FR 3.1 Choose who is sick · FR 3.3 Capture current location |
+| 3.5 | Danger-sign checklist on one screen; "None of these" | FR 3.6 Red-flag checklist |
+| 3.6 | Description, how long, how bad; sent; the AI result | FR 3.7 Submit symptoms · FR 4.3 Categorise issue · FR 4.4 Set triage level |
+| 3.7 | Claudine answers "Yes": Urgent at once, nearest facility with distance, 912, "An agent will contact you" | FR 4.1 Red-flag override · FR 5.5 Immediate guidance |
+| 3.8 | Offline: "Not sent yet" and the saved facilities; back online: sent | FR 3.10 Work offline · FR 3.5 Save nearby facilities |
 
 ---
 
-## 04 · Demo: health agent, day and night (3:55 to 5:35) · `04-agent.m4a`
+## 04 · Demo: health agent, day and night (3:40 to 5:20) · `04-agent.m4a`
 
 **Say:**
 
-> Now the health agent. Staff log in with a password and a six-digit code sent by email. Diane, the day agent, goes Available. Cases are offered urgent first, one at a time, and each offer waits thirty seconds before moving to the next agent.
+> Now the health agent. Staff log in with a password and a code sent by email. Diane goes Available, and cases are offered one at a time, urgent first. Each offer waits thirty seconds, then moves to the next agent.
 >
-> The agent sees the whole case: the photo, the danger signs, the AI's suggestion and its reason, and past prescriptions. If the AI is down, the case is simply marked uncertain. Anything can be changed, and every change is saved with the agent's name.
+> Diane sees the whole case: the danger signs, the AI's suggestion and its reason. She decides, not the AI. She can change anything, and every change is saved with her name. She chats with Aline live.
 >
-> The agent chats with the patient live, or calls them. Minor problems can be handled remotely, even with a prescription that has its own code. Otherwise the agent confirms the routing: the needed service, whether a bed is needed, the nearest suitable facility and the clinician on duty. The bed is held. If no facility has a free bed, the agent is alerted at once.
+> Kevin needs a bed. The system lists only facilities with the right service, a free bed and a clinician on duty, nearest first. Diane confirms, and the bed is held. If every facility is full, she's alerted at once.
 >
-> If nobody accepts an urgent case, all agents and the administrator are alerted after two minutes, then by email. If an agent loses connection, the case goes back to the queue.
+> If nobody takes an urgent case within two minutes, every agent and the administrator are alerted.
 >
-> At seven in the evening, the night agent, Eric, takes over. Diane can't leave with a case open, so the case is released to Eric. With no agent online, patients are told what to do, and the administrator is alerted.
+> And care doesn't stop at night. At seven in the evening, Eric takes over. Diane releases her open case, and it goes to him. If no agent is online at all, patients are told what to do, and the administrator is alerted.
 
-**Screen (agent in a desktop window; patient beside it when both are shown):**
+**Screen (agent in a desktop window; Aline's phone view beside it when both are shown):**
 
 | Shot | What happens | Labels |
 |---|---|---|
-| 4.1 | Diane logs in: password, a wrong code refused, the right code from the demo inbox | FR 2.1 Staff login · FR 2.2 Two-factor authentication |
-| 4.2 | Status Available; Away and Offline; Busy set by itself on accepting | FR 6.1 Agent status |
-| 4.3 | Three cases waiting; offered Urgent, then Uncertain, then Minor; the 30-second countdown | FR 6.2 Queue order · FR 6.3 Offer a case |
-| 4.4 | Trying to take a second case: refused | FR 6.4 One active case |
-| 4.5 | The case: photo, danger signs, AI result and reason, prescription history; a change saved with name and time | FR 6.5 Review and confirm · FR 11.6 Prescription history |
-| 4.6 | A case with the AI failing: "Uncertain: AI unavailable" | FR 4.7 AI unavailable |
-| 4.7 | Chat both ways, quick replies, the push notification on the phone | FR 6.6 Chat with patients |
-| 4.8 | A call request: number, owner, date of birth check, call note; 3 missed calls close as No response (time skipped) | FR 6.7 Call patients |
-| 4.9 | Minor case: advice and a prescription with its own code and QR; My prescriptions, one cancelled | FR 6.8 Handle minor cases remotely · FR 11.1 Issue prescription · FR 11.2 Prescription code · FR 11.5 My issued prescriptions |
-| 4.10 | A silent patient: Minor closes as No response after 10 minutes; Urgent can't (time skipped) | FR 6.9 Patient not responding |
-| 4.11 | Routing: service pre-selected, bed needed Yes, only capable facilities, nearest first; a farther one needs a reason; confirmed for 24 hours, bed reserved, clinician assigned | FR 5.1 Choose needed service · FR 5.2 Bed needed · FR 5.3 Match to capable facility · FR 5.4 Rank by proximity · FR 5.6 Confirm routing · FR 5.7 Reserve bed · FR 5.12 Assign attending clinician |
-| 4.12 | Routing changed: old bed freed, new facility | FR 5.10 Change routing |
-| 4.13 | Every facility full: "No beds currently available" and the agent's alert | FR 5.8 No free bed |
-| 4.14 | Close as Routed with a note; the record address now refused | FR 6.15 Close a case · FR 9.2 Agent access |
-| 4.15 | Urgent case waiting 2 minutes: alert to all agents and the admin; pause a Minor case to take it; 5 minutes: email in the inbox (time skipped) | FR 6.10 Escalation level 1 · FR 6.12 Pause for an urgent case · FR 6.11 Escalation level 2 |
-| 4.16 | Browser closed: Offline after 60 seconds, case back in the queue | FR 6.14 Lost connection |
-| 4.17 | Agent reports: own cases, outcomes, handling time, ratings | FR 12.8 Reports (agent) |
-| 4.18 | **19:00 Kigali time:** Eric (night agent) logs in, Available; Diane can't go Away with a case, releases it, Eric accepts | FR 6.16 End of shift · FR 6.3 Offer a case |
-| 4.19 | Eric Offline: three patients see the message for their level; admin alerted | FR 6.13 No agent online |
+| 4.1 | Diane logs in: password, then the code from the demo inbox | FR 2.1 Staff login · FR 2.2 Two-factor authentication |
+| 4.2 | Available; Kevin's case offered with the 30-second countdown; urgent offered before minor | FR 6.1 Agent status · FR 6.2 Queue order · FR 6.3 Offer a case |
+| 4.3 | The case: danger signs, AI result and reason; the level changed and saved with her name and the time | FR 6.5 Review and confirm · FR 4.9 Human review of every case |
+| 4.4 | Chat both ways (split screen with Aline's phone) | FR 6.6 Chat with patients |
+| 4.5 | Routing: service pre-selected, bed needed Yes, only capable facilities, nearest first; confirmed, bed reserved, clinician assigned | FR 5.1 Choose needed service · FR 5.3 Match to capable facility · FR 5.4 Rank by proximity · FR 5.6 Confirm routing · FR 5.7 Reserve bed · FR 5.12 Assign attending clinician |
+| 4.6 | Every facility full: "No beds currently available" and the alert | FR 5.8 No free bed |
+| 4.7 | An urgent case nobody takes: "2 minutes later", the alert to all agents and the admin | FR 6.10 Escalation level 1 |
+| 4.8 | 18:59 → 19:00 Kigali time: Eric logs in and goes Available; Diane can't go Away with a case, releases it; Eric accepts | FR 6.16 End of shift |
+| 4.9 | Eric goes Offline: the patient sees what to do; the admin's alert | FR 6.13 No agent online |
 
 ---
 
-## 05 · Demo: clinician (5:35 to 6:35) · `05-clinician.m4a`
+## 05 · Demo: clinician (5:20 to 6:20) · `05-clinician.m4a`
 
 **Say:**
 
-> At the facility, the clinician on duty sees who is coming: a summary only, no name, until the patient arrives. The clinician compares the photo and marks them arrived, and the held bed becomes theirs. Only the attending clinician opens the full record, during the visit.
+> At the facility, the clinician on duty sees who is coming, but only a summary, until the patient arrives. The clinician compares the identity photo and marks Kevin arrived. The held bed is now his, and only now does the clinician open his full record.
 >
-> The clinician writes in the record, and every edit keeps the earlier version. Prescriptions can be issued and cancelled, and the patient can be handed over to a colleague, or, when there's no free bed, transferred to the nearest facility that has one. The record follows the patient there.
+> The clinician writes the visit into the record and issues a prescription with its own code.
 >
-> When the patient is discharged, the bed is free again. If a clinician is marked unavailable, routing skips them at once, and their waiting patients go to a colleague. Routings that nobody arrives for expire after a day.
+> When a facility has no free bed, the patient is transferred to the nearest one that has, and the record goes with him. When he's discharged, the bed is free again.
 
 **Screen (clinician in a desktop window):**
 
 | Shot | What happens | Labels |
 |---|---|---|
-| 5.1 | Patients → On the way: summary only; full record refused before arrival | FR 7.4 Incoming patients · FR 9.3 Clinician access |
-| 5.2 | Compare the photo, Mark arrived; once with "doesn't match", refused | FR 7.5 Mark arrival |
-| 5.3 | Full record for the attending clinician; another clinician refused | FR 7.6 Attending clinician access |
-| 5.4 | Record entry written, then edited: earlier version kept | FR 7.7 Update record after care |
-| 5.5 | Assign a bed: free beds go down by one | FR 7.8 Assign bed |
-| 5.6 | Prescription from the visit; cancel one's own; can't cancel the agent's | FR 11.1 Issue prescription · FR 11.3 Cancel prescription |
-| 5.7 | Hand over to a colleague, who is notified | FR 7.11 Hand over patient |
-| 5.8 | No free bed: Transfer; the patient appears at Remera, with the Kacyiru entries in the record | FR 7.9 Transfer patient · FR 7.1 Store records · FR 7.3 Retrieve across facilities |
-| 5.9 | Discharge: free beds go up by one, access ends | FR 7.10 Discharge patient |
-| 5.10 | Mark unavailable: the next mental health case finds no facility, Urgent with 912; a waiting patient moves to a colleague | FR 8.5 Mark unavailable · FR 5.9 No matching facility · FR 5.13 Automatic reassignment |
-| 5.11 | A routing nobody arrived for, gone from the list after 24 hours (time skipped) | FR 5.11 Routing expiry |
-| 5.12 | Clinician reports | FR 12.8 Reports (clinician) |
+| 5.1 | Patients → On the way: summary only; the full record refused before arrival | FR 7.4 Incoming patients · FR 9.3 Clinician access |
+| 5.2 | Compare the photo, Mark arrived; the full record opens | FR 7.5 Mark arrival · FR 7.6 Attending clinician access |
+| 5.3 | A record entry and a prescription with its code and QR | FR 7.7 Update record after care · FR 11.1 Issue prescription · FR 11.2 Prescription code |
+| 5.4 | Transfer: the patient appears at Remera, with the Kacyiru entries in the record | FR 7.9 Transfer patient · FR 7.3 Retrieve across facilities |
+| 5.5 | Discharge: free beds go up by one | FR 7.10 Discharge patient |
 
 ---
 
-## 06 · Demo: public and pharmacy (6:35 to 7:00) · `06-public.m4a`
+## 06 · Demo: emergency page and pharmacy (6:20 to 6:45) · `06-public.m4a`
 
 **Say:**
 
-> Some things need no account. Anyone can open the emergency page: the emergency number and the nearest facility with emergency care. And a pharmacist checks a prescription by its code or QR code: valid, cancelled, expired, or not found.
+> Some things need no account at all. Anyone can open the emergency page: the emergency number and the nearest facility with emergency care. And a pharmacist checks Kevin's prescription by its code: valid, cancelled, or expired.
 
 **Screen:**
 
 | Shot | What happens | Labels |
 |---|---|---|
-| 6.1 | Emergency page without logging in; other pages send you to login | FR 1.9 Emergency without login · FR 9.6 Public access |
-| 6.2 | `/check`: a valid code with medicines, prescriber and licence; then cancelled, expired and unknown codes | FR 11.7 Prescription check page · FR 11.3 · FR 11.4 |
+| 6.1 | The emergency page without logging in | FR 1.9 Emergency without login |
+| 6.2 | `/check`: Kevin's code, valid, with medicines and prescriber; then a cancelled and an expired code | FR 11.7 Prescription check page |
 
 ---
 
-## 07 · Demo: facility manager (7:00 to 7:40) · `07-manager.m4a`
+## 07 · Demo: facility manager (6:45 to 7:15) · `07-manager.m4a`
 
 **Say:**
 
-> The facility manager keeps the facility's information right: its services, its location, and whether it's active. The manager sets the number of beds, manages the clinicians' accounts, and builds the weekly schedule of day and night shifts, where gaps are flagged. The manager sees the facility's reports, but never a patient's record.
+> The facility manager keeps the facility's information true, because routing depends on it: its services, its number of beds, and a weekly schedule of day and night shifts, where gaps are flagged. The manager sees reports, but never a patient's record.
 
 **Screen:**
 
 | Shot | What happens | Labels |
 |---|---|---|
-| 7.1 | Profile: services, level of care, location, active switch | FR 8.1 Manage capabilities |
-| 7.2 | Beds: total changed; a number below beds in use refused | FR 8.3 Set bed capacity |
-| 7.3 | Clinicians: create, edit, deactivate | FR 8.2 Manage clinician accounts |
-| 7.4 | Weekly schedule with the uncovered shifts flagged | FR 8.4 Weekly schedule |
-| 7.5 | Reports, CSV download; a patient record address refused | FR 12.8 Reports (manager) · FR 9.4 Facility manager access |
+| 7.1 | Profile: services and level of care | FR 8.1 Manage capabilities |
+| 7.2 | Beds: total changed | FR 8.3 Set bed capacity |
+| 7.3 | Weekly schedule with the uncovered shifts flagged | FR 8.4 Weekly schedule |
+| 7.4 | Reports; a patient record address refused | FR 12.8 Reports · FR 9.4 Facility manager access |
 
 ---
 
-## 08 · Demo: administrator (7:40 to 8:30) · `08-admin.m4a`
+## 08 · Demo: administrator (7:15 to 7:55) · `08-admin.m4a`
 
 **Say:**
 
-> The administrator runs the system: creating facilities and staff accounts. Each new person gets an email invitation to set a password. Accounts are deactivated, never deleted. Staff accounts lock after five wrong passwords and unlock only with an emailed code, and staff can reset a forgotten password.
->
-> The administrator plans the agents' shifts and sees who is on duty right now, manages the danger-sign questions in both languages, can switch the AI off, and sees every alert, every report, and a log of every action, but can't open patient records either.
+> The administrator runs the system. New staff get an email invitation to set their own password. The administrator plans the agents' shifts, so there's always someone on duty, manages the danger-sign questions in both languages, and can switch the AI off. Every action by every user is logged.
 
 **Screen:**
 
 | Shot | What happens | Labels |
 |---|---|---|
-| 8.1 | Create a facility, a manager and an agent; the invitation; setting the password (sign-up) | FR 12.1 Create accounts · FR 2.6 Staff invitation |
-| 8.2 | Deactivate an agent with a case: kept, case back in the queue; change an email | FR 12.2 Deactivate accounts · FR 12.3 Change staff email |
-| 8.3 | Five wrong passwords: locked; unlock code from the email; Forgot password; idle logout (time skipped) | FR 2.3 Temporary lock · FR 2.4 Email unlock · FR 2.7 Password reset · FR 2.5 Staff session timeout |
-| 8.4 | Agent schedule: Diane days, Eric nights; On duty with a scheduled Offline agent highlighted | FR 12.4 Agent schedule · FR 12.5 On-duty dashboard |
-| 8.5 | Red-flag list: add, edit, remove, in both languages | FR 12.6 Manage red-flag list |
-| 8.6 | AI switch off: a new case goes to the queue as Uncertain | FR 4.8 AI switch |
-| 8.7 | Alerts page | FR 12.7 Alerts |
-| 8.8 | Activity log of every user; a manager sees only their own staff | FR 10.1 Log access · FR 10.3 Staff activity |
-| 8.9 | Reports for the month; a patient record address refused; log out | FR 12.8 Reports (admin) · FR 9.5 Administrator access |
+| 8.1 | Create an agent; the invitation in the inbox | FR 12.1 Create accounts · FR 2.6 Staff invitation |
+| 8.2 | Agent schedule: Diane days, Eric nights; On duty now | FR 12.4 Agent schedule · FR 12.5 On-duty dashboard |
+| 8.3 | Danger-sign list in English and Kinyarwanda | FR 12.6 Manage red-flag list |
+| 8.4 | AI switch off: a new case goes to the queue as Uncertain | FR 4.8 AI switch |
+| 8.5 | Activity log | FR 10.1 Log access |
 
 ---
 
-## 09 · The live site (8:30 to 8:50) · `09-live.m4a`
+## 09 · The live site (7:55 to 8:40) · `09-live.m4a`
 
 **Say:**
 
-> Everything you've just seen is the same code that runs live, here at ubuzima dot wilsonn dot tech. Anyone can open it, and the demo accounts are in the README.
+> Everything you've just seen runs live, here at ubuzima dot wilsonn dot tech. This is the real deployment: the website on Vercel, and the API and database in Azure. Anyone can open the emergency page, check a prescription, or log in with the demo accounts listed in the README on GitHub.
 
-**Screen:** a normal Chrome window with the address bar: https://ubuzima.wilsonn.tech, the Emergency page, then `/check`. No login needed.
+**Screen (Chrome with the address bar, https://ubuzima.wilsonn.tech, no logins):**
+
+| Shot | What happens |
+|---|---|
+| 9.1 | The home page, scrolled slowly |
+| 9.2 | The patient login page and the staff login page (shown, not used) |
+| 9.3 | The emergency page with the nearest facility |
+| 9.4 | `/check` with a real prescription code from the live site: valid |
 
 ---
 
-## 10 · Testing, limits and close (8:50 to 9:30) · `10-close.m4a`
+## 10 · Testing, limits and close (8:40 to 9:15) · `10-close.m4a`
 
 **Say:**
 
-> I tested all one hundred and six functional requirements, by script and by hand for every user, and fixed what I found. Two hundred and three automated tests pass, and the AI never receives a name, an ID or a location.
+> I tested every functional requirement, by script and by hand for each user, and fixed what I found. Two hundred and three automated tests pass, and the AI never receives a name, an ID or a location.
 >
-> There are limits: the Kinyarwanda needs a native speaker's review, the national ID service is a mock, and real patient data would need hosting authorisation in Rwanda.
+> The limits: the Kinyarwanda needs a native speaker's review, and the national ID service is a mock.
 >
-> The code is public on GitHub, and the app is live. Thank you.
+> The code is public on GitHub, and the system is live. Thank you.
 
-**Screen:** testing slide, the test run passing (with the AI privacy test named), conclusion slide, then a closing card with the live URL and the GitHub link.
+**Screen:** Testing slide, the test run passing (with the AI privacy test named), Conclusion slide, then the Thank You slide with the GitHub link added below it in the edit.
 
 | Shot | Labels |
 |---|---|
@@ -278,58 +249,32 @@ About 1171 words in all: roughly 8 minutes of speech at a calm pace, plus pauses
 
 ---
 
-## Every requirement and where it appears
+## Why these requirements
 
-All **106** functional requirements in the SRS (section 4, revision 1.3) appear on screen, each with its label.
+The video shows **58 of the 106** requirements, chosen because each one proves part of the solution:
 
-| FR | Shot | FR | Shot | FR | Shot | FR | Shot |
-|---|---|---|---|---|---|---|---|
-| 1.1 | 3.1 | 3.9 | 3.17 | 5.13 | 5.10 | 7.10 | 5.9 |
-| 1.2 | 3.1 | 3.10 | 3.18 | 6.1 | 4.2 | 7.11 | 5.7 |
-| 1.3 | 3.6, 3.7 | 3.11 | 3.19 | 6.2 | 4.3 | 8.1 | 7.1 |
-| 1.4 | 3.2 | 4.1 | 3.15 | 6.3 | 4.3, 4.18 | 8.2 | 7.3 |
-| 1.5 | 3.4 | 4.2 | 3.16 | 6.4 | 4.4 | 8.3 | 7.2 |
-| 1.6 | 3.3 | 4.3 | 3.13 | 6.5 | 4.5 | 8.4 | 7.4 |
-| 1.7 | 3.5 | 4.4 | 3.13 | 6.6 | 4.7 | 8.5 | 5.10 |
-| 1.8 | 3.5 | 4.5 | 3.14 | 6.7 | 4.8 | 9.1 | 3.7 |
-| 1.9 | 6.1 | 4.6 | 10.1 | 6.8 | 4.9 | 9.2 | 4.14 |
-| 1.10 | 3.6 | 4.7 | 4.6 | 6.9 | 4.10 | 9.3 | 5.1 |
-| 2.1 | 4.1 | 4.8 | 8.6 | 6.10 | 4.15 | 9.4 | 7.5 |
-| 2.2 | 4.1 | 4.9 | 3.13 | 6.11 | 4.15 | 9.5 | 8.9 |
-| 2.3 | 8.3 | 5.1 | 4.11 | 6.12 | 4.15 | 9.6 | 6.1 |
-| 2.4 | 8.3 | 5.2 | 4.11 | 6.13 | 4.19 | 10.1 | 8.8 |
-| 2.5 | 8.3 | 5.3 | 4.11 | 6.14 | 4.16 | 10.2 | 3.21 |
-| 2.6 | 8.1 | 5.4 | 4.11 | 6.15 | 3.20, 4.14 | 10.3 | 8.8 |
-| 2.7 | 8.3 | 5.5 | 3.15 | 6.16 | 4.18 | 11.1 | 4.9, 5.6 |
-| 3.1 | 3.8 | 5.6 | 4.11 | 7.1 | 5.8 | 11.2 | 4.9 |
-| 3.2 | 3.12 | 5.7 | 4.11 | 7.2 | 3.21 | 11.3 | 5.6, 6.2 |
-| 3.3 | 3.8 | 5.8 | 4.13 | 7.3 | 5.8 | 11.4 | 3.21, 6.2 |
-| 3.4 | 3.9 | 5.9 | 5.10 | 7.4 | 5.1 | 11.5 | 4.9 |
-| 3.5 | 3.10 | 5.10 | 4.12 | 7.5 | 5.2 | 11.6 | 4.5 |
-| 3.6 | 3.11 | 5.11 | 5.11 | 7.6 | 5.3 | 11.7 | 6.2 |
-| 3.7 | 3.12 | 5.12 | 4.11 | 7.7 | 5.4 | 12.1 | 8.1 |
-| 3.8 | 3.17 | | | 7.8 | 5.5 | 12.2 to 12.3 | 8.2 |
-| | | | | 7.9 | 5.8 | 12.4 to 12.5 | 8.4 |
-| | | | | | | 12.6 | 8.5 |
-| | | | | | | 12.7 | 8.7 |
-| | | | | | | 12.8 | 4.17, 5.12, 7.5, 8.9 |
+| What it proves | Requirements shown |
+|---|---|
+| The right person, without a password or paperwork | FR 1.1, 1.2, 1.3, 1.4, 1.6, 2.1, 2.2, 2.6 |
+| Safe triage: danger signs before the AI, and a person always decides | FR 3.6, 3.7, 4.1, 4.3, 4.4, 4.8, 4.9, 5.5, 6.5, 12.6 |
+| The right place: a facility with the service, a free bed and a clinician | FR 5.1, 5.3, 5.4, 5.6, 5.7, 5.8, 5.12, 8.1, 8.3 |
+| In time, day and night | FR 6.1, 6.2, 6.3, 6.10, 6.13, 6.16, 8.4, 12.4, 12.5 |
+| The record follows the patient, and only the right people see it | FR 7.3, 7.4, 7.5, 7.6, 7.7, 7.9, 7.10, 9.3, 9.4, 4.6, 10.1 |
+| Works for Rwanda's conditions: phones, weak internet, no account | FR 1.9, 3.1, 3.3, 3.5, 3.10, 6.6, 11.1, 11.2, 11.7, 12.1, 12.8 |
+
+The other 48 work too: they are listed in `docs/FR-TEST-CHECKLIST.md`, tested by script and by hand.
 
 ## The system design in the video
 
-- **Actors:** the six user types are named in clip 02 and each gets its own demo part (03 to 08).
-- **Main process:** clip 02 states it (danger signs, AI suggestion, agent decides, routing with a held bed), and the demo follows one patient through it in order: patient (03), agent (04), clinician (05), pharmacy (06).
-- **Architecture and deployment:** the system design slide and the deployment diagram in clip 02, and the live site in clip 09.
+- **Actors:** the six user types are named in clip 02, and five get their own demo part (03 to 08); pharmacies appear in 06.
+- **Main process:** clip 02 states it, and the demo follows Kevin through it in order: patient (03), agent (04), clinician (05), pharmacy (06).
+- **Architecture and deployment:** the System Design slide and the deployment diagram in clip 02, and the live site in clip 09.
 
-## Before the edit: slides to fix
+## Recording sittings (all done by script)
 
-The deck "UbuzimaConnect | Your Health on Time" still has old facts. Fix them before the slides are exported:
-
-| Slide | Change |
-|---|---|
-| Title | Fill in the supervisor, department and date |
-| System Design | Database: Azure Database for PostgreSQL, not Supabase |
-| Implementation | Database: PostgreSQL on Azure, not Supabase |
-| Testing | 203 automated tests; all 106 functional requirements work |
-| Conclusion | All 106 functional requirements met |
-
-Then download it as a PDF (File → Download → PDF) into `video/slides.pdf`.
+| Sitting | Where | Clips |
+|---|---|---|
+| A | Local copy, clock as normal | 03 to 08, except 4.8 and 4.9 |
+| B | Local copy, clock set to 18:59 Kigali time | 4.8, 4.9 |
+| C | Live site | 09 |
+| D | Slides exported as 4K images | 00, 01, 02, 10 |

@@ -41,6 +41,7 @@ The facilitator advised against Supabase, so the database now runs on **Azure Da
 - 14 Nov: grouped the existing commits into 5 feature branches and merged each through a pull request (#2 to #6), keeping every commit's real date; merged #1 too. The live site was kept on its current version throughout (Vercel builds paused, then switched back on).
 - 14 Nov: tested the README on a fresh clone with an empty database and Node 22. Two steps failed and were fixed (pull request #7): the web settings example had never been pushed (a `.gitignore` rule hid it), and migrations failed when `DIRECT_URL` was empty. Added the missing steps (clone, Corepack, database user, secret, demo schedule, full check). Proven again on a fresh clone: 104 of 105 checks (the last needs HTTPS) and all 203 automated tests pass.
 - 15 Nov: stand-up 2 document filled in for PLD 2 (date, facilitator, attendance, the UbuzimaConnect section and the General Updates).
+- 15 Nov: made the team's Stand-Up 2 task tracker from the course template (shared with everyone at ALU as editors), filled in the members, 9 tasks and the two meetings (13 Nov planning in WhatsApp, 15 Nov stand-up facilitated by Joseph), and linked it at the top of the stand-up document.
 - 15 Nov: wrote the video script (`docs/VIDEO.md`): 11 clips to record in my own voice, word for word, about 9.5 minutes, with a shot list that labels all 106 requirements. The demo is recorded by script on a local copy and the live site is shown at the end. The presentation plan was folded into it.
 
 ## Challenges
