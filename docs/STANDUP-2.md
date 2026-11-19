@@ -36,7 +36,14 @@ The facilitator advised against Supabase, so the database now runs on **Azure Da
 - 13 Nov (evening): on-screen testing of every user type in the browser (patient, agent, clinician, facility manager, administrator), with the staff passwords typed by hand. Everything works. Fixed three things found on screen: new cases now appear on every agent's queue at once (they needed a reload before); activity lists are in true time order (an old entry sat on top); every activity entry now has plain wording. Small layout and wording points are listed in `docs/FR-TEST-CHECKLIST.md`.
 - 13 Nov (night): fixed the small points from on-screen testing (b43b146, 252304c): a Loading sign on staff pages; the website's server code moved from Washington to Mumbai, next to the UAE API, so pages answer in about 0.8 s; roomier agent case screen; clearer routing heading; "No agent online" emailed only when a case waits; turned-off accounts listed last; red-flag questions need Kinyarwanda; average stay in hours.
 - 14 Nov: fixed the translation sheet script. The 23 danger-sign questions had dropped out of the sheet (the seed now splits long questions over several lines, which the script didn't read), and some Kinyarwanda example rows showed a name where a number belonged ("Kevin kuri 5"). Both columns now use the same example values, chosen by parameter name, and the script stops with an error if a question or a draft is missing. The sheet has 421 rows again.
-- 14 Nov: rewrote `docs/VIDEO.md` so the demo video shows all 106 functional requirements, each with an on-screen caption, in three sittings: preparation the day before (for the 24-hour, 48-hour and 7-day rules), a day recording, and a night recording at the 19:00 shift change where the night agent (Eric, `agent2@`) takes over. A table maps every requirement to its scene. New `docs/PRESENTATION.md`: the slide-by-slide plan for the presentation video, with a 3-minute live demo and the deck facts to update (Supabase, 199 tests, 105 of 106).
+- 14 Nov: planned the demo video.
+- 14 Nov: checked the Final Project brief on Canvas: one video of 5 to 10 minutes (system, problem, why, solution, demo), due 25 Nov 2026; the GitHub grade looks for feature branches and at least 3 merged pull requests.
+- 14 Nov: grouped the existing commits into 5 feature branches and merged each through a pull request (#2 to #6), keeping every commit's real date; merged #1 too. The live site was kept on its current version throughout (Vercel builds paused, then switched back on).
+- 14 Nov: tested the README on a fresh clone with an empty database and Node 22. Two steps failed and were fixed (pull request #7): the web settings example had never been pushed (a `.gitignore` rule hid it), and migrations failed when `DIRECT_URL` was empty. Added the missing steps (clone, Corepack, database user, secret, demo schedule, full check). Proven again on a fresh clone: 104 of 105 checks (the last needs HTTPS) and all 203 automated tests pass.
+- 15 Nov: stand-up 2 document filled in for PLD 2 (date, facilitator, attendance, the UbuzimaConnect section and the General Updates).
+- 15 Nov: made the team's Stand-Up 2 task tracker from the course template (shared with everyone at ALU as editors), filled in the members, 9 tasks and the two meetings (13 Nov planning in WhatsApp, 15 Nov stand-up facilitated by Joseph), and linked it at the top of the stand-up document.
+- 15 Nov: wrote the video script.
+- 19 Nov: updated the slide deck to the latest SRS (version 1.3): supervisor and course on the title slide, the database on Azure, 203 automated tests and all 106 requirements met; refocused the video script on one patient's journey.
 
 ## Challenges
 
@@ -55,10 +62,13 @@ The facilitator advised against Supabase, so the database now runs on **Azure Da
 | Website couldn't reach the API (found 13 Nov) | Vercel's `API_URL` still named the Central India app deleted on 11 Nov, so every call through the website failed (502). The live check calls the API directly, so it kept passing | Pointed both settings at `api.ubuzima.wilsonn.tech` and redeployed. Lesson: when retiring a server, search every place its address is set, and test through the website too |
 | Screens not covered by API tests (13 Nov) | Live checks talk to the API, so a queue that didn't refresh and an activity list out of order only showed up when the screens were used by hand | Tested every role on screen and fixed both; on-screen testing is now part of each test round |
 | Slow staff pages (13 Nov) | Vercel ran the website's server code in Washington, so each login check went Kigali to the US to the UAE and back; first loads took up to 8.5 s | Moved it to Mumbai (bom1) beside the API and added a Loading sign |
+| README setup broken on a fresh clone (found 14 Nov) | Following the README on a clean computer failed twice: a settings file was never pushed, and migrations read an empty `DIRECT_URL` | Fixed both and proved the whole setup on a fresh clone. Lesson: test setup instructions on a clean machine, not only on the one they were written on |
+| No pull requests in the history (found 14 Nov) | Early work went straight to main, and the rubric looks for feature branches and merged pull requests | Grouped the existing commits into feature branches and merged them through pull requests with their real dates; all new work goes through branches |
 | Cost of running two App Service plans | App Service B1 is paid from the $100 student credit (about $13 a month per plan); the old India plan and the new UAE plan both run during the move | Retire the India plan as soon as HTTPS works on the UAE apps |
 
 ## Next moves
 1. Renew the API certificate in January 2027 (it ends 9 Feb 2027), following DEPLOY.md step 6.
-2. Update the slide deck (see `docs/PRESENTATION.md`), then record the presentation video.
-3. Record the demo video following `docs/VIDEO.md` (sitting 0 the day before; the night sitting from 18:45 Kigali time).
-4. Refill the demo schedule before the end of January: `node scripts/demo-schedule.mjs 12`.
+2. Export the slides for the video.
+3. Record and edit the demo video (5 to 10 minutes).
+4. Final submission Google Doc (`personNames_[Summative]_[MMDDYYYY]`) with the video, GitHub, SRS and live links, each opening for anyone; submit on Canvas by 25 Nov 2026.
+5. Refill the demo schedule before the end of January: `node scripts/demo-schedule.mjs 12`.
