@@ -1,18 +1,18 @@
 # Final Project video: script and shot list
 
-**One video, about 9 minutes 15 seconds, never more than 9:45** (the brief allows 5 to 10). In this order: what the system is, the problem, why it is a problem, the solution and its design, a demo, the live site, and the close.
+**One video, about 8 minutes 35 seconds, never more than 9:45** (the brief allows 5 to 10). In this order: what the system is, the problem, why it is a problem, the solution and its design, a demo on the live site, and the close.
 
 The demo doesn't try to show every requirement. It follows **one patient from "my son is sick" to a bed at a facility that can treat him**, and adds only the features that prove the solution is safe, works around the clock, and holds up when things go wrong.
 
 ## How it is made
 
 1. **Your voice:** you record each clip below, word for word, as its own audio file. This is the only thing you do.
-2. **The demo (clips 03 to 08):** recorded by script on a **local copy** of the system (the same code as the live site), so every login, code and ID is typed by the script. Each account has its own browser window, so several accounts can be on screen at once.
-3. **The live site (clip 09):** recorded by script on https://ubuzima.wilsonn.tech, with the address bar showing. Only pages that need no login.
+2. **The demo (clips 03 to 08):** recorded by script on the **live site**, https://ubuzima.wilsonn.tech. Before a sitting, I open one browser window per account and you log in to each, off camera. The script saves those logins and records every scene with them. Each account has its own window, so several accounts can be on screen at once.
+3. **Local copy, only where the live site can't be used:** the shots that type a login (an ID, a password or a code) and the one that needs every bed filled. These are marked **Local** below. The local copy runs the same code.
 4. **The slides:** exported from the deck "UbuzimaConnect | Your Health on Time" (already updated on 19 Nov).
-5. **The edit:** each shot is fitted to your clip. A small label names each requirement as it appears, for example `FR 6.3 Offer a case`.
+5. **The edit:** each shot is fitted to your clip. A small label names each requirement as it appears, for example `FR 6.3 Offer a case`, and a corner label says **Live: ubuzima.wilsonn.tech** or **Local copy**.
 
-No long waits are needed. The one wait in the demo (an urgent case left for 2 minutes) is filmed for real and cut, with a "2 minutes later" label. The night shift is recorded with the local copy's clock at 18:59 Kigali time.
+Nothing on the live site has its times or data changed. The one wait (an urgent case left for 2 minutes) is filmed for real and cut, with a "2 minutes later" label. The night shift is recorded live at the real 19:00 Kigali time.
 
 ## Recording your voice
 
@@ -30,16 +30,15 @@ No long waits are needed. The one wait in the demo (an urgent case left for 2 mi
 | 00 | 0:00 to 0:20 | What the system is | Slides | 43 |
 | 01 | 0:20 to 1:20 | The problem, and why it is a problem | Slides | 130 |
 | 02 | 1:20 to 2:05 | The solution and the design | Slides | 93 |
-| 03 | 2:05 to 3:40 | Demo: patient | Local | 155 |
-| 04 | 3:40 to 5:20 | Demo: health agent, day and night | Local | 173 |
-| 05 | 5:20 to 6:20 | Demo: clinician | Local | 92 |
-| 06 | 6:20 to 6:45 | Demo: emergency page and pharmacy | Local | 36 |
-| 07 | 6:45 to 7:15 | Demo: facility manager | Local | 41 |
-| 08 | 7:15 to 7:55 | Demo: administrator | Local | 48 |
-| 09 | 7:55 to 8:40 | The live site | Live | 51 |
-| 10 | 8:40 to 9:15 | Testing, limits and close | Slides | 67 |
+| 03 | 2:05 to 3:45 | Demo: patient | Live (logins local) | 166 |
+| 04 | 3:45 to 5:25 | Demo: health agent, day and night | Live (2 shots local) | 173 |
+| 05 | 5:25 to 6:25 | Demo: clinician | Live | 92 |
+| 06 | 6:25 to 6:50 | Demo: emergency page and pharmacy | Live | 36 |
+| 07 | 6:50 to 7:20 | Demo: facility manager | Live | 41 |
+| 08 | 7:20 to 8:00 | Demo: administrator | Live | 48 |
+| 09 | 8:00 to 8:35 | Testing, limits and close | Slides | 73 |
 
-About 930 words: roughly 6.5 minutes of speech, plus pauses on the screens. That leaves 30 seconds of room under 9:45.
+About 900 words: roughly 6.5 minutes of speech, plus pauses on the screens. That leaves over a minute of room under 9:45.
 
 ---
 
@@ -83,11 +82,11 @@ About 930 words: roughly 6.5 minutes of speech, plus pauses on the screens. That
 
 ---
 
-## 03 · Demo: patient (2:05 to 3:40) · `03-patient.m4a`
+## 03 · Demo: patient (2:05 to 3:45) · `03-patient.m4a`
 
 **Say:**
 
-> Let's follow a patient. Aline logs in with her national ID, her date of birth and one name, checked against the national ID service. There's no password to forget. Wrong details are refused, and five wrong tries lock the ID.
+> This is the live system, at ubuzima dot wilsonn dot tech. Let's follow a patient. Aline logs in with her national ID, her date of birth and one name, checked against the national ID service. There's no password to forget. Wrong details are refused, and five wrong tries lock the ID.
 >
 > As a parent, she sees her children too. Her son Kevin is sick. She picks him and shares her location.
 >
@@ -101,8 +100,9 @@ About 930 words: roughly 6.5 minutes of speech, plus pauses on the screens. That
 
 | Shot | What happens | Labels |
 |---|---|---|
-| 3.1 | Login: ID in six boxes, date of birth, name; logged in | FR 1.1 Verify national ID · FR 1.2 Knowledge-based check |
-| 3.2 | Wrong name: a plain message; the fifth wrong try: "locked for 15 minutes", with the Emergency button | FR 1.4 Reject invalid access · FR 1.6 Lock after failed attempts |
+| 3.0 | Chrome with the address bar: https://ubuzima.wilsonn.tech, the home page | |
+| 3.1 | **Local:** login: ID in six boxes, date of birth, name; logged in | FR 1.1 Verify national ID · FR 1.2 Knowledge-based check |
+| 3.2 | **Local:** wrong name: a plain message; the fifth wrong try: "locked for 15 minutes", with the Emergency button | FR 1.4 Reject invalid access · FR 1.6 Lock after failed attempts |
 | 3.3 | Home: Aline, Kevin and Grace | FR 1.3 Family access model |
 | 3.4 | Get help → Who is sick? → Kevin; Use my location | FR 3.1 Choose who is sick · FR 3.3 Capture current location |
 | 3.5 | Danger-sign checklist on one screen; "None of these" | FR 3.6 Red-flag checklist |
@@ -112,7 +112,7 @@ About 930 words: roughly 6.5 minutes of speech, plus pauses on the screens. That
 
 ---
 
-## 04 · Demo: health agent, day and night (3:40 to 5:20) · `04-agent.m4a`
+## 04 · Demo: health agent, day and night (3:45 to 5:25) · `04-agent.m4a`
 
 **Say:**
 
@@ -130,19 +130,19 @@ About 930 words: roughly 6.5 minutes of speech, plus pauses on the screens. That
 
 | Shot | What happens | Labels |
 |---|---|---|
-| 4.1 | Diane logs in: password, then the code from the demo inbox | FR 2.1 Staff login · FR 2.2 Two-factor authentication |
+| 4.1 | **Local:** Diane logs in: password, then the code from the demo inbox | FR 2.1 Staff login · FR 2.2 Two-factor authentication |
 | 4.2 | Available; Kevin's case offered with the 30-second countdown; urgent offered before minor | FR 6.1 Agent status · FR 6.2 Queue order · FR 6.3 Offer a case |
 | 4.3 | The case: danger signs, AI result and reason; the level changed and saved with her name and the time | FR 6.5 Review and confirm · FR 4.9 Human review of every case |
 | 4.4 | Chat both ways (split screen with Aline's phone) | FR 6.6 Chat with patients |
 | 4.5 | Routing: service pre-selected, bed needed Yes, only capable facilities, nearest first; confirmed, bed reserved, clinician assigned | FR 5.1 Choose needed service · FR 5.3 Match to capable facility · FR 5.4 Rank by proximity · FR 5.6 Confirm routing · FR 5.7 Reserve bed · FR 5.12 Assign attending clinician |
-| 4.6 | Every facility full: "No beds currently available" and the alert | FR 5.8 No free bed |
+| 4.6 | **Local:** every facility full: "No beds currently available" and the alert | FR 5.8 No free bed |
 | 4.7 | An urgent case nobody takes: "2 minutes later", the alert to all agents and the admin | FR 6.10 Escalation level 1 |
-| 4.8 | 18:59 → 19:00 Kigali time: Eric logs in and goes Available; Diane can't go Away with a case, releases it; Eric accepts | FR 6.16 End of shift |
+| 4.8 | The real 19:00 Kigali time: Eric logs in and goes Available; Diane can't go Away with a case, releases it; Eric accepts | FR 6.16 End of shift |
 | 4.9 | Eric goes Offline: the patient sees what to do; the admin's alert | FR 6.13 No agent online |
 
 ---
 
-## 05 · Demo: clinician (5:20 to 6:20) · `05-clinician.m4a`
+## 05 · Demo: clinician (5:25 to 6:25) · `05-clinician.m4a`
 
 **Say:**
 
@@ -164,7 +164,7 @@ About 930 words: roughly 6.5 minutes of speech, plus pauses on the screens. That
 
 ---
 
-## 06 · Demo: emergency page and pharmacy (6:20 to 6:45) · `06-public.m4a`
+## 06 · Demo: emergency page and pharmacy (6:25 to 6:50) · `06-public.m4a`
 
 **Say:**
 
@@ -179,7 +179,7 @@ About 930 words: roughly 6.5 minutes of speech, plus pauses on the screens. That
 
 ---
 
-## 07 · Demo: facility manager (6:45 to 7:15) · `07-manager.m4a`
+## 07 · Demo: facility manager (6:50 to 7:20) · `07-manager.m4a`
 
 **Say:**
 
@@ -190,13 +190,13 @@ About 930 words: roughly 6.5 minutes of speech, plus pauses on the screens. That
 | Shot | What happens | Labels |
 |---|---|---|
 | 7.1 | Profile: services and level of care | FR 8.1 Manage capabilities |
-| 7.2 | Beds: total changed | FR 8.3 Set bed capacity |
+| 7.2 | Beds: total changed (put back right after) | FR 8.3 Set bed capacity |
 | 7.3 | Weekly schedule with the uncovered shifts flagged | FR 8.4 Weekly schedule |
 | 7.4 | Reports; a patient record address refused | FR 12.8 Reports · FR 9.4 Facility manager access |
 
 ---
 
-## 08 · Demo: administrator (7:15 to 7:55) · `08-admin.m4a`
+## 08 · Demo: administrator (7:20 to 8:00) · `08-admin.m4a`
 
 **Say:**
 
@@ -206,32 +206,15 @@ About 930 words: roughly 6.5 minutes of speech, plus pauses on the screens. That
 
 | Shot | What happens | Labels |
 |---|---|---|
-| 8.1 | Create an agent; the invitation in the inbox | FR 12.1 Create accounts · FR 2.6 Staff invitation |
+| 8.1 | Create a test agent; the invitation in the demo inbox (the agent is deactivated after) | FR 12.1 Create accounts · FR 2.6 Staff invitation |
 | 8.2 | Agent schedule: Diane days, Eric nights; On duty now | FR 12.4 Agent schedule · FR 12.5 On-duty dashboard |
 | 8.3 | Danger-sign list in English and Kinyarwanda | FR 12.6 Manage red-flag list |
-| 8.4 | AI switch off: a new case goes to the queue as Uncertain | FR 4.8 AI switch |
+| 8.4 | AI switch off: a new case goes to the queue as Uncertain (switched back on right after) | FR 4.8 AI switch |
 | 8.5 | Activity log | FR 10.1 Log access |
 
 ---
 
-## 09 · The live site (7:55 to 8:40) · `09-live.m4a`
-
-**Say:**
-
-> Everything you've just seen runs live, here at ubuzima dot wilsonn dot tech. This is the real deployment: the website on Vercel, and the API and database in Azure. Anyone can open the emergency page, check a prescription, or log in with the demo accounts listed in the README on GitHub.
-
-**Screen (Chrome with the address bar, https://ubuzima.wilsonn.tech, no logins):**
-
-| Shot | What happens |
-|---|---|
-| 9.1 | The home page, scrolled slowly |
-| 9.2 | The patient login page and the staff login page (shown, not used) |
-| 9.3 | The emergency page with the nearest facility |
-| 9.4 | `/check` with a real prescription code from the live site: valid |
-
----
-
-## 10 · Testing, limits and close (8:40 to 9:15) · `10-close.m4a`
+## 09 · Testing, limits and close (8:00 to 8:35) · `09-close.m4a`
 
 **Say:**
 
@@ -239,13 +222,13 @@ About 930 words: roughly 6.5 minutes of speech, plus pauses on the screens. That
 >
 > The limits: the Kinyarwanda needs a native speaker's review, and the national ID service is a mock.
 >
-> The code is public on GitHub, and the system is live. Thank you.
+> The code is public on GitHub, and the system is live at ubuzima dot wilsonn dot tech. Thank you.
 
 **Screen:** Testing slide, the test run passing (with the AI privacy test named), Conclusion slide, then the Thank You slide with the GitHub link added below it in the edit.
 
 | Shot | Labels |
 |---|---|
-| 10.1 | FR 4.6 Protect identity |
+| 9.1 | FR 4.6 Protect identity |
 
 ---
 
@@ -268,13 +251,15 @@ The other 48 work too: they are listed in `docs/FR-TEST-CHECKLIST.md`, tested by
 
 - **Actors:** the six user types are named in clip 02, and five get their own demo part (03 to 08); pharmacies appear in 06.
 - **Main process:** clip 02 states it, and the demo follows Kevin through it in order: patient (03), agent (04), clinician (05), pharmacy (06).
-- **Architecture and deployment:** the System Design slide and the deployment diagram in clip 02, and the live site in clip 09.
+- **Architecture and deployment:** the System Design slide and the deployment diagram in clip 02, and the demo itself running on the live site.
 
 ## Recording sittings (all done by script)
 
-| Sitting | Where | Clips |
-|---|---|---|
-| A | Local copy, clock as normal | 03 to 08, except 4.8 and 4.9 |
-| B | Local copy, clock set to 18:59 Kigali time | 4.8, 4.9 |
-| C | Live site | 09 |
-| D | Slides exported as 4K images | 00, 01, 02, 10 |
+| Sitting | Where | Shots | You |
+|---|---|---|---|
+| A | Live, daytime | Clips 03 to 08, except the local shots and 4.8, 4.9 | Log in about 8 accounts before it starts |
+| B | Live, from 18:50 Kigali time | 4.8, 4.9 (the real 19:00 handover) | Log in Diane and Eric before it starts |
+| C | Local copy | 3.1, 3.2, 4.1, 4.6 | Nothing |
+| D | Slides exported as 4K images | 00, 01, 02, 09 | Nothing |
+
+If a saved login expires during a sitting, the script stops and asks you to log in that one account again.
