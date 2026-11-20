@@ -3,7 +3,7 @@ import type { Citizen } from "./citizens";
 const BACKGROUND_TONES = ["#CAD4DC", "#A7B4BF", "#E3E9EE", "#D4E9FF"];
 
 /**
- * An identity photo for people without an uploaded one. The mock has no real photos, so it returns a plain
+ * An identity photo for anyone without a portrait (no file in photos/ and no upload): a plain
  * silhouette. Only the background tone varies, so two people don't look identical.
  */
 export function photoSvg(citizen: Citizen): string {

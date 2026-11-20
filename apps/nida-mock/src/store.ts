@@ -1,5 +1,6 @@
 import { NIDA_ID_AGE, nidaAge, type NidaPersonInput } from "@ubuzima/shared";
 import { randomInt } from "node:crypto";
+import { readFileSync } from "node:fs";
 import pg from "pg";
 import { citizens, type Citizen } from "./citizens";
 
@@ -77,9 +78,29 @@ function fromRow(row: Row): StoredCitizen {
   };
 }
 
+/**
+ * The built-in people's portraits, from photos/<ref>.jpg next to dist/ and src/. They are invented faces made
+ * for the demo. Read once and kept; a person with no file keeps the silhouette.
+ */
+const PHOTOS = new URL("../photos/", import.meta.url);
+const portraits = new Map<string, Buffer | null>();
+function portrait(ref: string): Buffer | null {
+  if (!portraits.has(ref)) {
+    let bytes: Buffer | null = null;
+    try {
+      bytes = readFileSync(new URL(`${ref}.jpg`, PHOTOS));
+    } catch {
+      bytes = null;
+    }
+    portraits.set(ref, bytes);
+  }
+  return portraits.get(ref) ?? null;
+}
+
 /** A built-in demo person, in the same shape as someone added through the form. */
 function seeded(citizen: Citizen): StoredCitizen {
-  return { ...citizen, phone: null, photo: null, photoType: null, addedAt: null };
+  const photo = portrait(citizen.ref);
+  return { ...citizen, phone: null, photo, photoType: photo ? "image/jpeg" : null, addedAt: null };
 }
 
 export async function byNationalId(nationalId: string): Promise<StoredCitizen | null> {
