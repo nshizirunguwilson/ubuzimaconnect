@@ -84,7 +84,7 @@ class NidaController {
     return verify(String(body.nationalId ?? ""), String(body.dateOfBirth ?? ""), String(body.name ?? ""));
   }
 
-  /** The uploaded photo for people added through the form, or a silhouette for everyone else. */
+  /** The portrait: an uploaded photo, a built-in person's file in photos/, or else a silhouette. */
   @Get("photos/:ref")
   async photo(@Param("ref") ref: string, @Res() response: Response) {
     const citizen = await findByRef(ref);
