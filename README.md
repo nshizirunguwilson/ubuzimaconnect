@@ -14,7 +14,7 @@ A telehealth triage platform for Rwanda. A patient logs in with their national I
 
 - **Live site:** https://ubuzima.wilsonn.tech (patients) and https://ubuzima.wilsonn.tech/staff/login (staff). Live since 25 Oct 2026; how it's hosted: [`docs/DEPLOY.md`](docs/DEPLOY.md).
 - **Code:** https://github.com/nshizirunguwilson/ubuzimaconnect
-- **Demo video:** link added once recorded.
+- **Demo video:** https://youtu.be/Vee4-xrCH04 (9:41, unlisted on YouTube)
 
 What the SRS asks for, and the status of every requirement: [`docs/TRACEABILITY.md`](docs/TRACEABILITY.md).
 
@@ -214,6 +214,6 @@ Everything in the SRS is built, phase by phase, and each phase was reviewed in t
 - **Phase 1:** every screen, in five batches: setup data; the patient's request; the agent's queue, chat and routing; clinicians and visits; prescriptions, records and activity.
 - **Phase 2:** the whole flow, end to end (`apps/api/test/flow.test.ts`).
 - **Phase 3:** timers and escalations, alerts, push notifications, offline use, Kinyarwanda, reports, and the performance checks.
-- **Phase 4:** the public repository, the demo inbox, deployment packaging and docs. Going live is in progress.
+- **Phase 4:** the public repository, the demo inbox, deployment packaging and docs. Live on Azure since 25 Oct 2026.
 
 What's still open is listed under Known limitations above, and requirement by requirement in [`docs/TRACEABILITY.md`](docs/TRACEABILITY.md).
